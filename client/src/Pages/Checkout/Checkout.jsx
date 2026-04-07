@@ -30,6 +30,7 @@ const Checkout = () => {
     const [braintreeInstance, setBraintreeInstance] = useState(null);
     const [braintreeReady, setBraintreeReady] = useState(false);
     const [paymentSuccessMessage, setPaymentSuccessMessage] = useState('');
+    const [paymentMethodError, setPaymentMethodError] = useState('');
     const braintreeContainerRef = useRef(null);
     const user = useAppSelector((state) => state.auth?.user);
     const authToken = useAppSelector((state) => state.auth?.token);
@@ -63,6 +64,7 @@ const Checkout = () => {
 
     // Reset form when component mounts
     useEffect(() => {
+        setPaymentMethodError('');
         reset({
             firstName: '',
             lastName: '',
@@ -264,6 +266,7 @@ const Checkout = () => {
     const onBraintreeSubmit = async (e) => {
         e.preventDefault();
         clearErrors(['firstName', 'lastName']);
+        setPaymentMethodError('');
         // Ensure customer name is filled before taking payment, even when payload came from a previous step
         const first = (getValues('firstName') || '').trim();
         const last = (getValues('lastName') || '').trim();
@@ -393,6 +396,16 @@ const Checkout = () => {
                 err?.response?.data?.msg ||
                 err?.response?.data?.message ||
                 'Payment failed. Please try again.';
+            
+            // Check if error is about no payment method being selected
+            if (/no payment method|payment method.+required/i.test(String(message))) {
+                setPaymentMethodError('Please select a payment method');
+                try {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } catch (_e) {}
+                return;
+            }
+            
             dispatch(setError(message));
         }
     };
@@ -636,6 +649,9 @@ const Checkout = () => {
                                         {showBraintreeStep && (
                                             <div className="mt-6">
                                                 <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4">Complete payment</h2>
+                                                {paymentMethodError && (
+                                                    <p className="text-red-500 text-sm mb-3 p-3 bg-red-50 rounded-lg border border-red-200">{paymentMethodError}</p>
+                                                )}
                                                 <div id="braintree-dropin-container" ref={braintreeContainerRef} />
                                             </div>
                                         )}
