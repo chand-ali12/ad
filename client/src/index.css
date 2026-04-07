@@ -1,0 +1,565 @@
+@import url('https://fonts.googleapis.com/css2?family=Antonio:wght@100;200;300;400;500;600;700&family=Inter:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Theme Colors */
+  --color-primary: #3C1F1B;
+  --color-secondary: #FFFFFF;
+  --color-primary-hover: #5a2f28;
+
+  /* Typography */
+  --font-family: 'Montserrat', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --line-height: 1.5;
+
+  /* Spacing & Layout */
+  --border-radius: 8px;
+  --transition: all 0.25s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  line-height: var(--line-height);
+  font-weight: var(--font-weight-normal);
+  color: var(--color-primary);
+  background-color: var(--color-secondary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-y: scroll;
+}
+
+a {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+button {
+  border-radius: var(--border-radius);
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+/* Icon-only / utility buttons: opt out of global padding/border */
+button.icon-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+/* AI Stylist chat widget: prevent app/Tailwind from breaking header icons (close, minimize, menu) */
+.aisw-header-actions button.aisw-menu-btn,
+.aisw-header-actions button.aisw-minimize-btn,
+.aisw-header-actions button.aisw-close-btn {
+  padding: 0;
+  border: none;
+}
+.aisw-chat-window svg,
+.aisw-chat-launcher svg {
+  max-width: none;
+  flex-shrink: 0;
+}
+.aisw-header-actions svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+/* Password show/hide toggles: no filled background, icon only */
+button.password-toggle {
+  background-color: transparent !important;
+  border: none !important;
+}
+button.password-toggle:hover {
+  background-color: transparent !important;
+}
+
+/* Carousel nav arrows: override global button (no dark brown), light grey hover only */
+.trusted-by-carousel-nav button,
+.verified-sellers-carousel-nav button {
+  position: relative;
+}
+.trusted-by-carousel-nav,
+.verified-sellers-carousel-nav {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+}
+.trusted-by-carousel-nav button > span,
+.verified-sellers-carousel-nav button > span {
+  display: block;
+  line-height: 1;
+}
+.trusted-by-carousel-nav button {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-primary);
+  border-color: #d1d5db;
+}
+.trusted-by-carousel-nav button:hover:not(:disabled) {
+  background-color: #f3f4f6 !important;
+}
+.trusted-by-carousel-nav button.carousel-nav-disabled,
+.trusted-by-carousel-nav button:disabled {
+  background-color: #e5e7eb !important;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Toast Notification Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Premium Solution: responsive heading/subheading (override SectionHeader defaults) */
+.premium-heading-responsive {
+  font-size: 22px;
+  line-height: 26px;
+}
+@media (min-width: 640px) {
+  .premium-heading-responsive {
+    font-size: 28px;
+    line-height: 32px;
+  }
+}
+@media (min-width: 768px) {
+  .premium-heading-responsive {
+    font-size: 40px;
+    line-height: 44px;
+  }
+}
+@media (min-width: 1024px) {
+  .premium-heading-responsive {
+    font-size: 60px;
+    line-height: 60px;
+  }
+}
+
+.premium-subheading-responsive {
+  font-size: 12px;
+  line-height: 18px;
+}
+@media (min-width: 640px) {
+  .premium-subheading-responsive {
+    font-size: 14px;
+    line-height: 22px;
+  }
+}
+@media (min-width: 768px) {
+  .premium-subheading-responsive {
+    font-size: 16px;
+    line-height: 26px;
+  }
+}
+@media (min-width: 1024px) {
+  .premium-subheading-responsive {
+    font-size: 20.69px;
+    line-height: 28.97px;
+  }
+}
+
+/* Hero large heading "Luxury Authentication": Montserrat 600, responsive, tighter line spacing to match Figma */
+.hero-large-heading-responsive {
+  font-family: Montserrat, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.63px;
+  font-size: 16px;
+  /* Slightly looser on small screens so "Luxury" and "Authentication" don't feel cramped */
+  line-height: 1.2;
+  max-width: 100%;
+}
+@media (min-width: 640px) {
+  .hero-large-heading-responsive {
+    font-size: 18px;
+    line-height: 1.05;
+  }
+}
+@media (min-width: 768px) {
+  .hero-large-heading-responsive {
+    font-size: 21px;
+    line-height: 1.05;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-large-heading-responsive {
+    font-size: 25.36px;
+    line-height: 1.05;
+    max-width: 585px;
+  }
+}
+
+/* Hero small heading "Professional": Montserrat 400, same Figma spec, responsive */
+.hero-small-heading-responsive {
+  font-family: Montserrat, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.63px;
+  font-size: 16px;
+  /* Match main heading spacing on small screens */
+  line-height: 1.2;
+  max-width: 100%;
+  color: #3C1F1B;
+}
+@media (min-width: 640px) {
+  .hero-small-heading-responsive {
+    font-size: 18px;
+    line-height: 1.05;
+  }
+}
+@media (min-width: 768px) {
+  .hero-small-heading-responsive {
+    font-size: 21px;
+    line-height: 1.05;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-small-heading-responsive {
+    font-size: 25.36px;
+    line-height: 1.05;
+    max-width: 585px;
+  }
+}
+
+/* Hero description: Montserrat 300 Light, 18.92px, tighter line spacing to match Figma */
+.hero-description-responsive {
+  font-family: Montserrat, sans-serif;
+  font-weight: 420;
+  letter-spacing: 0.18px;
+  font-size: 14px;
+  /* More relaxed paragraph leading on mobile to match desktop feel */
+  line-height: 1.4;
+  max-width: 100%;
+}
+@media (min-width: 640px) {
+  .hero-description-responsive {
+    font-size: 15px;
+    line-height: 1.15;
+  }
+}
+@media (min-width: 768px) {
+  .hero-description-responsive {
+    font-size: 17px;
+    line-height: 1.15;
+  }
+}
+@media (min-width: 1024px) {
+  .hero-description-responsive {
+    font-size: 18.92px;
+    line-height: 1.15;
+    max-width: 576px;
+    min-height: 97px;
+  }
+}
+
+/* Logo (header & footer): responsive for all screen sizes */
+.logo-icon-responsive {
+  width: 28px;
+  height: 30px;
+  object-fit: contain;
+}
+
+/* Full logo image (icon + text PNG): larger, responsive across all breakpoints */
+.logo-full-responsive {
+  height: 36px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  object-position: left center;
+  display: block;
+}
+@media (min-width: 480px) {
+  .logo-full-responsive {
+    height: 42px;
+    max-width: 220px;
+  }
+}
+@media (min-width: 640px) {
+  .logo-full-responsive {
+    height: 48px;
+    max-width: 260px;
+  }
+}
+@media (min-width: 1024px) {
+  .logo-full-responsive {
+    height: 52px;
+    max-width: 280px;
+  }
+}
+@media (min-width: 1280px) {
+  .logo-full-responsive {
+    height: 56px;
+    max-width: 300px;
+  }
+}
+@media (min-width: 1536px) {
+  .logo-full-responsive {
+    height: 60px;
+    max-width: 320px;
+  }
+}
+/* Column width = first line (AUTHENTIC); second line stretches to same width */
+.logo-text-column {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+  overflow: visible;
+}
+.logo-subtext-match-width {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+  line-height: 1.35;
+}
+.logo-text-responsive {
+  font-family: Antonio, sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 22px;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+  text-transform: uppercase;
+}
+.logo-subtext-responsive {
+  font-family: Antonio, sans-serif;
+  font-weight: 100;
+  font-size: 8px;
+  line-height: 1.35;
+  letter-spacing: 4px;
+  color: var(--color-primary);
+  overflow: visible;
+}
+/* Mobile: keep subtext letter-spacing same as base so "Detective" doesn't exceed "AUTHENTIC" (aligns like web) */
+@media (max-width: 479px) {
+  .logo-subtext-match-width.logo-subtext-responsive {
+    letter-spacing: 5.7px;
+  }
+}
+@media (min-width: 480px) {
+  .logo-icon-responsive {
+    width: 34px;
+    height: 37px;
+  }
+  .logo-text-responsive {
+    font-size: 22px;
+    line-height: 28px;
+    letter-spacing: 0.65px;
+  }
+  .logo-subtext-responsive {
+    font-size: 9px;
+    line-height: 1.35;
+    letter-spacing: 6px;
+  }
+  .logo-subtext-match-width.logo-subtext-responsive {
+    letter-spacing: 8px;
+  }
+}
+@media (min-width: 640px) {
+  .logo-icon-responsive {
+    width: 40px;
+    height: 44px;
+  }
+  .logo-text-responsive {
+    font-size: 26px;
+    line-height: 34px;
+    letter-spacing: 0.75px;
+  }
+  .logo-subtext-responsive {
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: 8px;
+  }
+  .logo-subtext-match-width.logo-subtext-responsive {
+    letter-spacing: 9px;
+  }
+}
+@media (min-width: 1024px) {
+  .logo-icon-responsive {
+    width: 38px;
+    height: 41px;
+  }
+  .logo-text-responsive {
+    font-size: 28px;
+    line-height: 36px;
+    letter-spacing: 0.75px;
+  }
+  .logo-subtext-responsive {
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: 9px;
+  }
+  .logo-subtext-match-width.logo-subtext-responsive {
+    letter-spacing: 9.5px;
+  }
+}
+@media (min-width: 1280px) {
+  .logo-icon-responsive {
+    width: 45.94px;
+    height: 50px;
+  }
+  .logo-text-responsive {
+    font-size: 33.25px;
+    line-height: 47.5px;
+    letter-spacing: 0.83px;
+  }
+  .logo-subtext-responsive {
+    font-size: 13.44px;
+    line-height: 1.35;
+    letter-spacing: 11px;
+  }
+  .logo-subtext-match-width.logo-subtext-responsive {
+    letter-spacing: 11px;
+  }
+}
+
+/* Hide scrollbar for carousel while keeping scroll */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Recent Reviews carousel: equal-height cards (same size as Melissa-style card) */
+.trusted-by-carousel .trusted-by-swiper .swiper-wrapper {
+  align-items: stretch;
+}
+.trusted-by-carousel .trusted-by-swiper .swiper-slide {
+  display: flex;
+}
+.trusted-by-carousel .trusted-by-slide-inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+  width: 100%;
+  padding-top: 6px;
+  padding-bottom: 20px;
+}
+.trusted-by-carousel .trusted-by-slide-inner > * {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Verified Sellers carousel: 4 profile cards, next/prev moves by 4 on large screens */
+.verified-sellers-carousel .verified-sellers-swiper .swiper-wrapper {
+  align-items: stretch;
+}
+.verified-sellers-carousel .verified-sellers-swiper .swiper-slide {
+  display: flex;
+}
+.verified-sellers-carousel .verified-sellers-slide-inner {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.verified-sellers-carousel .verified-sellers-slide-inner > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Verified Sellers carousel nav — light buttons on dark background (no global button brown) */
+.verified-sellers-carousel-nav button {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-primary);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.verified-sellers-carousel-nav button:hover:not(:disabled) {
+  background-color: #f3f4f6 !important;
+}
+.verified-sellers-carousel-nav button.carousel-nav-disabled,
+.verified-sellers-carousel-nav button:disabled {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+/* Sellers Collective carousel: one row, dots below; card design unchanged */
+.sellers-collective-carousel .sellers-collective-swiper .swiper-wrapper {
+  align-items: stretch;
+}
+.sellers-collective-carousel .sellers-collective-swiper .swiper-slide {
+  display: flex;
+}
+.sellers-collective-carousel .sellers-collective-slide-inner {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.sellers-collective-carousel .sellers-collective-slide-inner > * {
+  flex: 1;
+  min-height: 0;
+}
+.sellers-collective-carousel .swiper-pagination {
+  position: relative;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.sellers-collective-carousel .swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+.sellers-collective-carousel .swiper-pagination-bullet-active {
+  background: var(--color-secondary);
+  transform: scale(1.1);
+}
+
+/* Sellers Collective cards on mobile: slightly shorter image (wider-looking cards, height not much decreased) */
+.sellers-collective-carousel .sellers-collective-card-img {
+  height: 280px;
+}
+@media (min-width: 640px) {
+  .sellers-collective-carousel .sellers-collective-card-img {
+    height: 350px;
+  }
+}
+
+/* All Businesses (See All) page: same card proportions as home carousel — match home heights exactly */
+.all-businesses-page .all-businesses-card-img {
+  height: 280px;
+}
+@media (min-width: 640px) {
+  .all-businesses-page .all-businesses-card-img {
+    height: 350px;
+  }
+}

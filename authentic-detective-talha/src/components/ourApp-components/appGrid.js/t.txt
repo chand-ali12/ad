@@ -1,0 +1,286 @@
+import React from "react";
+import Box from "@mui/material/Box";
+import { AppStyles } from "./style";
+import { Typography, useMediaQuery } from "@mui/material";
+import Grid from "@mui/material/Grid";
+import AdImage from "@/components/zingImage";
+import Mobile1 from "../../../../public/assets/images/mobileApp.PNG";
+import Mobile2 from "../../../../public/assets/images/mobileApp3.PNG";
+import Mobile3 from "../../../../public/assets/images/mobileApp2.PNG";
+import Arrow from "../../../../public/assets/images/tick-2.PNG";
+import Arrow2 from "../../../../public/assets/images/tick.PNG";
+import Background from "../../../../public/assets/images/bgApp.png";
+import { commonStyles } from "@/commonStyles";
+const OurAppCom = () => {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
+  const isMedium = useMediaQuery((theme) => theme.breakpoints.down("md"));
+  return (
+    <>
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          backgroundImage: `url(${Background.src})`, // Set the background image
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          zIndex: "100",
+          border: "1px solid blue",
+        }}
+      >
+        <Box sx={{ bgcolor: "" }}>
+          <Box pt={5}>
+            <Typography color="initial" sx={{ ...AppStyles.MainHeading }}>
+              Our App
+            </Typography>
+          </Box>
+
+          <Box sx={{ bgcolor: "" }}>
+            <Grid container spacing={1}>
+              <Grid item xs={4} lg={4}>
+                <Box
+                  pb={1}
+                  sx={{
+                    height: { xs: "180px", lg: "auto" },
+                    width: { xs: "103px", lg: "310px" },
+                    // border: "1px solid red",
+                    display: "flex",
+                    alignItems: "end",
+                    margin: "auto",
+                    justifyContent: isMobile ? "start" : "end",
+                    position: "relative",
+                    zIndex: "1",
+                    left: { xs: "0px", lg: "40px" },
+                  }}
+                >
+                  <AdImage
+                    src={Mobile1}
+                    alt="book a call"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      marginTop: "50%",
+                    }}
+                    fill={false}
+                  />
+                </Box>
+              </Grid>
+              <Grid
+                item
+                mt={1}
+                xs={8}
+                lg={6}
+                sx={{
+                  display: "flex",
+                  border: "1px solid red",
+                }}
+              >
+                <Box sx={{ ...AppStyles.GridBod, marginTop: "20%" }}>
+                  <Typography
+                    mt={1}
+                    sx={{
+                      ...commonStyles.commonHeadingStyles,
+                      textAlign: "center",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Certificates
+                  </Typography>
+                  <Typography
+                    sx={{
+                      ...commonStyles.commonTextStyles,
+                      textAlign: "center",
+                      p: { xs: "3", lg: "4" },
+                    }}
+                  >
+                    Manage all of your certificates in your in app profile!
+                    Save, Share, and Print your certificates right from your
+                    dashboard!{" "}
+                  </Typography>
+                  <Box
+                    pb={1}
+                    sx={{
+                      height: { xs: "40px", lg: "auto" },
+                      width: { xs: "33px", lg: "300px" },
+                      // border: "1px solid red",
+                      position: "relative",
+                      zIndex: "1",
+                      top: "40%",
+                    }}
+                  >
+                    <AdImage
+                      src={Arrow}
+                      alt="book a call"
+                      style={{
+                        width: "85%",
+                        height: "80%",
+                      }}
+                      fill={false}
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+
+              <Grid
+                item
+                mt={1}
+                xs={7}
+                lg={6}
+                sx={{
+                  display: "flex",
+                  justifyContent: "end",
+                }}
+              >
+                <Box sx={{ ...AppStyles.GridBod, marginTop: "9%" }}>
+                  <Typography
+                    mt={1}
+                    sx={{
+                      ...commonStyles.commonHeadingStyles,
+                      textAlign: "center",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Marketplace
+                  </Typography>
+                  <Typography
+                    sx={{
+                      ...commonStyles.commonTextStyles,
+                      textAlign: "center",
+                      p: { xs: "3", lg: "4" },
+                    }}
+                  >
+                    Buy and sell in our in app marketplace, free of charge! Find
+                    our trusted AD sellers, shop with them, and take home your
+                    dream item!
+                  </Typography>
+                  <Box
+                    pb={1}
+                    sx={{
+                      height: { xs: "40px", lg: "auto" },
+                      width: { xs: "33px", lg: "260px" },
+                      // border: "1px solid red",
+                      position: "relative",
+                      zIndex: "1",
+                      top: "20%",
+                      left: "66%",
+                    }}
+                  >
+                    <AdImage
+                      src={Arrow2}
+                      alt="book a call"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                      }}
+                      fill={false}
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+              <Grid item lg={5} xs={4}>
+                <Box
+                  pb={1}
+                  sx={{
+                    height: { xs: "180px", lg: "auto" },
+                    width: { xs: "103px", lg: "310px" },
+                    // border: "1px solid red",
+                    display: "flex",
+                    alignItems: "end",
+                    margin: "auto",
+                    justifyContent: isMobile ? "end" : "end",
+                    position: "relative",
+                    zIndex: "1",
+                    right: { xs: "0px", lg: "20px" },
+                  }}
+                >
+                  <AdImage
+                    src={Mobile2}
+                    alt="book a call"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      marginTop: isMobile ? "15%" : "-50%",
+                    }}
+                    fill={false}
+                  />
+                </Box>
+              </Grid>
+
+              <Grid item lg={5} xs={4}>
+                <Box
+                   pb={1}
+                  sx={{
+                    width: { xs: "100px", lg: "310px" },
+                    height: { xs: "190px", lg: "auto" },
+                    // border: "1px solid red",
+                    display: "flex",
+                    alignItems: "end",
+                    margin: "auto",
+                    justifyContent: isMobile ? "end" : "end",
+                    position: "relative",
+                    zIndex: "1",
+                    left: { xs: "10px", lg: "40px" },
+                  }}
+                >
+                  <AdImage
+                    src={Mobile3}
+                    alt="book a call"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      marginTop: {xs:'1%',lg:"-10%"},
+                    }}
+                    fill={false}
+                  />
+                </Box>
+              </Grid>
+              <Grid
+                item
+                mt={1}
+                xs={8}
+                lg={6}
+                sx={{
+                  display: "flex",
+                  border: "1px solid red",
+                }}
+              >
+                <Box
+                  sx={{
+                    ...AppStyles.GridBod,
+                    marginTop: "18%",
+                    marginLeft: "12%",
+                  }}
+                >
+                  <Typography
+                    mt={1}
+                    sx={{
+                      ...commonStyles.commonHeadingStyles,
+                      textAlign: "center",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    Forums
+                  </Typography>
+                  <Typography
+                    p={4}
+                    sx={{
+                      ...commonStyles.commonTextStyles,
+                      textAlign: "center",
+                      p: { xs: "3", lg: "4" },
+                    }}
+                  >
+                    Enjoy our fully stacked fashion forums. Choose from various
+                    fashion specific groups where you can chat with like minded
+                    individuals!
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+      </Box>
+    </>
+  );
+};
+
+export default OurAppCom;

@@ -1,0 +1,3 @@
+export const COMMON_VALUE_FOR_VALUATION = 10;
+export const COMMON_VALUE_FOR_CERTIFICATE = 12;
+export const COMMON_VALUE_FOR_ADD_ON = 10;

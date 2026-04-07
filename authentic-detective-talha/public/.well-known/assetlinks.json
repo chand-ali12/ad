@@ -1,0 +1,16 @@
+
+
+[
+    {
+      "relation": [
+        "delegate_permission/common.handle_all_urls"
+      ],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.techificent.authenticdetetctive",
+        "sha256_cert_fingerprints": [
+          "38:C0:2B:46:20:1C:A0:32:27:88:CB:15:F4:05:C7:23:9E:DE:F6:65:9B:C5:B0:45:7F:CA:0A:9F:01:30:DB:81"
+        ]
+      }
+    }
+  ]

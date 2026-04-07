@@ -1,0 +1,9 @@
+{
+    "name": "ad-frontend-root",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "cd client && npm run build",
+        "install": "cd client && npm install"
+    }
+}

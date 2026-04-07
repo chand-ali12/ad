@@ -1,0 +1,278 @@
+body {
+  margin: 0px !important;
+}
+.react-international-phone-input {
+  width: 100%;
+  border-radius: 23px !important;
+  height: 42px !important;
+  border: none !important;
+}
+.react-international-phone-country-selector {
+  width: 27% !important;
+  border-radius: 23px !important;
+  height: 42px !important;
+  border: none !important;
+  /* border-radius: 15px !important; */
+}
+.react-international-phone-country-selector-button {
+  width: 75%;
+  border-radius: 23px !important;
+}
+.react-international-phone-country-selector-dropdown {
+  z-index: 22 !important;
+}
+
+.react-international-phone-input-container
+  .react-international-phone-country-selector-button {
+  border: none;
+  height: 42px;
+}
+
+.react-international-phone-input-container .react-international-phone-input {
+  padding: 0px 14px !important;
+  font-size: 18px !important;
+}
+
+body {
+  margin: 0px !important;
+  font-family: var(--font-montserrat) !important;
+  background-color: #f6f3ee;
+  overflow-X: hidden;
+}
+.MuiInputBase-root {
+  background-color: #f5f6fa;
+}
+p {
+  font-family: var(--font-montserrat) !important;
+}
+h6 {
+  font-family: var(--font-montserrat) !important;
+}
+h5 {
+  font-family: var(--font-montserrat) !important;
+}
+h1 {
+  font-family: var(--font-montserrat) !important;
+}
+h2 {
+  font-family: var(--font-montserrat) !important;
+}
+h3 {
+  font-family: var(--font-montserrat) !important;
+}
+
+h4 {
+  font-family: var(--font-montserrat) !important;
+}
+
+div {
+  font-family: var(--font-montserrat) !important;
+}
+button {
+  font-family: var(--font-montserrat) !important;
+}
+
+.verified {
+  display: flex;
+  padding-top: 27px;
+}
+:root {
+  --font-montserrat: "Montserrat", "Inter";
+}
+
+@media (max-width: 430px) {
+  /* .manageHeightForTheValutText {
+    height: 160px;
+  } */
+  .manageWidthOfCards {
+    width: 190px;
+  }
+}
+@media (max-width: 390px) {
+  .captcha {
+    position: relative;
+    left: 12px !important;
+  }
+}
+
+/* Media Query for screens with max-width 375px */
+@media (max-width: 375px) {
+  /* .manageHeightForTheValutText {
+    height: 320px !important;
+  } */
+  .manageWidthOfCards {
+    width: 177px;
+  }
+  .ArrowBox {
+    height: 115px;
+    width: 115px;
+    top: 18%;
+    left: -6%;
+  }
+  .Arrow2 {
+    height: 100px;
+    width: 99px;
+    top: 0% !important;
+    left: 63%;
+  }
+  .arrow3 {
+    height: 129px;
+    width: 122px;
+    top: 12%;
+    left: -13%;
+  }
+  .arrow4 {
+    height: 122px;
+    width: 108px;
+    top: 21%;
+    left: 53%;
+  }
+  .arrow5 {
+    height: 120px;
+    width: 122px;
+    top: 11%;
+    left: -16%;
+  }
+}
+
+/* Media Query for screens with max-width 320px */
+@media (max-width: 320px) {
+  /* .manageHeightForTheValutText {
+    height: 330px !important;
+  } */
+  .manageWidthOfCards {
+    width: 150px;
+  }
+  .reviewText1 {
+    font-size: 11px;
+    line-height: 12px;
+  }
+  .reviewText20{
+    font-size: 9px ;
+    line-height: 12px;
+  }
+}
+
+.react-international-phone-input {
+  width: 100%;
+  border-radius: 23px !important;
+  height: 42px !important;
+  border: none !important;
+}
+.react-international-phone-country-selector {
+  width: 27% !important;
+  border-radius: 23px !important;
+  height: 42px !important;
+  border: none !important;
+}
+.react-international-phone-country-selector-button {
+  width: 75%;
+  border-radius: 23px !important;
+}
+.react-international-phone-country-selector-dropdown {
+  z-index: 22 !important;
+}
+
+.react-international-phone-input-container
+  .react-international-phone-country-selector-button {
+  border: none;
+  height: 42px;
+}
+
+.react-international-phone-input-container .react-international-phone-input {
+  padding: 0px 14px !important;
+  font-size: 18px !important;
+}
+.MuiList-root {
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+}
+.MuiListItem-root {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+@media (max-width: 320px) {
+  .iphone-font {
+    font-size: 8px !important;
+    padding: 5px !important;
+  }
+  .ArrowBox {
+    height: 90px;
+    width: 100px;
+    top: 7%;
+    left: -11%;
+  }
+  .Arrow2 {
+    height: 80px;
+    width: 76px;
+    top: 4%;
+    left: 63%;
+  }
+  .arrow3 {
+    height: 109px;
+    width: 100px;
+    top: 12%;
+    left: -13%;
+  }
+  .arrow4 {
+    height: 108px;
+    width: 92px;
+    top: 13%;
+    left: 51%;
+  }
+  .arrow5 {
+    height: 102px;
+    width: 91px;
+    top: 6%;
+    left: -16%;
+  }
+  .AppHeading {
+    position: relative;
+    left: 4px;
+  }
+  .HeadingReviewPage {
+    font-size: 11px !important;
+    line-height: 12px;
+  }
+  .AdressReviewPage{
+    font-size: 9px !important;
+    line-height: 12px;
+  }
+  .WebReviewPage{
+    font-size: 9px !important;
+    line-height: 2px;
+  }
+  .StarsReviewPage{
+    position: relative;
+    margin-top: 55px;
+    right: 16px;
+  }
+  .DescReviewPage{
+    font-size: 8.4px;
+  }
+  .ReplyFrom{
+    font-size: 8.4px;
+  }
+}
+.MuiInputBase-root {
+
+  background-color: white;
+}
+.css-8ewcdo-MuiInputBase-root-MuiOutlinedInput-root {
+  padding: "padding: 9.5px 9px;";
+}
+.css-46bh2p-MuiCardContent-root:last-child{
+  padding-bottom: 12px;
+}
+.css-o69gx8-MuiCardMedia-root{
+  width: 102% !important;
+  height: auto !important;
+}
+
+.rs-picker-input-group{
+  height: 3rem !important;
+}
+
+
+  

@@ -1,0 +1,78 @@
+{
+  "installCommand": "cd client && npm ci",
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "client/dist",
+  "redirects": [
+    {
+      "source": "/Authentication",
+      "destination": "/authentication",
+      "permanent": true
+    },
+    {
+      "source": "/AUTHENTICATION",
+      "destination": "/authentication",
+      "permanent": true
+    },
+    {
+      "source": "/App",
+      "destination": "/app",
+      "permanent": true
+    },
+    {
+      "source": "/APP",
+      "destination": "/app",
+      "permanent": true
+    },
+    {
+      "source": "/Contact",
+      "destination": "/contact",
+      "permanent": true
+    },
+    {
+      "source": "/CONTACT",
+      "destination": "/contact",
+      "permanent": true
+    },
+    {
+      "source": "/Verify",
+      "destination": "/verify",
+      "permanent": true
+    },
+    {
+      "source": "/VERIFY",
+      "destination": "/verify",
+      "permanent": true
+    },
+    {
+      "source": "/Blogs",
+      "destination": "/blogs",
+      "permanent": true
+    },
+    {
+      "source": "/BLOGS",
+      "destination": "/blogs",
+      "permanent": true
+    },
+    {
+      "source": "/insurance-policy",
+      "destination": "/add-on-terms",
+      "permanent": true
+    },
+    {
+      "source": "/Insurance-policy",
+      "destination": "/add-on-terms",
+      "permanent": true
+    },
+    {
+      "source": "/INSURANCE-POLICY",
+      "destination": "/add-on-terms",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

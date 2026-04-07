@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/fveicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentic Detective</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      window.AIStylistConfig = {
+        // Uses the same working key as the old production site.
+        apiKey:
+          '41ad5c5593866074417ea397c6bb21396e38486cf2008adb282a47f8378d82ac9b7d8ef038656e8fac1110bcadc968f76fdaf613182b9595bb88253118c855e6231f9b8b76c55634ee986ac32d7ab5ed',
+        apiUrl: 'https://kaido.sandboxdevenv.com',
+        title: 'Authentic Detective',
+        subtitle: 'Your personal assistant',
+        primary: '#3C1F1B',
+        botIconColor: '#5a2f28',
+        position: 'bottom-right',
+        borderRadius: 'rounded',
+        chatWindowSize: 'medium',
+        promptSource: 'custom'
+      };
+    </script>
+    <script src="https://kaido.sandboxdevenv.com/plugin/ai-stylist-chat-widget.js" async></script>
+  </body>
+</html>
