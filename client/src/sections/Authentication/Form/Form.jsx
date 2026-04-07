@@ -66,7 +66,8 @@ const Form = ({
   });
 
   const selectedBrandId = watch("brand_id");
-  const recaptchaChecked = Boolean(watch("reCaptchaToken")) || !!watch("recaptcha");
+  const recaptchaChecked =
+    Boolean(watch("reCaptchaToken")) || !!watch("recaptcha");
   const recaptchaSiteKey =
     import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
     import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY ||
@@ -564,13 +565,10 @@ const Form = ({
                     ref={field.ref}
                     name={field.name}
                     onBlur={field.onBlur}
-                    options={[
-                      { value: "", label: "Select Brand" },
-                      ...sortedBrandsForSelect.map((b) => ({
-                        value: b.id,
-                        label: b.brand || b.name || String(b.id),
-                      })),
-                    ]}
+                    options={sortedBrandsForSelect.map((b) => ({
+                      value: b.id,
+                      label: b.brand || b.name || String(b.id),
+                    }))}
                     value={field.value}
                     onChange={(value) => {
                       field.onChange(value);
@@ -611,12 +609,6 @@ const Form = ({
                     name={field.name}
                     onBlur={field.onBlur}
                     options={[
-                      {
-                        value: "",
-                        label: selectedBrandId
-                          ? "Select Category"
-                          : "Select a brand first",
-                      },
                       ...categoriesForBrand.map((c) => ({
                         value: c.id,
                         label: c.name,
