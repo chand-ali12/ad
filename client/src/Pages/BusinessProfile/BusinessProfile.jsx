@@ -86,6 +86,8 @@ const BusinessProfile = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [starError, setStarError] = useState("");
+  const [textError, setTextError] = useState("");
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewImageFile, setReviewImageFile] = useState(null);
@@ -223,18 +225,26 @@ const BusinessProfile = () => {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (isSubmittingReview || !business?.id) return;
+
+    let hasError = false;
+
     if (!reviewRating) {
+      setStarError("Please select a rating");
       focusInvalidField(ratingInputRef.current);
-      setToastMessage("Please select a rating");
-      setToastVariant("error");
-      setTimeout(() => setToastMessage(""), 4000);
-      return;
+      hasError = true;
+    } else {
+      setStarError("");
     }
+
     if (!reviewText.trim()) {
+      setTextError("Please enter a review comment");
       focusInvalidField(reviewTextareaRef.current);
-      setToastMessage("Please enter a review");
-      setToastVariant("error");
-      setTimeout(() => setToastMessage(""), 4000);
+      hasError = true;
+    } else {
+      setTextError("");
+    }
+
+    if (hasError) {
       return;
     }
     setIsSubmittingReview(true);
@@ -405,11 +415,17 @@ const BusinessProfile = () => {
                     <label className="block text-sm font-semibold text-primary mb-2">
                       Share your experience...
                     </label>
+                    {textError && (
+                      <p className="text-red-600 text-sm mb-2">{textError}</p>
+                    )}
                     <div className="relative mb-4">
                       <textarea
                         ref={reviewTextareaRef}
                         value={reviewText}
-                        onChange={(e) => setReviewText(e.target.value)}
+                        onChange={(e) => {
+                          setReviewText(e.target.value);
+                          if (textError) setTextError("");
+                        }}
                         placeholder="Share your experience..."
                         rows={5}
                         maxLength={200}
@@ -470,17 +486,25 @@ const BusinessProfile = () => {
                       </div>
                     )}
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-primary font-medium">
-                          {reviewRating}
-                        </span>
-                        <RatingInput
-                          ref={ratingInputRef}
-                          value={reviewRating}
-                          onChange={setReviewRating}
-                          starSize="w-5 h-5 sm:w-6 sm:h-6"
-                          showValue={false}
-                        />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-primary font-medium">
+                            {reviewRating}
+                          </span>
+                          <RatingInput
+                            ref={ratingInputRef}
+                            value={reviewRating}
+                            onChange={(rating) => {
+                              setReviewRating(rating);
+                              if (starError) setStarError("");
+                            }}
+                            starSize="w-5 h-5 sm:w-6 sm:h-6"
+                            showValue={false}
+                          />
+                        </div>
+                        {starError && (
+                          <p className="text-red-600 text-sm">{starError}</p>
+                        )}
                       </div>
                       <button
                         type="submit"
