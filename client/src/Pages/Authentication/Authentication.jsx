@@ -20,6 +20,7 @@ import { IMAGE_BASE_URL, BASE_URL_OLD_IMAGE_URL } from "../../config/env";
 const Authentication = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [bulkQuantity, setBulkQuantity] = useState(0);
   const { brands: authBrands = [], category: categoryList = [] } =
     useAppSelector((state) => state.authenticationRequest);
   const { brands: apiBrands = [] } = useAppSelector((state) => state.brands);
@@ -484,6 +485,9 @@ const Authentication = () => {
       <section id="choose-speed-quantity" className="scroll-mt-4">
         <ChooseSpeedQuantity
           quantity={isBulkMode ? "bulk" : "single"}
+          setIsBulkMode={setIsBulkMode}
+          bulkQuantity={bulkQuantity}
+          setBulkQuantity={setBulkQuantity}
           onQuantityChange={(isBulk) => {
             const bulk = !!isBulk;
             setIsBulkMode(bulk);
@@ -510,6 +514,8 @@ const Authentication = () => {
           openBulkDialog={openBulkDialogRequest}
           onBulkDialogOpened={() => setOpenBulkDialogRequest(false)}
           setIsBulkMode={setIsBulkMode}
+          bulkQuantity={bulkQuantity}
+          setBulkQuantity={setBulkQuantity}
         />
       </section>
       {/* {showStickyButtons && (

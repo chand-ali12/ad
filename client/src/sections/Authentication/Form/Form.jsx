@@ -29,6 +29,8 @@ const Form = ({
   onBulkDialogOpened,
   className = "",
   setIsBulkMode,
+  bulkQuantity,
+  setBulkQuantity,
 }) => {
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -74,7 +76,7 @@ const Form = ({
     "";
   const [previewFiles, setPreviewFiles] = useState([]);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-  const [bulkQuantity, setBulkQuantity] = useState(0);
+  // const [bulkQuantity, setBulkQuantity] = useState(0);
   const [bulkStep, setBulkStep] = useState(1);
   const [bulkItems, setBulkItems] = useState([]);
   const [expandedImageIndex, setExpandedImageIndex] = useState(null);
