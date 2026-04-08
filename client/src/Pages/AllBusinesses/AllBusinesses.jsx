@@ -4,7 +4,10 @@ import { FaSearch } from "react-icons/fa";
 
 const SEARCH_DEBOUNCE_MS = 350;
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { getAllSellers } from "../../store/slices/homeSlice";
+import {
+  getAllSellers,
+  getVerifiedBusiness,
+} from "../../store/slices/homeSlice";
 import { getBusinessProfileImageUrl } from "../../utils/imageUtils";
 import { ProductCard } from "../../components";
 import grayBag from "../../assets/images/graybag.png";
@@ -75,13 +78,54 @@ const AllBusinesses = () => {
 
   const debounceRef = useRef(null);
 
-  const runSearch = useCallback((_value) => {
-    // Search is client-side only: we filter business by searchQuery in render. No API call needed.
-  }, []);
+  const handleInputChange = useCallback(
+    (e) => {
+      const value = e.target.value;
+      setSearchQuery(value);
+      console.log("What is value:- ", value);
+
+      // Clear previous timeout
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+
+      // Set new timeout - only make API call after user stops typing
+      debounceRef.current = setTimeout(() => {
+        const trimmedKeyword = String(value || "").trim();
+        dispatch(
+          getAllSellers({
+            page: 1,
+            per_page: PER_PAGE,
+            keyword: trimmedKeyword || undefined,
+          }),
+        );
+      }, SEARCH_DEBOUNCE_MS);
+    },
+    [dispatch],
+  );
+
+  const runSearch = useCallback(
+    (_value) => {
+      // Make API call with keyword to filter businesses
+      const trimmedKeyword = String(_value || "").trim();
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      dispatch(
+        getAllSellers({
+          page: 1,
+          per_page: PER_PAGE,
+          keyword: trimmedKeyword || undefined,
+        }),
+      );
+    },
+    [dispatch],
+  );
 
   const handleSearchSubmit = useCallback(
     (e) => {
       e?.preventDefault?.();
+      // Clear any pending debounced search and run immediately
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         debounceRef.current = null;
@@ -91,19 +135,6 @@ const AllBusinesses = () => {
     [searchQuery, runSearch],
   );
 
-  const handleInputChange = useCallback(
-    (e) => {
-      const value = e.target.value;
-      setSearchQuery(value);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        debounceRef.current = null;
-        runSearch(value);
-      }, SEARCH_DEBOUNCE_MS);
-    },
-    [runSearch],
-  );
-
   const handlePageChange = useCallback(
     (newPage) => {
       dispatch(getAllSellers({ page: newPage, per_page: PER_PAGE }));
@@ -111,11 +142,9 @@ const AllBusinesses = () => {
     [dispatch],
   );
 
-  const searchTrimmed = searchQuery?.trim() || "";
+  // Use business list directly from API - no client-side filtering needed
   const rawList = business || [];
-  const list = searchTrimmed
-    ? rawList.filter((b) => matchesSearch(b, searchTrimmed, "", ""))
-    : rawList;
+  const list = rawList;
 
   const products = list.map((b) => mapBusinessToProduct(b, navigate));
   const isLoading = status === "loading";
