@@ -713,7 +713,9 @@ const CertificatesofAuthenticity = ({
                             rel="noopener noreferrer"
                             onClick={(e) => {
                               e.preventDefault();
-                              openPdfForBestView(`${pdfUrl}${String(pdfUrl).includes("#") ? "" : "#toolbar=1"}`);
+                              openPdfForBestView(
+                                `${pdfUrl}${String(pdfUrl).includes("#") ? "" : "#toolbar=1"}`,
+                              );
                             }}
                             className="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-primary hover:underline w-fit"
                           >
@@ -839,7 +841,7 @@ const CertificatesofAuthenticity = ({
                     />
                   </div>
                   <div
-                    className="min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-1.5 sm:space-y-2 pr-1 touch-pan-y"
+                    className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain space-y-1.5 sm:space-y-2 pr-1 touch-pan-y"
                     style={{
                       WebkitOverflowScrolling: "touch",
                       overscrollBehavior: "contain",
