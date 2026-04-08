@@ -112,27 +112,35 @@ export const forgetPassword = async ({ email } = {}) => {
 };
 
 export const changePassword = async ({
-  password,
-  password_confirmation,
+  // password,
+  // password_confirmation,
   newPassword,
-  confirmPassword,
-  token,
-  email,
+  // confirmPassword,
+  // token,
+  // email,
   authToken,
 } = {}) => {
-  const finalPassword = password ?? newPassword;
-  const finalConfirmation = password_confirmation ?? confirmPassword;
-  const effectiveToken = token ?? authToken;
-  const query = buildQueryString({
-    password: finalPassword,
-    password_confirmation: finalConfirmation,
-    token: effectiveToken,
-    email,
-  });
+  // const finalPassword = password ?? newPassword;
+  // const finalConfirmation = password_confirmation ?? confirmPassword;
+  // const effectiveToken = token ?? authToken;
 
-  return request(`/change-password${query}`, {
-    method: "GET",
-    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+  // const query = buildQueryString({
+  //   password: finalPassword,
+  //   password_confirmation: finalConfirmation,
+  //   token: effectiveToken,
+  //   email,
+  // });
+
+  const password = newPassword;
+
+  return request(`/ad/change-password`, {
+    method: "POST",
+    // headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    headers: authToken ? { sessiontoken: authToken } : undefined,
+    body: {
+      password,
+      // token: authToken,
+    },
   });
 };
 
