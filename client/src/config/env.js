@@ -24,3 +24,5 @@ export const MEDIA_BASE_URL =
   IMAGE_BASE_URL;
 export const AUTHENTIC_DETECTIVE = env.VITE_AUTHENTIC_DETECTIVE || "";
 export const FORUM = env.VITE_FORUM || "";
+
+export const PROFILE_IMAGE_BASE_URL = 'https://auth-detect.s3.amazonaws.com/usersProfile/';

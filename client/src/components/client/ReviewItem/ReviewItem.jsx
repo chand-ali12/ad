@@ -108,14 +108,21 @@ const ReviewItem = ({
                   {[...Array(5)].map((_, i) => {
                     const starIndex = i + 1;
                     if (starIndex <= fullStars) {
-                      return <FaStar key={i} className="w-4 h-4 text-yellow-400" />;
+                      return (
+                        <FaStar key={i} className="w-4 h-4 text-yellow-400" />
+                      );
                     }
                     if (hasHalfStar && starIndex === filledCount) {
                       return (
-                        <FaStarHalfAlt key={i} className="w-4 h-4 text-yellow-400" />
+                        <FaStarHalfAlt
+                          key={i}
+                          className="w-4 h-4 text-yellow-400"
+                        />
                       );
                     }
-                    return <FaRegStar key={i} className="w-4 h-4 text-gray-300" />;
+                    return (
+                      <FaRegStar key={i} className="w-4 h-4 text-gray-300" />
+                    );
                   })}
                 </div>
               </div>

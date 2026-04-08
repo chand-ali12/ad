@@ -1,8 +1,14 @@
 import React from "react";
 import ReviewItem from "../../../components/client/ReviewItem/ReviewItem";
 import PropTypes from "prop-types";
+import { PROFILE_IMAGE_BASE_URL } from "../../../config/env";
 
-const Reviews = ({ className = "", reviews = [], onReviewerProfileClick }) => {
+const Reviews = ({
+  className = "",
+  reviews = [],
+  onReviewerProfileClick,
+  user,
+}) => {
   const reviewsToDisplay = Array.isArray(reviews) ? reviews : [];
 
   if (reviewsToDisplay.length === 0) {
@@ -24,15 +30,31 @@ const Reviews = ({ className = "", reviews = [], onReviewerProfileClick }) => {
           <div className="space-y-0">
             {reviewsToDisplay.map((review, index) => (
               <ReviewItem
-                key={review.id || index}
-                profileImage={review.profile_image || review.profileImage}
-                reviewerName={
-                  review.reviewer_name || review.reviewerName || "Anonymous"
+                date={new Date(review.created_at).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+                profileImage={
+                  user.profile_picture &&
+                  `${PROFILE_IMAGE_BASE_URL}${user.profile_picture}`
                 }
-                reviewerId={review.reviewer_id ?? review.user_id ?? review.user?.id ?? null}
-                reviewImage={review.review_image || review.image || review.image_url || null}
-                rating={review.rating ?? 0}
-                comment={review.comment || ""}
+                comment={review.review}
+                rating={review.rating}
+                key={review.id || index}
+                reviewerName={user.name || review.reviewerName || "Anonymous"}
+                reviewerId={
+                  review.reviewer_id ??
+                  review.user_id ??
+                  review.user?.id ??
+                  null
+                }
+                reviewImage={
+                  review.review_image ||
+                  review.image ||
+                  review.image_url ||
+                  null
+                }
                 reply={review.reply || null}
                 showDivider={index < reviewsToDisplay.length - 1}
                 onReviewerProfileClick={onReviewerProfileClick}

@@ -24,6 +24,8 @@ const ReviewerProfile = () => {
   const [user, setUser] = useState(null);
   const [givenReviews, setGivenReviews] = useState([]);
 
+  const [userReviews, setUserReviews] = useState([]);
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -35,6 +37,8 @@ const ReviewerProfile = () => {
       .then(async (res) => {
         if (cancelled) return;
         const incoming = res?.additional_data?.user ?? res?.user ?? null;
+        const userReviews = res?.data ?? [];
+        setUserReviews(userReviews);
         setUser(incoming);
 
         if (businessId) {
@@ -49,7 +53,8 @@ const ReviewerProfile = () => {
               ? businessRes.data
               : (businessRes?.data?.data ?? []);
             const filtered = businessReviews.filter((r) => {
-              const reviewer = r?.user?.id ?? r?.user_id ?? r?.reviewer_id ?? null;
+              const reviewer =
+                r?.user?.id ?? r?.user_id ?? r?.reviewer_id ?? null;
               return String(reviewer ?? "") === String(id ?? "");
             });
             setGivenReviews(filtered);
@@ -83,7 +88,9 @@ const ReviewerProfile = () => {
       const repliesArr = r.replies ?? r.review_replies ?? [];
       const replySource =
         r.reply ??
-        (Array.isArray(repliesArr) && repliesArr.length > 0 ? repliesArr[0] : null);
+        (Array.isArray(repliesArr) && repliesArr.length > 0
+          ? repliesArr[0]
+          : null);
       const replyText =
         typeof replySource === "string"
           ? replySource
@@ -137,13 +144,17 @@ const ReviewerProfile = () => {
         rating: Number.isFinite(Number(r.rating)) ? Number(r.rating) : 0,
         comment: commentText,
         reply: replyObj,
-        date: (r.created_at || r.createdAt)
-          ? new Date(r.created_at || r.createdAt).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })
-          : "",
+        date:
+          r.created_at || r.createdAt
+            ? new Date(r.created_at || r.createdAt).toLocaleDateString(
+                "en-US",
+                {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                },
+              )
+            : "",
       };
     });
   }, [givenReviews, user, id]);
@@ -180,12 +191,13 @@ const ReviewerProfile = () => {
                   name={user?.name || "User"}
                   subtitle={user?.about_us || ""}
                   website={user?.website || user?.website_url || ""}
-                  reviewsCount={visibleReviewsCount}
+                  // reviewsCount={visibleReviewsCount}
                   showEditProfile={false}
                   showSkipToCertificates={false}
                   rating={user?.rating != null ? Number(user.rating) : null}
+                  reviewsCount={userReviews.length}
                 />
-                <Reviews reviews={reviews} className="!pt-2" />
+                <Reviews reviews={userReviews} user={user} className="!pt-2" />
               </>
             )}
           </div>
@@ -196,4 +208,3 @@ const ReviewerProfile = () => {
 };
 
 export default ReviewerProfile;
-
