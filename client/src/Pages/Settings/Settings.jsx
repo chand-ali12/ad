@@ -29,6 +29,10 @@ const Settings = () => {
   const { user: profileUser, status: profileStatus } = useAppSelector(
     (state) => state.profile,
   );
+
+  // const userType = authUser?.userType;
+  console.log("Auth User is:- ", authUser);
+
   const { business, status: businessStatus } = useAppSelector(
     (state) => state.business,
   );
@@ -39,6 +43,13 @@ const Settings = () => {
   const [profileImage, setProfileImage] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [profileFile, setProfileFile] = useState(null);
+
+  console.log("Banner image is :-", bannerImage);
+  console.log("Profile image is :-", profileImage);
+
+  console.log("Banner file is :-", bannerFile);
+  console.log("Profile file is :-", profileFile);
+
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState({
     show: false,
@@ -51,6 +62,8 @@ const Settings = () => {
   const hasBusiness = authUser?.user_business?.length > 0;
   const businessId = hasBusiness ? authUser.user_business[0].id : null;
   const isBusinessUser = false; // Settings shows combined form; we use business data when available
+  // const [isProfileChanged, setIsProfileChanged] = useState(false);
+  // const [isCoverChanged, setIsCoverChanged] = useState(false);
 
   useEffect(() => {
     if (authUser?.id) dispatch(getUserProfile({ id: authUser.id }));
@@ -255,6 +268,7 @@ const Settings = () => {
     if (file) {
       setBannerFile(file);
       setBannerImage(URL.createObjectURL(file));
+      // setIsCoverChanged(true);
     }
   };
   const handleProfileChange = (e) => {
@@ -262,6 +276,7 @@ const Settings = () => {
     if (file) {
       setProfileFile(file);
       setProfileImage(URL.createObjectURL(file));
+      // setIsProfileChanged(true);
     }
   };
 
@@ -285,6 +300,8 @@ const Settings = () => {
             business_instagram: data.instagramLink,
             business_profile_picture: profileFile,
             business_cover_picture: bannerFile,
+            currentBusinessProfilePicture: business?.business_profile_picture,
+            currentBusinessCoverPicture: business?.business_cover_picture,
           }),
         ).unwrap();
       }
@@ -297,10 +314,11 @@ const Settings = () => {
               : data.businessName || user.name,
             about_us: data.aboutBusiness || user.about_us,
             country: data.country || user.country,
-            country_code: hasSelectedCountry ? autoCountryCode : "",
             phone: data.phoneNumber || user.phone,
-            profile_picture: profileFile || undefined,
-            cover_picture: bannerFile || undefined,
+            profile_picture: profileFile,
+            cover_picture: bannerFile,
+            currentProfilePicture: authUser?.profile_picture,
+            currentCoverPicture: authUser?.cover_picture,
             facebook: data.facebookLink || undefined,
             instagram: data.instagramLink || undefined,
           }),
@@ -315,6 +333,7 @@ const Settings = () => {
       if (businessId) await dispatch(getBusinessProfile({ id: businessId }));
       if (authUser?.id) await dispatch(getUserProfile({ id: authUser.id }));
     } catch (err) {
+      console.error("Error saving settings: 🙌", err);
       setToast({
         show: true,
         message: err?.message || "Failed to save settings",

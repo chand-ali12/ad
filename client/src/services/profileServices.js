@@ -19,6 +19,8 @@ export const updateUserProfile = async ({
   phone,
   profile_picture,
   cover_picture,
+  currentProfilePicture,
+  currentCoverPicture,
   facebook,
   instagram,
   twitter,
@@ -27,9 +29,6 @@ export const updateUserProfile = async ({
   token,
 } = {}) => {
   const formData = new FormData();
-  const authUser = JSON.parse(localStorage.getItem("authUser"));
-  const coverPicture = authUser?.cover_picture;
-  const profilePicture = authUser?.profile_picture;
 
   if (storage_type) formData.append("storage_type", storage_type);
   if (id) formData.append("id", id);
@@ -37,17 +36,27 @@ export const updateUserProfile = async ({
   if (about_us) formData.append("about_us", about_us);
   if (country) formData.append("country", country);
   if (phone) formData.append("phone", phone);
-
-  if (cover_picture && profile_picture) {
+  if (profile_picture) {
     formData.append("profile_picture", profile_picture);
-    formData.append("cover_picture", cover_picture);
-  } else if (profile_picture) {
-    formData.append("profile_picture", profile_picture);
-    formData.append("cover_picture", coverPicture);
-  } else if (cover_picture) {
-    formData.append("cover_picture", cover_picture);
-    formData.append("profile_picture", profilePicture);
+  } else if (currentProfilePicture) {
+    formData.append("profile_picture", currentProfilePicture);
   }
+  if (cover_picture) {
+    formData.append("cover_picture", cover_picture);
+  } else if (currentCoverPicture) {
+    formData.append("cover_picture", currentCoverPicture);
+  }
+
+  // if (cover_picture && profile_picture) {
+  //   formData.append("profile_picture", profile_picture);
+  //   formData.append("cover_picture", cover_picture);
+  // } else if (profile_picture) {
+  //   formData.append("profile_picture", profile_picture);
+  //   formData.append("cover_picture", coverPicture);
+  // } else if (cover_picture) {
+  //   formData.append("cover_picture", cover_picture);
+  //   formData.append("profile_picture", profilePicture);
+  // }
 
   if (facebook) formData.append("facebook", facebook);
   if (instagram) formData.append("instagram", instagram);
