@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { FiArrowLeft } from "react-icons/fi";
 import ProfileCard from "../../components/client/ProfileCard/ProfileCard";
-import Reviews from "../../sections/ReviewScreen/Reviews/Reviews";
+import Reviews from "../../sections/ReviewScreen/Reviews/Reviews_BusinessScreen";
 import { useAppSelector } from "../../store/hooks";
 import { getUserProfile as getUserProfileApi } from "../../services/profileServices";
 import { getBusinessProfileBySlug } from "../../services/businessServices";
@@ -11,6 +11,7 @@ import {
   getProfileImageUrl,
   getReviewImageUrl,
 } from "../../utils/imageUtils";
+import Reviews_ReviewerScreen from "../../sections/ReviewScreen/Reviews/Reviews_ReviewerScreen";
 
 const ReviewerProfile = () => {
   const location = useLocation();
@@ -197,7 +198,11 @@ const ReviewerProfile = () => {
                   rating={user?.rating != null ? Number(user.rating) : null}
                   reviewsCount={userReviews.length}
                 />
-                <Reviews reviews={userReviews} user={user} className="!pt-2" />
+                <Reviews_ReviewerScreen
+                  reviews={userReviews}
+                  user={user}
+                  className="!pt-2"
+                />
               </>
             )}
           </div>

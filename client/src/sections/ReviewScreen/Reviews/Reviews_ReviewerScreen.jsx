@@ -1,12 +1,12 @@
 import React from "react";
 import ReviewItem from "../../../components/client/ReviewItem/ReviewItem";
 import PropTypes from "prop-types";
-import { PROFILE_IMAGE_BASE_URL } from "../../../config/env";
+// import { PROFILE_IMAGE_BASE_URL } from "../../../config/env";
 
-const Reviews = ({
+const Reviews_ReviewerScreen = ({
   className = "",
   reviews = [],
-  onReviewerProfileClick,
+  //   onReviewerProfileClick,
   user,
 }) => {
   const reviewsToDisplay = Array.isArray(reviews) ? reviews : [];
@@ -23,6 +23,7 @@ const Reviews = ({
     );
   }
 
+
   return (
     <section className={`w-full py-8 sm:py-12 ${className}`}>
       <div className="w-full px-4 sm:px-6 lg:px-8 pb-2 sm:pb-4">
@@ -35,15 +36,13 @@ const Reviews = ({
                   month: "short",
                   year: "numeric",
                 })}
-                profileImage={
-                  user.profile_picture &&
-                  `${PROFILE_IMAGE_BASE_URL}${user.profile_picture}`
-                }
-                comment={review.review}
+                profileImage={`https://auth-detect.s3.amazonaws.com/usersProfile/${user?.profile_picture}`}
+                comment={review?.comment || review?.review || review?.text}
                 rating={review.rating}
                 key={review.id || index}
-                reviewerName={user.name || review.reviewerName || "Anonymous"}
+                reviewerName={user?.name || "Anonymous"}
                 reviewerId={
+                  user.id ??
                   review.reviewer_id ??
                   review.user_id ??
                   review.user?.id ??
@@ -57,7 +56,6 @@ const Reviews = ({
                 }
                 reply={review.reply || null}
                 showDivider={index < reviewsToDisplay.length - 1}
-                onReviewerProfileClick={onReviewerProfileClick}
               />
             ))}
           </div>
@@ -67,7 +65,7 @@ const Reviews = ({
   );
 };
 
-Reviews.propTypes = {
+Reviews_ReviewerScreen.propTypes = {
   className: PropTypes.string,
   onReviewerProfileClick: PropTypes.func,
   reviews: PropTypes.arrayOf(
@@ -85,4 +83,4 @@ Reviews.propTypes = {
   ),
 };
 
-export default Reviews;
+export default Reviews_ReviewerScreen;

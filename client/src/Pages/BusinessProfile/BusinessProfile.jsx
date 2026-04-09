@@ -14,11 +14,12 @@ import {
   getProfileImageUrl,
   getReviewImageUrl,
 } from "../../utils/imageUtils";
-import Reviews from "../../sections/ReviewScreen/Reviews/Reviews";
+import Reviews from "../../sections/ReviewScreen/Reviews/Reviews_BusinessScreen";
 import ReviweSection from "../../sections/Profiles/UserProfile/ReviweSection/ReviweSection";
 import RatingInput from "../../components/client/RatingInput/RatingInput";
 import defaultCover from "../../assets/images/whiteshoes.jpg";
 import defaultProfile from "../../assets/images/UserProfile.png";
+import Reviews_BusinessScreen from "../../sections/ReviewScreen/Reviews/Reviews_BusinessScreen";
 
 const mapApiReviewsToUI = (reviews) => {
   if (!Array.isArray(reviews)) return [];
@@ -304,6 +305,9 @@ const BusinessProfile = () => {
     review_image: getReviewImageUrl(r.review_image) || r.review_image,
   }));
 
+  // console.log("reviews with url", reviewsWithImageUrls);
+  // console.log("Reviews are :- ", reviews);
+
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
       <main className="flex-grow">
@@ -552,7 +556,7 @@ const BusinessProfile = () => {
                 />
               </>
             ) : (
-              <Reviews
+              <Reviews_BusinessScreen
                 reviews={reviewsWithImageUrls}
                 className="!pt-2"
                 onReviewerProfileClick={(reviewerId) => {

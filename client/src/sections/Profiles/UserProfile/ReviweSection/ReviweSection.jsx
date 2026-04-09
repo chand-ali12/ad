@@ -2,6 +2,7 @@ import React from "react";
 import ReviewItem from "../../../../components/client/ReviewItem/ReviewItem";
 import PropTypes from "prop-types";
 
+
 const ReviweSection = ({
   className = "",
   reviews = [],
@@ -29,6 +30,9 @@ const ReviweSection = ({
       </section>
     );
   }
+
+  // console.log();
+  
 
   return (
     <section className={`w-full py-8 sm:py-12 ${className}`}>
