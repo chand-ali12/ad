@@ -419,9 +419,6 @@ const BusinessProfile = () => {
                     <label className="block text-sm font-semibold text-primary mb-2">
                       Share your experience...
                     </label>
-                    {textError && (
-                      <p className="text-red-600 text-sm mb-2">{textError}</p>
-                    )}
                     <div className="relative mb-4">
                       <textarea
                         ref={reviewTextareaRef}
@@ -506,24 +503,30 @@ const BusinessProfile = () => {
                             showValue={false}
                           />
                         </div>
-                        {starError && (
-                          <p className="text-red-600 text-sm">{starError}</p>
-                        )}
                       </div>
-                      <button
-                        type="submit"
-                        disabled={isSubmittingReview}
-                        className="px-4 py-2 bg-primary text-secondary text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        {isSubmittingReview ? (
-                          <>
-                            <span className="animate-spin rounded-full h-4 w-4 border-2 border-secondary border-t-transparent" />
-                            Submitting...
-                          </>
-                        ) : (
-                          "Submit"
-                        )}
-                      </button>
+                      {(textError || starError) && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                          <p className="text-red-600 text-sm">
+                            {textError || starError}
+                          </p>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="submit"
+                          disabled={isSubmittingReview}
+                          className="px-4 py-2 bg-primary text-secondary text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          {isSubmittingReview ? (
+                            <>
+                              <span className="animate-spin rounded-full h-4 w-4 border-2 border-secondary border-t-transparent" />
+                              Submitting...
+                            </>
+                          ) : (
+                            "Submit"
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </form>
                 </div>
