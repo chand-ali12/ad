@@ -48,6 +48,13 @@ const UpdatePassword = ({ className = "" }) => {
         message: res?.msg || "Password updated successfully.",
         variant: "success",
       });
+      // Hide after 3 seconds
+      setTimeout(() => {
+        setToast((prev) => ({
+          ...prev,
+          show: false,
+        }));
+      }, 3000);
       reset();
     } catch (err) {
       setToast({
