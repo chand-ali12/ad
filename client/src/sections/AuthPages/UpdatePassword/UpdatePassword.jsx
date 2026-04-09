@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import PropTypes from "prop-types";
@@ -10,6 +10,7 @@ const UpdatePassword = ({ className = "" }) => {
   const { status, token, user } = useAppSelector((state) => state.auth);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordMismatchError, setPasswordMismatchError] = useState("");
   const [toast, setToast] = useState({
     show: false,
     message: "",
@@ -31,6 +32,20 @@ const UpdatePassword = ({ className = "" }) => {
   });
 
   const newPassword = watch("newPassword");
+  const confirmPassword = watch("confirmPassword");
+
+  // Check password match on each change
+  useEffect(() => {
+    if (newPassword && confirmPassword) {
+      if (newPassword !== confirmPassword) {
+        setPasswordMismatchError("Passwords do not match");
+      } else {
+        setPasswordMismatchError("");
+      }
+    } else if (!confirmPassword) {
+      setPasswordMismatchError("");
+    }
+  }, [newPassword, confirmPassword]);
 
   const onSubmit = async (data) => {
     try {
@@ -156,6 +171,11 @@ const UpdatePassword = ({ className = "" }) => {
                   {errors.confirmPassword && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.confirmPassword.message}
+                    </p>
+                  )}
+                  {passwordMismatchError && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {passwordMismatchError}
                     </p>
                   )}
                 </div>
