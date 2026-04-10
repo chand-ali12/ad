@@ -70,10 +70,7 @@ const Form = ({
   const selectedBrandId = watch("brand_id");
   const recaptchaChecked =
     Boolean(watch("reCaptchaToken")) || !!watch("recaptcha");
-  const recaptchaSiteKey =
-    import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
-    import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY ||
-    "";
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
   const [previewFiles, setPreviewFiles] = useState([]);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   // const [bulkQuantity, setBulkQuantity] = useState(0);
@@ -893,148 +890,44 @@ const Form = ({
                   />
                 </div>
               )}
-
             {/* Market Valuation and Agreement */}
             <div className="space-y-4">
               {(!isBulkFlow || isFinalBulkStep) && (
-                <div
-                  id="recaptcha-card"
-                  tabIndex={-1}
-                  className={`relative overflow-hidden rounded-2xl border p-3 sm:p-4 shadow-sm backdrop-blur-sm transition-all duration-300 ${
-                    recaptchaChecked
-                      ? "border-emerald-300/80 bg-gradient-to-r from-emerald-50/90 via-teal-50/80 to-cyan-50/80 shadow-emerald-100"
-                      : "border-gray-300/80 bg-white/90"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-2xl transition-all ${
-                      recaptchaChecked ? "bg-emerald-200/80" : "bg-primary/10"
-                    }`}
-                    aria-hidden="true"
-                  />
-                  {!recaptchaSiteKey && (
-                    <input
-                      type="checkbox"
-                      id="recaptcha"
-                      {...register("recaptcha", {
-                        validate: (v) =>
-                          v || "Please verify you are not a robot",
-                        onChange: () => trigger("recaptcha"),
-                      })}
-                      className="sr-only"
-                    />
-                  )}
-                  <label
-                    htmlFor={!recaptchaSiteKey ? "recaptcha" : undefined}
-                    className="relative flex items-center justify-between gap-3 cursor-pointer"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
-                          recaptchaChecked
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-primary/10 text-primary"
-                        }`}
-                      >
-                        <FiShield className="h-4 w-4" />
-                      </span>
-                      <span className="flex flex-col">
-                        <span className="text-xs sm:text-sm font-semibold tracking-[0.01em] text-primary">
-                          reCAPTCHA Verification
-                        </span>
-                        <span className="text-[11px] sm:text-xs text-primary/70">
-                          Human verification required
-                        </span>
-                      </span>
-                    </span>
-                    <span
-                      className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border transition-all duration-300 ${
-                        recaptchaChecked
-                          ? "border-emerald-600 bg-emerald-600 text-white shadow-md shadow-emerald-200"
-                          : "border-gray-400 bg-white text-transparent"
-                      }`}
-                      aria-hidden="true"
-                    >
-                      <FiCheckCircle className="h-4 w-4" />
-                    </span>
-                  </label>
-                  {recaptchaSiteKey ? (
-                    <div className="mt-3 rounded-xl border border-black/10 bg-white/80 p-2">
-                      <Controller
-                        name="reCaptchaToken"
-                        control={control}
-                        rules={{
-                          validate: (v) =>
-                            (v && String(v).trim().length > 0) ||
-                            "Please verify you are not a robot",
+                <div className="mt-3 p-2">
+                  <Controller
+                    name="reCaptchaToken"
+                    control={control}
+                    rules={{
+                      validate: (v) =>
+                        (v && String(v).trim().length > 0) ||
+                        "Please verify you are not a robot",
+                    }}
+                    render={({ field }) => (
+                      <ReCAPTCHA
+                        ref={recaptchaRef}
+                        sitekey={recaptchaSiteKey}
+                        onChange={(token) => {
+                          field.onChange(token || "");
+                          setValue("recaptcha", !!token, {
+                            shouldValidate: false,
+                          });
+                          if (token) clearErrors("reCaptchaToken");
                         }}
-                        render={({ field }) => (
-                          <ReCAPTCHA
-                            ref={recaptchaRef}
-                            sitekey={recaptchaSiteKey}
-                            onChange={(token) => {
-                              field.onChange(token || "");
-                              setValue("recaptcha", !!token, {
-                                shouldValidate: false,
-                              });
-                              if (token) clearErrors("reCaptchaToken");
-                            }}
-                            onExpired={() => {
-                              field.onChange("");
-                              setValue("recaptcha", false, {
-                                shouldValidate: false,
-                              });
-                            }}
-                            onErrored={() => {
-                              field.onChange("");
-                              setValue("recaptcha", false, {
-                                shouldValidate: true,
-                              });
-                            }}
-                          />
-                        )}
+                        onExpired={() => {
+                          field.onChange("");
+                          setValue("recaptcha", false, {
+                            shouldValidate: false,
+                          });
+                        }}
+                        onErrored={() => {
+                          field.onChange("");
+                          setValue("recaptcha", false, {
+                            shouldValidate: true,
+                          });
+                        }}
                       />
-                      <div className="mt-2 flex items-center justify-between px-1">
-                        <p className="text-[10px] sm:text-[11px] font-medium text-primary/60">
-                          Protected by Google reCAPTCHA
-                        </p>
-                        <p className="text-[10px] sm:text-[11px] text-primary/60">
-                          <a
-                            href="https://policies.google.com/privacy"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:text-primary"
-                          >
-                            Privacy
-                          </a>{" "}
-                          -{" "}
-                          <a
-                            href="https://policies.google.com/terms"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline hover:text-primary"
-                          >
-                            Terms
-                          </a>
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative mt-3 flex items-center justify-between rounded-xl border border-black/5 bg-white/70 px-3 py-2">
-                      <p className="text-[10px] sm:text-[11px] font-medium text-primary/60">
-                        Protected by advanced bot screening
-                      </p>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold ${
-                          recaptchaChecked
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-primary/10 text-primary/70"
-                        }`}
-                      >
-                        {recaptchaChecked ? "Verified" : "Required"}
-                      </span>
-                    </div>
-                  )}
+                    )}
+                  />
                 </div>
               )}
 
