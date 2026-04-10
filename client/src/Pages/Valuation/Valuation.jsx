@@ -274,7 +274,7 @@ const Valuation = () => {
                                                 return nameA.localeCompare(nameB);
                                             });
                                             const options = [
-                                                { value: '', label: 'Select Brand' },
+                                                // { value: '', label: 'Select Brand' },
                                                 ...sortedBrands.map((b) => ({
                                                     value: String(b.id),
                                                     label: b.brand || b.name || b.brand_name || String(b.id),
