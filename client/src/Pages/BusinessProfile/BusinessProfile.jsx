@@ -432,6 +432,11 @@ const BusinessProfile = () => {
                         maxLength={200}
                         className="w-full px-4 py-3 pr-12 rounded-[12px] border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-gray-50 resize-none"
                       />
+                      {textError && (
+                        <div className="rounded-lg">
+                          <p className="text-red-600 text-sm">{textError}</p>
+                        </div>
+                      )}
                       <input
                         ref={reviewImageInputRef}
                         type="file"
@@ -503,14 +508,13 @@ const BusinessProfile = () => {
                             showValue={false}
                           />
                         </div>
+                        {starError && (
+                          <div className="rounded-lg">
+                            <p className="text-red-600 text-sm">{starError}</p>
+                          </div>
+                        )}
                       </div>
-                      {(textError || starError) && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                          <p className="text-red-600 text-sm">
-                            {textError || starError}
-                          </p>
-                        </div>
-                      )}
+
                       <div className="flex items-center justify-end">
                         <button
                           type="submit"
