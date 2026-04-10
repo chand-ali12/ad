@@ -289,9 +289,6 @@ const Checkout = () => {
         // Check if a payment method (card/PayPal) has been entered/selected in the drop-in
         if (!braintreeInstance.isPaymentMethodRequestable()) {
             setPaymentMethodError('Please select a payment method to continue');
-            try {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (_e) {}
             return;
         }
         const encryptValue =
@@ -418,9 +415,6 @@ const Checkout = () => {
             // Check if error is about no payment method/card details being entered
             if (/no payment method|payment method.+required|requestpaymentmethod errored|card details|enter.+card|method nonce|hosted fields/i.test(errorText)) {
                 setPaymentMethodError('Please select payment method');
-                try {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                } catch (_e) {}
                 return;
             }
             
@@ -545,7 +539,7 @@ const Checkout = () => {
                                         </div>
                                         <p className="text-sm text-gray-600 mb-3">Choose a way to pay</p>
                                         {paymentMethodError && (
-                                            <p className="text-red-500 text-sm mb-3 p-3 bg-red-50 rounded-lg border border-red-200">{paymentMethodError}</p>
+                                            <p className="text-red-500 text-sm mb-3 p-3 rounded-lg">{paymentMethodError}</p>
                                         )}
                                         <div id="braintree-dropin-container" ref={braintreeContainerRef} />
                                         {errors.paymentMethodNonce && (
@@ -674,7 +668,7 @@ const Checkout = () => {
                                             <div className="mt-6">
                                                 <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4">Complete payment</h2>
                                                 {paymentMethodError && (
-                                                    <p className="text-red-500 text-sm mb-3 p-3 bg-red-50 rounded-lg border border-red-200">{paymentMethodError}</p>
+                                                    <p className="text-red-500 text-sm mb-3 p-3 rounded-lg">{paymentMethodError}</p>
                                                 )}
                                                 <div id="braintree-dropin-container" ref={braintreeContainerRef} />
                                             </div>
