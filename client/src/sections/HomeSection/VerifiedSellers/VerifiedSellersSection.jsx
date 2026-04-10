@@ -99,22 +99,29 @@ const VerifiedSellersSection = ({
                   onClick={() => swiperRef.current?.slidePrev()}
                   disabled={atStart}
                   aria-label="Previous sellers"
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
+                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
                     atStart ? "carousel-nav-disabled" : "carousel-nav-active"
                   }`}
                 >
-                  <FiChevronLeft className="w-6 h-6 md:w-7 md:h-7" aria-hidden />
+                  <FiChevronLeft
+                    className="w-8 h-8 md:w-10 md:h-10"
+                    aria-hidden
+                  />
                 </button>
+
                 <button
                   type="button"
                   onClick={() => swiperRef.current?.slideNext()}
                   disabled={atEnd}
                   aria-label="Next sellers"
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-full border shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
+                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full border shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
                     atEnd ? "carousel-nav-disabled" : "carousel-nav-active"
                   }`}
                 >
-                  <FiChevronRight className="w-6 h-6 md:w-7 md:h-7" aria-hidden />
+                  <FiChevronRight
+                    className="w-8 h-8 md:w-10 md:h-10"
+                    aria-hidden
+                  />
                 </button>
               </div>
             </div>
