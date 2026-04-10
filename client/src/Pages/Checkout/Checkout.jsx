@@ -286,6 +286,14 @@ const Checkout = () => {
             return;
         }
         if (!braintreeInstance || !braintreePayload) return;
+        // Check if a payment method (card/PayPal) has been entered/selected in the drop-in
+        if (!braintreeInstance.isPaymentMethodRequestable()) {
+            setPaymentMethodError('Please select a payment method to continue');
+            try {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (_e) {}
+            return;
+        }
         const encryptValue =
             braintreePayload.encrypt_amount ??
             braintreePayload.encryptedAmount ??
@@ -391,15 +399,25 @@ const Checkout = () => {
             }
         } catch (err) {
             console.error('Braintree payment failed:', err);
+            const errorText = [
+                err?.message,
+                err?.details?.originalError?.message,
+                err?.details?.originalError,
+                err?.details,
+                err?.response?.data?.msg,
+                err?.response?.data?.message,
+            ]
+                .map((v) => (v == null ? '' : String(v)))
+                .join(' ');
             const message =
                 err?.message ||
                 err?.response?.data?.msg ||
                 err?.response?.data?.message ||
                 'Payment failed. Please try again.';
             
-            // Check if error is about no payment method being selected
-            if (/no payment method|payment method.+required/i.test(String(message))) {
-                setPaymentMethodError('Please select a payment method');
+            // Check if error is about no payment method/card details being entered
+            if (/no payment method|payment method.+required|requestpaymentmethod errored|card details|enter.+card|method nonce|hosted fields/i.test(errorText)) {
+                setPaymentMethodError('Please select payment method');
                 try {
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } catch (_e) {}
@@ -526,7 +544,13 @@ const Checkout = () => {
                                             </div>
                                         </div>
                                         <p className="text-sm text-gray-600 mb-3">Choose a way to pay</p>
+                                        {paymentMethodError && (
+                                            <p className="text-red-500 text-sm mb-3 p-3 bg-red-50 rounded-lg border border-red-200">{paymentMethodError}</p>
+                                        )}
                                         <div id="braintree-dropin-container" ref={braintreeContainerRef} />
+                                        {errors.paymentMethodNonce && (
+                                            <p className="text-red-500 text-sm mt-2">{errors.paymentMethodNonce.message}</p>
+                                        )}
                                     </div>
                                 )}
                                 {!isValuationCheckout && !authCheckoutWithoutPayload && (
