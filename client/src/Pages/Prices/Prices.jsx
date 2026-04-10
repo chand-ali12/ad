@@ -193,7 +193,7 @@ const Prices = () => {
         style={{
           minHeight: '100vh',
           position: 'relative',
-          backgroundColor: '#4A2A24',
+          backgroundColor: '#3C1F1B',
         }}
       >
         {/* Outer wrapper */}
