@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import "swiper/css";
 import { SectionHeader, ProductCard } from "../../../components";
 import grayBag from "../../../assets/images/graybag.png";
@@ -98,32 +99,22 @@ const VerifiedSellersSection = ({
                   onClick={() => swiperRef.current?.slidePrev()}
                   disabled={atStart}
                   aria-label="Previous sellers"
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-md flex items-center justify-center text-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors relative ${
+                  className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
                     atStart ? "carousel-nav-disabled" : "carousel-nav-active"
                   }`}
                 >
-                  <span
-                    className="text-xl md:text-2xl leading-none text-center w-full h-full flex justify-center items-center"
-                    aria-hidden
-                  >
-                    ‹
-                  </span>
+                  <FiChevronLeft className="w-6 h-6 md:w-7 md:h-7" aria-hidden />
                 </button>
                 <button
                   type="button"
                   onClick={() => swiperRef.current?.slideNext()}
                   disabled={atEnd}
                   aria-label="Next sellers"
-                  className={`w-10 h-10 md:w-12 md:h-12 rounded-full border shadow-md flex items-center justify-center text-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors relative ${
+                  className={`w-10 h-10 md:w-12 md:h-12 rounded-full border shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
                     atEnd ? "carousel-nav-disabled" : "carousel-nav-active"
                   }`}
                 >
-                  <span
-                    className="text-xl md:text-2xl leading-none text-center  w-full h-full flex justify-center items-center"
-                    aria-hidden
-                  >
-                    ›
-                  </span>
+                  <FiChevronRight className="w-6 h-6 md:w-7 md:h-7" aria-hidden />
                 </button>
               </div>
             </div>
