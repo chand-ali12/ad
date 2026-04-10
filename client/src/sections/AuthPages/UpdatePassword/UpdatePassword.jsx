@@ -154,7 +154,7 @@ const UpdatePassword = ({ className = "" }) => {
                         validate: (value) =>
                           value === newPassword || "Passwords do not match",
                       })}
-                      className={`w-full px-4 py-3 pr-10 rounded-lg border ${errors.confirmPassword ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white`}
+                      className={`w-full px-4 py-3 pr-10 rounded-lg border ${passwordMismatchError ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white`}
                     />
                     <button
                       type="button"
@@ -168,11 +168,11 @@ const UpdatePassword = ({ className = "" }) => {
                       )}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
+                  {/* {!passwordMismatchError && errors.confirmPassword && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.confirmPassword.message}
                     </p>
-                  )}
+                  )} */}
                   {passwordMismatchError && (
                     <p className="text-red-500 text-sm mt-1">
                       {passwordMismatchError}
