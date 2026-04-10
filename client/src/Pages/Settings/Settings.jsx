@@ -228,7 +228,7 @@ const Settings = () => {
 
   const countryOptions = useMemo(() => {
     const seen = new Set();
-    const options = [{ value: "", label: "Select country" }];
+    const options = [];
 
     // Use static master country list (same old-site behavior): full country names + proper dialing code resolution.
     const sortedCountries = [...countries].sort((a, b) =>
@@ -541,7 +541,7 @@ const Settings = () => {
                         name={field.name}
                         onBlur={field.onBlur}
                         options={[
-                          { value: "", label: "Select brands" },
+                          // { value: "", label: "Select brands" },
                           ...brandsList.map((b) => ({
                             value: b.brand,
                             label: b.brand,
