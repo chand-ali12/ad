@@ -408,11 +408,38 @@ const Receipts = () => {
                 </table>
               </div>
 
-              {/* Total in primary box, centered. Responsive padding and text. */}
-              <div className="mt-4 flex w-full justify-end">
-                <div className="bg-primary text-secondary px-3 py-2 sm:px-4 sm:py-3 font-bold flex justify-center items-center align-middle gap-3 sm:gap-4 text-sm sm:text-base">
-                  <span>Total:</span>
-                  <span>${totalForPdf.toFixed(2)}</span>
+              {/* Total in primary box */}
+              <div
+                style={{
+                  marginTop: "16px",
+                  display: "flex",
+                  width: "100%",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "#3D1A10",
+                    color: "#ffffff",
+                    padding: "0 24px",
+                    minWidth: "180px",
+                    fontWeight: "700",
+                    fontSize: "15px",
+                    height: "48px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    whiteSpace: "nowrap",
+                    boxSizing: "border-box",
+                    fontFamily: "system-ui, -apple-system, sans-serif",
+                    lineHeight: "normal",
+                  }}
+                >
+                  <p
+                    style={{
+                      transform: "translateY(-50%)",
+                    }}
+                  >{`Total: $${totalForPdf.toFixed(2)}`}</p>
                 </div>
               </div>
             </div>
