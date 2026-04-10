@@ -92,10 +92,7 @@ export const logoutUser = async (token) =>
 export const forgetPassword = async ({ email } = {}) => {
   const formData = new FormData();
   appendIfPresent(formData, "email", email);
-  const clientResetUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/reset-password`
-      : "";
+  const clientResetUrl = import.meta.env.VITE_CLIENT_RESET_URL
   // Send common redirect keys so backend can generate reset link for this website.
   appendIfPresent(formData, "reset_url", clientResetUrl);
   appendIfPresent(formData, "redirect_url", clientResetUrl);
