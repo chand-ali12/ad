@@ -31,7 +31,7 @@ const DUMMY_CHATS = [
       {
         id: "m3",
         from: "them",
-        text: "Sure—share your order number and we’ll look it up.",
+        text: "Sure—share your order number and we'll look it up.",
         time: "2:39 AM",
       },
     ],
@@ -67,7 +67,7 @@ const DUMMY_CHATS = [
   {
     id: "james",
     title: "James K.",
-    subtitle: "It’s under review. We’ll email you…",
+    subtitle: "It's under review. We'll email you…",
     lastMessage: "When will my certificate be ready?",
     time: "Yesterday",
     unread: 0,
@@ -81,7 +81,7 @@ const DUMMY_CHATS = [
       {
         id: "m2",
         from: "me",
-        text: "It’s under review. We’ll email you within 24 hours.",
+        text: "It's under review. We'll email you within 24 hours.",
         time: "Yesterday",
       },
     ],
@@ -122,6 +122,21 @@ const Chat = () => {
     return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
+  // Fix for iOS Safari: update --vh on resize to handle dynamic viewport changes
+  useEffect(() => {
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
+    setVh();
+    window.addEventListener("resize", setVh);
+    window.addEventListener("orientationchange", setVh);
+    return () => {
+      window.removeEventListener("resize", setVh);
+      window.removeEventListener("orientationchange", setVh);
+    };
+  }, []);
+
   const chats = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return DUMMY_CHATS;
@@ -143,13 +158,11 @@ const Chat = () => {
     setMessages(activeChat?.messages ?? []);
     setDraft("");
     setAttachedFile(null);
-    // Scroll to bottom when opening a chat
     requestAnimationFrame(() => {
       if (messagesRef.current) {
         messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedChatId]);
 
   const sendMessage = () => {
@@ -181,257 +194,694 @@ const Chat = () => {
     }
   };
 
-  // Layout: WhatsApp-style split view on desktop; list <-> conversation on mobile.
   const showSidebar = isDesktop || !selectedChatId;
   const showConversation = isDesktop || !!selectedChatId;
 
   return (
-    <div
-      className="w-full bg-[#F5F5F0] px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6"
-      style={{
-        height: "100dvh",
-        maxHeight: "100dvh",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingTop: "80px",
-        overflow: "hidden",
-        fontFamily: "Montserrat, sans-serif",
-      }}
-    >
-      <div
-        className="w-full max-w-[1200px] mx-auto h-full flex flex-col"
-        style={{ height: "calc(100dvh - 80px)" }}
-      >
-        <div className="h-full bg-secondary border border-primary/10 shadow-sm rounded-none overflow-hidden">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-[360px_1fr]">
-            {/* Sidebar */}
-            {showSidebar && (
-              <div className="h-full flex flex-col border-r border-primary/10 min-h-0">
-                <div className="bg-primary text-secondary px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+    <>
+      {/* Global styles injected once for safe-area and vh fallback */}
+      <style>{`
+        :root {
+          --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+          --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        }
+        .chat-root {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          /* Fallback for browsers without dvh */
+          height: 100vh;
+          /* Use dvh which accounts for browser chrome dynamically (Safari 15.4+) */
+          height: 100dvh;
+          background: #F5F5F0;
+          font-family: Montserrat, sans-serif;
+          display: flex;
+          flex-direction: column;
+          /* Respect notch / status bar at top */
+          padding-top: calc(80px + env(safe-area-inset-top, 0px));
+          /* Respect Safari bottom tab bar */
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+          padding-left: env(safe-area-inset-left, 0px);
+          padding-right: env(safe-area-inset-right, 0px);
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+        .chat-inner {
+          flex: 1;
+          min-height: 0;
+          width: 100%;
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          padding: 0 12px;
+          box-sizing: border-box;
+        }
+        @media (min-width: 640px) {
+          .chat-inner { padding: 0 16px; }
+        }
+        @media (min-width: 768px) {
+          .chat-inner { padding: 0 24px; }
+        }
+        @media (min-width: 1024px) {
+          .chat-inner { padding: 0 32px; }
+        }
+        .chat-shell {
+          flex: 1;
+          min-height: 0;
+          background: white;
+          border: 1px solid rgba(60,31,27,0.10);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+          overflow: hidden;
+          display: flex;
+        }
+        /* The two-column grid on desktop, single column on mobile */
+        .chat-grid {
+          flex: 1;
+          min-height: 0;
+          display: grid;
+          grid-template-columns: 1fr;
+          overflow: hidden;
+        }
+        @media (min-width: 1024px) {
+          .chat-grid { grid-template-columns: 360px 1fr; }
+        }
+
+        /* Sidebar */
+        .sidebar {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          border-right: 1px solid rgba(60,31,27,0.10);
+          overflow: hidden;
+        }
+        .sidebar-list {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Conversation column */
+        .conversation {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .messages-area {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          padding: 16px;
+        }
+        @media (min-width: 640px) {
+          .messages-area { padding: 16px 24px; }
+        }
+
+        /* Input bar — always above Safari bottom tabs */
+        .input-bar {
+          flex-shrink: 0;
+          border-top: 1px solid rgba(60,31,27,0.10);
+          background: white;
+          padding: 12px;
+          /* extra bottom padding for Safari safe area */
+          padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+          box-sizing: border-box;
+        }
+        @media (min-width: 640px) {
+          .input-bar { padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); }
+        }
+
+        /* Prevent iOS Safari text size adjustment on rotate */
+        * { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+        /* Smooth scroll in message list */
+        .messages-area { scroll-behavior: smooth; }
+      `}</style>
+
+      <div className="chat-root">
+        <div className="chat-inner">
+          <div className="chat-shell">
+            <div className="chat-grid">
+              {/* ── Sidebar ── */}
+              {showSidebar && (
+                <div className="sidebar">
+                  {/* Header */}
+                  <div
+                    style={{
+                      background: "var(--primary, #3C1F1B)",
+                      color: "#fff",
+                      padding: "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexShrink: 0,
+                      // top notch safe area when sidebar is full-screen on mobile
+                      paddingTop: "calc(12px + env(safe-area-inset-top, 0px))",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.15)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    >
                       AD
                     </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold leading-tight truncate">
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          lineHeight: 1.2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         Chat
                       </div>
-                      <div className="text-xs text-secondary/80 truncate">
+                      <div
+                        style={{
+                          fontSize: 12,
+                          opacity: 0.8,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         Your conversations
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="px-3 py-3 border-b border-primary/10 bg-secondary">
-                  <div className="flex items-center gap-2 bg-[#F5F5F0] border border-primary/10 px-3 h-10 rounded-none">
-                    <FiSearch className="w-4 h-4 text-primary/60" />
-                    <input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search chats"
-                      className="w-full bg-transparent text-sm text-primary placeholder:text-primary/50 focus:outline-none"
-                      aria-label="Search chats"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                  {chats.map((c) => {
-                    const isActive = c.id === selectedChatId;
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setSelectedChatId(c.id)}
-                        className={`w-full text-left px-4 py-3 border-b border-primary/10 hover:bg-primary/5 active:bg-primary/10 transition-colors rounded-none ${
-                          isActive ? "bg-primary/5" : "bg-secondary"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[#F5F5F0] border border-primary/10 flex items-center justify-center text-xs font-semibold text-primary flex-shrink-0">
-                            {initials(c.title)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="font-semibold text-sm text-primary truncate">
-                                {c.title}
-                              </div>
-                              <div className="text-[11px] text-primary/60 flex-shrink-0">
-                                {c.time}
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between gap-2 mt-0.5">
-                              <div className="text-xs text-primary/70 truncate">
-                                {c.lastMessage}
-                              </div>
-                              {c.unread ? (
-                                <span className="ml-2 text-[11px] bg-primary text-secondary px-2 py-0.5 rounded-full flex-shrink-0">
-                                  {c.unread}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Conversation */}
-            {showConversation && (
-              <div className="h-full flex flex-col min-h-0">
-                <div className="bg-primary text-secondary px-4 py-3 flex items-center gap-3">
-                  {!isDesktop && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedChatId(null)}
-                      className="h-10 w-10 flex items-center justify-center hover:bg-secondary/10 active:bg-secondary/15 transition-colors rounded-none"
-                      aria-label="Back"
+                  {/* Search */}
+                  <div
+                    style={{
+                      padding: "12px",
+                      borderBottom: "1px solid rgba(60,31,27,0.10)",
+                      background: "#fff",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        background: "#F5F5F0",
+                        border: "1px solid rgba(60,31,27,0.10)",
+                        padding: "0 12px",
+                        height: 40,
+                      }}
                     >
-                      <FiChevronLeft className="w-5 h-5" />
-                    </button>
-                  )}
-
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-secondary/15 flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                      {activeChat ? initials(activeChat.title) : "—"}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold leading-tight truncate">
-                        {activeChat?.title ?? "Select a chat"}
-                      </div>
-                      <div className="text-xs text-secondary/80 truncate">
-                        {activeChat?.subtitle ?? "Authentic Detective"}
-                      </div>
+                      <FiSearch
+                        style={{
+                          width: 16,
+                          height: 16,
+                          color: "rgba(60,31,27,0.6)",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search chats"
+                        aria-label="Search chats"
+                        style={{
+                          flex: 1,
+                          border: "none",
+                          background: "transparent",
+                          fontSize: 14,
+                          color: "#3C1F1B",
+                          outline: "none",
+                          fontFamily: "Montserrat, sans-serif",
+                        }}
+                      />
                     </div>
                   </div>
-                </div>
 
-                <div
-                  ref={messagesRef}
-                  className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4 bg-[#F5F5F0]"
-                  style={{
-                    backgroundImage:
-                      "radial-gradient(rgba(60,31,27,0.05) 1px, transparent 1px)",
-                    backgroundSize: "20px 20px",
-                  }}
-                >
-                  <div className="max-w-3xl mx-auto space-y-2 sm:space-y-3">
-                    {messages.map((m) => {
-                      const isMe = m.from === "me";
+                  {/* Chat list */}
+                  <div className="sidebar-list">
+                    {chats.map((c) => {
+                      const isActive = c.id === selectedChatId;
                       return (
-                        <div
-                          key={m.id}
-                          className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedChatId(c.id)}
+                          style={{
+                            width: "100%",
+                            textAlign: "left",
+                            padding: "12px 16px",
+                            borderBottom: "1px solid rgba(60,31,27,0.10)",
+                            background: isActive
+                              ? "rgba(60,31,27,0.05)"
+                              : "#fff",
+                            border: "none",
+                            cursor: "pointer",
+                            fontFamily: "Montserrat, sans-serif",
+                            transition: "background 0.15s",
+                          }}
                         >
                           <div
-                            className={`max-w-[85%] sm:max-w-[75%] px-3 py-2 border border-primary/10 shadow-sm rounded-none ${
-                              isMe
-                                ? "bg-primary text-secondary"
-                                : "bg-secondary text-primary"
-                            }`}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                            }}
                           >
-                            {m.attachmentName ? (
-                              <div
-                                className={`text-xs mb-1 ${isMe ? "text-secondary/80" : "text-primary/60"}`}
-                              >
-                                Attachment: {m.attachmentName}
-                              </div>
-                            ) : null}
-                            <div className="text-sm leading-relaxed break-words">
-                              {m.text}
-                            </div>
                             <div
-                              className={`mt-1 text-[11px] ${isMe ? "text-secondary/70" : "text-primary/50"}`}
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: "50%",
+                                flexShrink: 0,
+                                background: "#F5F5F0",
+                                border: "1px solid rgba(60,31,27,0.10)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: "#3C1F1B",
+                              }}
                             >
-                              {m.time}
+                              {initials(c.title)}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 8,
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontWeight: 600,
+                                    fontSize: 14,
+                                    color: "#3C1F1B",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {c.title}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 11,
+                                    color: "rgba(60,31,27,0.6)",
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {c.time}
+                                </div>
+                              </div>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 8,
+                                  alignItems: "center",
+                                  marginTop: 2,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    color: "rgba(60,31,27,0.7)",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {c.lastMessage}
+                                </div>
+                                {c.unread ? (
+                                  <span
+                                    style={{
+                                      fontSize: 11,
+                                      background: "#3C1F1B",
+                                      color: "#fff",
+                                      padding: "2px 8px",
+                                      borderRadius: 999,
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {c.unread}
+                                  </span>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
                 </div>
+              )}
 
-                <div className="border-t border-primary/10 bg-secondary px-3 sm:px-5 py-3">
-                  <div className="max-w-3xl mx-auto">
-                    {attachedFile && (
-                      <div className="mb-2 flex items-center justify-between gap-3 bg-[#F5F5F0] border border-primary/10 px-3 py-2 rounded-none">
-                        <div className="min-w-0">
-                          <div className="text-xs text-primary/60">
-                            Selected file
-                          </div>
-                          <div className="text-sm font-medium text-primary truncate">
-                            {attachedFile.name}
-                          </div>
+              {/* ── Conversation ── */}
+              {showConversation && (
+                <div className="conversation">
+                  {/* Header */}
+                  <div
+                    style={{
+                      background: "#3C1F1B",
+                      color: "#fff",
+                      padding: "12px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {!isDesktop && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedChatId(null)}
+                        aria-label="Back"
+                        style={{
+                          width: 40,
+                          height: 40,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#fff",
+                          flexShrink: 0,
+                          borderRadius: 0,
+                        }}
+                      >
+                        <FiChevronLeft style={{ width: 20, height: 20 }} />
+                      </button>
+                    )}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: "50%",
+                          flexShrink: 0,
+                          background: "rgba(255,255,255,0.15)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {activeChat ? initials(activeChat.title) : "—"}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 600,
+                            lineHeight: 1.2,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {activeChat?.title ?? "Select a chat"}
                         </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            opacity: 0.8,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {activeChat?.subtitle ?? "Authentic Detective"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Messages */}
+                  <div
+                    ref={messagesRef}
+                    className="messages-area"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(rgba(60,31,27,0.05) 1px, transparent 1px)",
+                      backgroundSize: "20px 20px",
+                      background: "#F5F5F0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: 720,
+                        margin: "0 auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      {messages.map((m) => {
+                        const isMe = m.from === "me";
+                        return (
+                          <div
+                            key={m.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: isMe ? "flex-end" : "flex-start",
+                            }}
+                          >
+                            <div
+                              style={{
+                                maxWidth: "85%",
+                                padding: "8px 12px",
+                                border: "1px solid rgba(60,31,27,0.10)",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                                background: isMe ? "#3C1F1B" : "#fff",
+                                color: isMe ? "#fff" : "#3C1F1B",
+                              }}
+                            >
+                              {m.attachmentName && (
+                                <div
+                                  style={{
+                                    fontSize: 12,
+                                    opacity: 0.75,
+                                    marginBottom: 4,
+                                  }}
+                                >
+                                  Attachment: {m.attachmentName}
+                                </div>
+                              )}
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  lineHeight: 1.5,
+                                  wordBreak: "break-word",
+                                }}
+                              >
+                                {m.text}
+                              </div>
+                              <div
+                                style={{
+                                  marginTop: 4,
+                                  fontSize: 11,
+                                  opacity: 0.7,
+                                }}
+                              >
+                                {m.time}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Input bar */}
+                  <div className="input-bar">
+                    <div style={{ maxWidth: 720, margin: "0 auto" }}>
+                      {attachedFile && (
+                        <div
+                          style={{
+                            marginBottom: 8,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            background: "#F5F5F0",
+                            border: "1px solid rgba(60,31,27,0.10)",
+                            padding: "8px 12px",
+                          }}
+                        >
+                          <div style={{ minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "rgba(60,31,27,0.6)",
+                              }}
+                            >
+                              Selected file
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 500,
+                                color: "#3C1F1B",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {attachedFile.name}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAttachedFile(null)}
+                            aria-label="Remove attachment"
+                            style={{
+                              padding: 8,
+                              background: "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "rgba(60,31,27,0.7)",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            <FiX style={{ width: 16, height: 16 }} />
+                          </button>
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
                         <button
                           type="button"
-                          onClick={() => setAttachedFile(null)}
-                          className="p-2 !rounded-none hover:bg-primary/5 active:bg-primary/10 transition-colors text-primary/70"
-                          aria-label="Remove attachment"
+                          onClick={() => fileInputRef.current?.click?.()}
+                          aria-label="Attach"
+                          style={{
+                            width: 44,
+                            height: 44,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "rgba(60,31,27,0.7)",
+                            flexShrink: 0,
+                          }}
                         >
-                          <FiX className="w-4 h-4" />
+                          <FiPaperclip style={{ width: 20, height: 20 }} />
+                        </button>
+
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          style={{ display: "none" }}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0] || null;
+                            setAttachedFile(f);
+                            e.target.value = "";
+                          }}
+                        />
+
+                        <div
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            background: "#F5F5F0",
+                            border: "1px solid rgba(60,31,27,0.10)",
+                            borderRadius: 22,
+                            height: 44,
+                            padding: "0 14px",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          <textarea
+                            rows={1}
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onKeyDown={onDraftKeyDown}
+                            placeholder="Type a message"
+                            aria-label="Message"
+                            style={{
+                              width: "100%",
+                              resize: "none",
+                              overflow: "hidden",
+                              background: "transparent",
+                              border: "none",
+                              outline: "none",
+                              fontSize: 15,
+                              color: "#3C1F1B",
+                              fontFamily: "Montserrat, sans-serif",
+                              lineHeight: "24px",
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={sendMessage}
+                          aria-label="Send"
+                          style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            flexShrink: 0,
+                            background: "#3C1F1B",
+                            border: "none",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                          }}
+                        >
+                          <FiSend style={{ width: 18, height: 18 }} />
                         </button>
                       </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click?.()}
-                        className="h-11 w-11 p-0 !rounded-none flex items-center justify-center hover:bg-primary/5 active:bg-primary/10 transition-colors text-primary/70"
-                        aria-label="Attach"
-                      >
-                        <FiPaperclip className="w-5 h-5" />
-                      </button>
-
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0] || null;
-                          setAttachedFile(f);
-                          e.target.value = "";
-                        }}
-                      />
-
-                      <div className="flex-1 min-w-0 bg-[#F5F5F0] border border-primary/10 rounded-2xl h-11 px-3 flex items-center">
-                        <textarea
-                          rows={1}
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
-                          onKeyDown={onDraftKeyDown}
-                          placeholder="Type a message"
-                          className="w-full h- resize-none overflow-hidden bg-transparent text-sm sm:text-[15px] text-primary placeholder:text-primary/50 focus:outline-none leading-6"
-                          aria-label="Message"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={sendMessage}
-                        className="h-11 w-11 p-0 rounded-2xl bg-primary text-secondary hover:bg-primary-hover active:opacity-90 transition-colors flex items-center justify-center"
-                        aria-label="Send"
-                      >
-                        <FiSend className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
