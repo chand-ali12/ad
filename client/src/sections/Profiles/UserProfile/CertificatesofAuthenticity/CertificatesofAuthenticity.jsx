@@ -14,6 +14,10 @@ import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
 import { getBrands } from "../../../../store/slices";
 import RequestMoreImagesModal from "./RequestMoreImagesModal";
 import { MEDIA_BASE_URL } from "../../../../config/env";
+import {pdfjs } from "react-pdf";
+import PDFViewer from "../../../../utils/PDFViewer";
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 // Old website uses certificate.is_sold (0 = available, 1 = sold). Also support status string.
 const isCertificateSold = (cert) => {
@@ -582,27 +586,36 @@ const CertificatesofAuthenticity = ({
                         No image
                       </div>
                     ) : (
-                      <img
-                        src={imageSrc}
-                        alt={
-                          activeTab === "Pending"
-                            ? "Item photo"
-                            : "Certificate of Authenticity"
-                        }
-                        className="max-w-full max-h-[380px] sm:max-h-[460px] w-auto h-auto object-contain"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          if (typeof console !== "undefined" && console.warn) {
-                            console.warn(
-                              "[Certificates] Image failed to load (likely 404/CORS):",
-                              imageSrc?.substring?.(0, 120),
-                            );
-                          }
-                          if (activeTab === "Pending")
-                            e.target.style.display = "none";
-                          else e.target.src = certificateImage;
-                        }}
-                      />
+                      <>
+                        {pdfUrl ? (
+                          <PDFViewer pdfUrl={pdfUrl} />
+                        ) : (
+                          <img
+                            src={imageSrc}
+                            alt={
+                              activeTab === "Pending"
+                                ? "Item photo"
+                                : "Certificate of Authenticity"
+                            }
+                            className="max-w-full max-h-[380px] sm:max-h-[460px] w-auto h-auto object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              if (
+                                typeof console !== "undefined" &&
+                                console.warn
+                              ) {
+                                console.warn(
+                                  "[Certificates] Image failed to load:",
+                                  imageSrc?.substring?.(0, 120),
+                                );
+                              }
+                              if (activeTab === "Pending")
+                                e.target.style.display = "none";
+                              else e.target.src = certificateImage;
+                            }}
+                          />
+                        )}
+                      </>
                     )}
                     {/* Authentic / Not Authentic / Inconclusive badge from API (like old website) */}
                     {activeTab === "Completed" && result && (
