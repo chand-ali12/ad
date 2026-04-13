@@ -33,7 +33,7 @@ const PricingHero = ({ className = "", onBuyNowClick }) => {
             </p>
 
             {/* Buttons */}
-            <div className="flex flex-col  sm:flex-row gap-4 w-auto mb-6 sm:mb-8 md:mb-10">
+            <div className="flex flex-col  sm:flex-row gap-4 w-auto mt-6 sm:mt-8 md:mt-10 mb-6 sm:mb-8 md:mb-10 border-black">
               <button
                 onClick={onBuyNowClick}
                 className="bg-primary text-secondary px-10 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-primary-hover transition-colors shadow-lg active:scale-95"
