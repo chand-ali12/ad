@@ -29,6 +29,8 @@ const ReviewItem = ({
   showReviewDelete = false,
   onReviewerProfileClick,
 }) => {
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState("");
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState("");
   const replyTextareaRef = useRef(null);
@@ -155,8 +157,38 @@ const ReviewItem = ({
             <img
               src={reviewImage}
               alt="Review attachment"
-              className="max-h-48 w-auto rounded-lg border border-gray-200 object-cover"
+              className="max-h-48 w-auto rounded-lg border border-gray-200 object-cover cursor-pointer hover:opacity-90 hover:brightness-105 transition-all duration-200"
+              onClick={() => {
+                setSelectedImage(reviewImage);
+                setShowImageModal(true);
+              }}
             />
+          </div>
+        )}
+
+        {showImageModal && selectedImage && (
+          <div
+            className="fixed inset-0 bg-black/80 z-[1000] flex items-center justify-center p-4 md:p-8"
+            onClick={() => setShowImageModal(false)}
+          >
+            <div className="relative w-full max-w-4xl max-h-[90vh] mx-auto">
+              <button
+                className="absolute -top-4 -right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold shadow-lg hover:shadow-xl transition-all z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowImageModal(false);
+                }}
+                aria-label="Close image"
+              >
+                ×
+              </button>
+              <img
+                src={selectedImage}
+                alt="Review image full size"
+                className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </div>
         )}
 
