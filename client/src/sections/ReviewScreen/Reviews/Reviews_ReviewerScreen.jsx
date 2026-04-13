@@ -23,7 +23,6 @@ const Reviews_ReviewerScreen = ({
     );
   }
 
-
   return (
     <section className={`w-full py-8 sm:py-12 ${className}`}>
       <div className="w-full px-4 sm:px-6 lg:px-8 pb-2 sm:pb-4">
@@ -49,9 +48,9 @@ const Reviews_ReviewerScreen = ({
                   null
                 }
                 reviewImage={
-                  review.review_image ||
-                  review.image ||
-                  review.image_url ||
+                  `https://auth-detect.s3.amazonaws.com/reviewImage/${review.image}` ||
+                  `https://auth-detect.s3.amazonaws.com/reviewImage/${review.review_image}` ||
+                  `https://auth-detect.s3.amazonaws.com/reviewImage/${review.image_url}` ||
                   null
                 }
                 reply={review.reply || null}
