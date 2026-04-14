@@ -56,6 +56,7 @@ const Receipts = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const receiptRef = useRef(null);
+  const [forPDForWeb, setForPDForWeb] = useState('web');
 
   // When receipts change, clear selection so user chooses again
   useEffect(() => {
@@ -127,6 +128,7 @@ const Receipts = () => {
     if (selectedRows.length === 0) return;
     setPdfLoading(true);
     try {
+      setForPDForWeb('pdf');
       const html2pdf = (await import("html2pdf.js")).default;
       const element = receiptRef.current;
       if (!element) {
@@ -147,6 +149,7 @@ const Receipts = () => {
       console.error("PDF generation failed:", err);
     } finally {
       setPdfLoading(false);
+      setForPDForWeb('web');
     }
   };
 
@@ -437,7 +440,7 @@ const Receipts = () => {
                 >
                   <p
                     style={{
-                      transform: "translateY(-10%)",
+                      transform: `${forPDForWeb === 'web' ? 'translateY(-10%)' : 'translateY(-40%)'}`,
                     }}
                   >{`Total: $${totalForPdf.toFixed(2)}`}</p>
                 </div>
