@@ -2,7 +2,6 @@ import React from "react";
 import ReviewItem from "../../../../components/client/ReviewItem/ReviewItem";
 import PropTypes from "prop-types";
 
-
 const ReviweSection = ({
   className = "",
   reviews = [],
@@ -32,7 +31,6 @@ const ReviweSection = ({
   }
 
   // console.log();
-  
 
   return (
     <section className={`w-full py-8 sm:py-12 ${className}`}>
@@ -44,14 +42,27 @@ const ReviweSection = ({
               className="bg-white rounded-[22px] border border-[#BDBDBD] shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
             >
               <ReviewItem
-                profileImage={review.profile_image || null}
-                reviewerName={review.reviewer_name || "Anonymous"}
-                reviewerId={review.reviewer_id ?? review.user_id ?? review.user?.id ?? null}
-                date={review.date || ""}
-                rating={review.rating || 0}
-                comment={review.comment || ""}
+                profileImage={review.profile_image}
+                comment={review?.comment || review?.review || review?.text}
+                rating={review.rating}
+                key={review.id || index}
+                reviewerName={review?.reviewer_name || "Anonymous"}
+                reviewerId={
+                  review.reviewer_id ??
+                  review.user_id ??
+                  review.user?.id ??
+                  null
+                }
+                reviewImage={
+                  review.review_image ||
+                  review.image ||
+                  review.image_url ||
+                  null
+                }
                 reply={review.reply || null}
-                showDivider={false}
+                onReviewerProfileClick={onReviewerProfileClick}
+                
+                date={review.date || ""}
                 onEditClick={onReplyEditClick}
                 onDeleteClick={onReplyDeleteClick}
                 showReplyActions={showReplyActions}
@@ -63,7 +74,6 @@ const ReviweSection = ({
                 isSubmittingReply={isSubmittingReply}
                 onReviewDelete={onReviewDelete}
                 showReviewDelete={showReviewDelete}
-                onReviewerProfileClick={onReviewerProfileClick}
               />
             </div>
           ))}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { BsPatchCheckFill } from "react-icons/bs";
 import { FiImage, FiX } from "react-icons/fi";
@@ -154,6 +155,28 @@ const BusinessProfile = () => {
     };
   }, [fetchProfile]);
 
+  const reviewsWithImageUrls = useMemo(() => {
+    return reviews.map((r) => ({
+      ...r,
+      profile_image: getProfileImageUrl(r.profile_image) || r.profile_image,
+      review_image: getReviewImageUrl(r.review_image) || r.review_image,
+    }));
+  }, [reviews]);
+
+  useEffect(() => {
+    if (!authUser?.id || !reviewsWithImageUrls.length) return;
+
+    const existingReview = reviewsWithImageUrls.find(
+      (review) => String(review.reviewer_id) === String(authUser.id),
+    );
+
+    if (existingReview) {
+      setReviewText(existingReview.comment || "");
+      setReviewRating(existingReview.rating || 0);
+    }
+  }, [authUser?.id, reviewsWithImageUrls]);
+
+  // Early returns AFTER all hooks
   if (!slugOrId) {
     return (
       <div className="min-h-screen bg-[#F5F5F0] flex items-center justify-center p-8">
@@ -299,14 +322,8 @@ const BusinessProfile = () => {
     }
   };
 
-  const reviewsWithImageUrls = reviews.map((r) => ({
-    ...r,
-    profile_image: getProfileImageUrl(r.profile_image) || r.profile_image,
-    review_image: getReviewImageUrl(r.review_image) || r.review_image,
-  }));
-
   // console.log("reviews with url", reviewsWithImageUrls);
-  // console.log("Reviews are :- ", reviews);
+  // console.log("User is:- ", authUser);
 
   return (
     <div className="min-h-screen bg-[#F5F5F0]">
@@ -403,141 +420,6 @@ const BusinessProfile = () => {
                 </p>
               </div>
             ) : (
-              !isOwner && (
-                <div className="py-6 px-4 sm:px-6 md:px-8">
-                  {toastMessage && (
-                    <div
-                      className={`fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg text-sm shadow-lg ${toastVariant === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-700"}`}
-                    >
-                      {toastMessage}
-                    </div>
-                  )}
-                  <form
-                    onSubmit={handleSubmitReview}
-                    className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm max-w-2xl mx-auto"
-                  >
-                    <label className="block text-sm font-semibold text-primary mb-2">
-                      Share your experience...
-                    </label>
-                    <div className="relative mb-4">
-                      <textarea
-                        ref={reviewTextareaRef}
-                        value={reviewText}
-                        onChange={(e) => {
-                          setReviewText(e.target.value);
-                          if (textError) setTextError("");
-                        }}
-                        placeholder="Share your experience..."
-                        rows={5}
-                        maxLength={200}
-                        className="w-full px-4 py-3 pr-12 rounded-[12px] border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-gray-50 resize-none"
-                      />
-                      {textError && (
-                        <div className="rounded-lg">
-                          <p className="text-red-600 text-sm">{textError}</p>
-                        </div>
-                      )}
-                      <input
-                        ref={reviewImageInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setReviewImageFile(file);
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => reviewImageInputRef.current?.click()}
-                        className="absolute right-3 bottom-3 inline-flex items-center justify-center rounded-md p-1.5 text-primary/80 hover:text-primary hover:bg-white/80"
-                        aria-label="Upload image"
-                        title="Upload image"
-                      >
-                        <FiImage className="h-4 w-4" />
-                      </button>
-                    </div>
-                    {reviewImagePreview && (
-                      <div className="mb-4 flex flex-col items-start gap-1.5">
-                        <div className="relative inline-block overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-sm">
-                          <img
-                            src={reviewImagePreview}
-                            alt="Selected review attachment"
-                            className="block h-20 w-20 sm:h-24 sm:w-24 object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setReviewImageFile(null);
-                              if (reviewImageInputRef.current) {
-                                reviewImageInputRef.current.value = "";
-                              }
-                            }}
-                            className="absolute top-1 right-1 z-10 p-1 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] hover:text-red-200 focus:outline-none"
-                            aria-label="Remove selected image"
-                            title="Remove image"
-                          >
-                            <FiX className="h-4 w-4" strokeWidth={2.5} />
-                          </button>
-                        </div>
-                        {reviewImageFile?.name ? (
-                          <p
-                            className="max-w-[240px] truncate text-xs text-primary/70"
-                            title={reviewImageFile.name}
-                          >
-                            {reviewImageFile.name}
-                          </p>
-                        ) : null}
-                      </div>
-                    )}
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-primary font-medium">
-                            {reviewRating}
-                          </span>
-                          <RatingInput
-                            ref={ratingInputRef}
-                            value={reviewRating}
-                            onChange={(rating) => {
-                              setReviewRating(rating);
-                              if (starError) setStarError("");
-                            }}
-                            starSize="w-5 h-5 sm:w-6 sm:h-6"
-                            showValue={false}
-                          />
-                        </div>
-                        {starError && (
-                          <div className="rounded-lg">
-                            <p className="text-red-600 text-sm">{starError}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-end">
-                        <button
-                          type="submit"
-                          disabled={isSubmittingReview}
-                          className="px-4 py-2 bg-primary text-secondary text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {isSubmittingReview ? (
-                            <>
-                              <span className="animate-spin rounded-full h-4 w-4 border-2 border-secondary border-t-transparent" />
-                              Submitting...
-                            </>
-                          ) : (
-                            "Submit"
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-              )
-            )}
-
-            {isOwner ? (
               <>
                 {toastMessage && (
                   <div
@@ -546,6 +428,146 @@ const BusinessProfile = () => {
                     {toastMessage}
                   </div>
                 )}
+                {!isOwner && (
+                  <div className="py-6 px-4 sm:px-6 md:px-8">
+                    <form
+                      onSubmit={handleSubmitReview}
+                      className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm max-w-2xl mx-auto"
+                    >
+                      <label className="block text-sm font-semibold text-primary mb-2">
+                        Share your experience...
+                      </label>
+                      <div className="relative mb-4">
+                        <textarea
+                          ref={reviewTextareaRef}
+                          value={reviewText}
+                          onChange={(e) => {
+                            setReviewText(e.target.value);
+                            if (textError) setTextError("");
+                          }}
+                          placeholder="Share your experience..."
+                          rows={5}
+                          maxLength={200}
+                          className="w-full px-4 py-3 pr-12 rounded-[12px] border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-gray-50 resize-none"
+                        />
+                        {textError && (
+                          <div className="rounded-lg">
+                            <p className="text-red-600 text-sm">{textError}</p>
+                          </div>
+                        )}
+                        <input
+                          ref={reviewImageInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setReviewImageFile(file);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => reviewImageInputRef.current?.click()}
+                          className="absolute right-3 bottom-3 inline-flex items-center justify-center rounded-md p-1.5 text-primary/80 hover:text-primary hover:bg-white/80"
+                          aria-label="Upload image"
+                          title="Upload image"
+                        >
+                          <FiImage className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {reviewImagePreview && (
+                        <div className="mb-4 flex flex-col items-start gap-1.5">
+                          <div className="relative inline-block overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-sm">
+                            <img
+                              src={reviewImagePreview}
+                              alt="Selected review attachment"
+                              className="block h-20 w-20 sm:h-24 sm:w-24 object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReviewImageFile(null);
+                                if (reviewImageInputRef.current) {
+                                  reviewImageInputRef.current.value = "";
+                                }
+                              }}
+                              className="absolute top-1 right-1 z-10 p-1 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] hover:text-red-200 focus:outline-none"
+                              aria-label="Remove selected image"
+                              title="Remove image"
+                            >
+                              <FiX className="h-4 w-4" strokeWidth={2.5} />
+                            </button>
+                          </div>
+                          {reviewImageFile?.name ? (
+                            <p
+                              className="max-w-[240px] truncate text-xs text-primary/70"
+                              title={reviewImageFile.name}
+                            >
+                              {reviewImageFile.name}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-primary font-medium">
+                              {reviewRating}
+                            </span>
+                            <RatingInput
+                              ref={ratingInputRef}
+                              value={reviewRating}
+                              onChange={(rating) => {
+                                setReviewRating(rating);
+                                if (starError) setStarError("");
+                              }}
+                              starSize="w-5 h-5 sm:w-6 sm:h-6"
+                              showValue={false}
+                            />
+                          </div>
+                          {starError && (
+                            <div className="rounded-lg">
+                              <p className="text-red-600 text-sm">
+                                {starError}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-end">
+                          <button
+                            type="submit"
+                            disabled={isSubmittingReview}
+                            className="focus:outline-none focus:ring-0 px-4 py-2 bg-primary text-secondary text-sm font-semibold rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {isSubmittingReview ? (
+                              <>
+                                <span className="animate-spin rounded-full h-4 w-4 border-2 border-secondary border-t-transparent" />
+                                Submitting...
+                              </>
+                            ) : (
+                              "Submit"
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </>
+            )}
+
+            {toastMessage && (
+              <div
+                className={`fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg text-sm shadow-lg ${toastVariant === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-700"}`}
+              >
+                {toastMessage}
+              </div>
+            )}
+
+            {isOwner ? (
+              <>
                 <ReviweSection
                   reviews={reviewsWithImageUrls}
                   onReplySubmit={handleReplySubmit}
