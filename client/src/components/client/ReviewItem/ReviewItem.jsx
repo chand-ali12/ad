@@ -193,7 +193,7 @@ const ReviewItem = ({
         )}
 
         {/* Reply Section */}
-        {reply && (
+        {reply && reply.length >= 1 && (
           <ReplySection
             sellerName={reply.sellerName}
             text={reply.text}
