@@ -437,7 +437,7 @@ const Receipts = () => {
                 >
                   <p
                     style={{
-                      transform: "translateY(-50%)",
+                      transform: "translateY(-10%)",
                     }}
                   >{`Total: $${totalForPdf.toFixed(2)}`}</p>
                 </div>
