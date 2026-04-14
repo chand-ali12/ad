@@ -384,7 +384,7 @@ const SignUp = ({ className = "" }) => {
                             return nameA.localeCompare(nameB);
                           });
                           const options = [
-                            { value: "", label: "Business Brands" },
+                            // { value: "", label: "Business Brands" },
                             ...sortedBrands.map((b) => ({
                               value: b.brand || b.name || String(b.id),
                               label: b.brand || b.name || String(b.id),
