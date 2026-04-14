@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import ReactDOM from "react-dom";
 import React, { useState, useRef } from "react";
 import { FaRegStar, FaStar, FaStarHalfAlt } from "react-icons/fa";
 import { FiSend, FiTrash2 } from "react-icons/fi";
@@ -35,6 +37,29 @@ const ReviewItem = ({
   const [replyText, setReplyText] = useState("");
   const replyTextareaRef = useRef(null);
 
+  // Scroll lock
+  useEffect(() => {
+    if (showImageModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showImageModal]);
+
+  // Escape key to close
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setShowImageModal(false);
+    };
+    if (showImageModal) {
+      window.addEventListener("keydown", handleEsc);
+    }
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [showImageModal]);
+
   const handleReplySubmit = () => {
     if (!onReplySubmit || !reviewId) return;
     if (!replyText.trim()) {
@@ -64,222 +89,266 @@ const ReviewItem = ({
   const filledCount = Math.min(5, fullStars + (hasHalfStar ? 1 : 0));
 
   return (
-    <div className={className}>
-      <div className="pb-4 sm:pb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Left Side - Profile Picture */}
-          <div className="flex-shrink-0">
-            {profileImage ? (
-              <img
-                src={profileImage}
-                alt="Reviewer Profile"
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center">
-                <span className="text-xs sm:text-sm font-semibold text-gray-700">
-                  {reviewerInitials || "U"}
-                </span>
-              </div>
-            )}
-          </div>
+    <>
+      {showImageModal &&
+        selectedImage &&
+        ReactDOM.createPortal(
+          <div
+            onClick={() => setShowImageModal(false)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0, 0, 0, 0.92)",
+              zIndex: 2147483647,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "hidden",
+            }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowImageModal(false);
+              }}
+              aria-label="Close image"
+              style={{
+                position: "fixed",
+                top: "20px",
+                right: "20px",
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
+                backgroundColor: "white",
+                border: "none",
+                color: "#000000",
+                fontSize: "24px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 2147483647,
+                padding: 0,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              ✕
+            </button>
 
-          {/* Right Side - Name/Date and Rating aligned with profile image */}
-          <div className="flex-1 min-w-0 pt-1 sm:pt-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-base sm:text-lg text-primary mb-1">
+            {/* Image */}
+            <img
+              src={selectedImage}
+              alt="Review"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: "88vw",
+                maxHeight: "88vh",
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                borderRadius: "12px",
+                display: "block",
+              }}
+              loading="eager"
+            />
+          </div>,
+          document.body, 
+        )}
+
+      <div className={className}>
+        <div className="pb-4 sm:pb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Left Side - Profile Picture */}
+            <div className="flex-shrink-0">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Reviewer Profile"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-700">
+                    {reviewerInitials || "U"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side */}
+            <div className="flex-1 min-w-0 pt-1 sm:pt-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-base sm:text-lg text-primary mb-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!onReviewerProfileClick) return;
+                        onReviewerProfileClick(reviewerId);
+                      }}
+                      disabled={!onReviewerProfileClick}
+                      className={`text-blue-700 bg-transparent border-0 p-0 ${onReviewerProfileClick ? "cursor-pointer hover:underline" : "cursor-default"}`}
+                    >
+                      {reviewerName || "Anonymous"}
+                    </button>
+                    {date ? (
+                      <span className="text-gray-500 font-normal text-sm sm:text-base ml-2">
+                        {date}
+                      </span>
+                    ) : null}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => {
+                      const starIndex = i + 1;
+                      if (starIndex <= fullStars) {
+                        return (
+                          <FaStar key={i} className="w-4 h-4 text-yellow-400" />
+                        );
+                      }
+                      if (hasHalfStar && starIndex === filledCount) {
+                        return (
+                          <FaStarHalfAlt
+                            key={i}
+                            className="w-4 h-4 text-yellow-400"
+                          />
+                        );
+                      }
+                      return (
+                        <FaRegStar key={i} className="w-4 h-4 text-gray-300" />
+                      );
+                    })}
+                  </div>
+                </div>
+                {showReviewDelete && onReviewDelete && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!onReviewerProfileClick) return;
-                      onReviewerProfileClick(reviewerId);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReviewDelete(reviewId);
                     }}
-                    disabled={!onReviewerProfileClick}
-                    className={`text-blue-700 bg-transparent border-0 p-0 ${onReviewerProfileClick ? "cursor-pointer hover:underline" : "cursor-default"}`}
+                    className="text-gray-600 hover:text-red-500 transition-colors bg-transparent border-0 p-1"
+                    aria-label="Delete review"
                   >
-                    {reviewerName || "Anonymous"}
+                    <FiTrash2 className="w-5 h-5" />
                   </button>
-                  {date ? (
-                    <span className="text-gray-500 font-normal text-sm sm:text-base ml-2">
-                      {date}
-                    </span>
-                  ) : null}
-                </h3>
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => {
-                    const starIndex = i + 1;
-                    if (starIndex <= fullStars) {
-                      return (
-                        <FaStar key={i} className="w-4 h-4 text-yellow-400" />
-                      );
-                    }
-                    if (hasHalfStar && starIndex === filledCount) {
-                      return (
-                        <FaStarHalfAlt
-                          key={i}
-                          className="w-4 h-4 text-yellow-400"
-                        />
-                      );
-                    }
-                    return (
-                      <FaRegStar key={i} className="w-4 h-4 text-gray-300" />
-                    );
-                  })}
-                </div>
+                )}
               </div>
-              {/* Delete Review Button */}
-              {showReviewDelete && onReviewDelete && (
+            </div>
+          </div>
+
+          {comment && (
+            <div className="mt-2">
+              <p className="text-sm sm:text-base text-primary">{comment}</p>
+            </div>
+          )}
+
+          {reviewImage && reviewImage !== null && (
+            <div className="mt-3">
+              <img
+                src={reviewImage}
+                alt="Review attachment"
+                className="max-h-48 w-auto rounded-lg border border-gray-200 object-cover cursor-pointer hover:opacity-90 hover:brightness-105 transition-all duration-200"
+                onClick={() => {
+                  setSelectedImage(reviewImage);
+                  setShowImageModal(true);
+                }}
+              />
+            </div>
+          )}
+
+          {reply && reply.length >= 1 && (
+            <ReplySection
+              sellerName={reply.sellerName}
+              text={reply.text}
+              onEditClick={
+                onEditClick
+                  ? () => onEditClick(reviewId, replyId, reply?.text)
+                  : undefined
+              }
+              onDeleteClick={
+                onDeleteClick
+                  ? () => onDeleteClick(reviewId, replyId)
+                  : undefined
+              }
+              showActions={showReplyActions}
+              textBold={replyTextBold}
+            />
+          )}
+
+          {!reply && showReplyInput && (
+            <div
+              className="pt-4 mt-4 border-t border-gray-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {!showReplyBox ? (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onReviewDelete(reviewId);
+                    setShowReplyBox(true);
                   }}
-                  className="text-gray-600 hover:text-red-500 transition-colors bg-transparent border-0 p-1"
-                  aria-label="Delete review"
+                  className="inline-flex items-center justify-center border border-[#3C1F1B] bg-[#3C1F1B] text-white hover:opacity-95 transition-colors whitespace-nowrap rounded-md px-4 py-2 text-sm"
                 >
-                  <FiTrash2 className="w-5 h-5" />
+                  Reply
                 </button>
+              ) : (
+                <div className="space-y-2">
+                  <textarea
+                    ref={replyTextareaRef}
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Write your reply..."
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-[12px] border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-gray-50 resize-none"
+                    disabled={isSubmittingReply}
+                  />
+                  <div className="flex items-center gap-2 justify-end">
+                    <button
+                      onClick={() => {
+                        setShowReplyBox(false);
+                        setReplyText("");
+                      }}
+                      className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                      disabled={isSubmittingReply}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReplySubmit}
+                      disabled={isSubmittingReply}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                    >
+                      {isSubmittingReply ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <FiSend className="w-4 h-4" />
+                          Send Reply
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Review Text - Under the profile image */}
-        {comment && (
-          <div className="mt-2">
-            <p className="text-sm sm:text-base text-primary">{comment}</p>
-          </div>
-        )}
-        {reviewImage && reviewImage !== null && (
-          <div className="mt-3">
-            <img
-              src={reviewImage}
-              alt="Review attachment"
-              className="max-h-48 w-auto rounded-lg border border-gray-200 object-cover cursor-pointer hover:opacity-90 hover:brightness-105 transition-all duration-200"
-              onClick={() => {
-                setSelectedImage(reviewImage);
-                setShowImageModal(true);
-              }}
-            />
-          </div>
-        )}
-
-        {showImageModal && selectedImage && (
-          <div
-            className="fixed inset-0 bg-black/80 z-[1000] flex items-center justify-center p-4 md:p-8"
-            onClick={() => setShowImageModal(false)}
-          >
-            <div className="relative w-full max-w-4xl max-h-[90vh] mx-auto">
-              <button
-                className="absolute -top-4 -right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full w-12 h-12 flex items-center justify-center text-xl font-bold shadow-lg hover:shadow-xl transition-all z-10"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowImageModal(false);
-                }}
-                aria-label="Close image"
-              >
-                ×
-              </button>
-              <img
-                src={selectedImage}
-                alt="Review image full size"
-                className="w-full h-auto max-h-[85vh] object-contain rounded-2xl shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Reply Section */}
-        {reply && reply.length >= 1 && (
-          <ReplySection
-            sellerName={reply.sellerName}
-            text={reply.text}
-            onEditClick={
-              onEditClick
-                ? () => onEditClick(reviewId, replyId, reply?.text)
-                : undefined
-            }
-            onDeleteClick={
-              onDeleteClick ? () => onDeleteClick(reviewId, replyId) : undefined
-            }
-            showActions={showReplyActions}
-            textBold={replyTextBold}
-          />
-        )}
-
-        {/* Add Reply Button or Reply Input */}
-        {!reply && showReplyInput && (
-          <div
-            className="pt-4 mt-4 border-t border-gray-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {!showReplyBox ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowReplyBox(true);
-                }}
-                className="inline-flex items-center justify-center border border-[#3C1F1B] bg-[#3C1F1B] text-white hover:opacity-95 transition-colors whitespace-nowrap rounded-md px-4 py-2 text-sm"
-              >
-                Reply
-              </button>
-            ) : (
-              <div className="space-y-2">
-                <textarea
-                  ref={replyTextareaRef}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Write your reply..."
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-[12px] border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-gray-50 resize-none"
-                  disabled={isSubmittingReply}
-                />
-                <div className="flex items-center gap-2 justify-end">
-                  <button
-                    onClick={() => {
-                      setShowReplyBox(false);
-                      setReplyText("");
-                    }}
-                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-                    disabled={isSubmittingReply}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleReplySubmit}
-                    disabled={isSubmittingReply}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                  >
-                    {isSubmittingReply ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <FiSend className="w-4 h-4" />
-                        Send Reply
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        {showDivider && (
+          <div className="border-b border-gray-300 mb-4 sm:mb-6"></div>
         )}
       </div>
-
-      {/* Divider */}
-      {showDivider && (
-        <div className="border-b border-gray-300 mb-4 sm:mb-6"></div>
-      )}
-    </div>
+    </>
   );
 };
 
