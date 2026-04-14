@@ -152,7 +152,7 @@ const ReviewItem = ({
             <p className="text-sm sm:text-base text-primary">{comment}</p>
           </div>
         )}
-        {reviewImage && (
+        {reviewImage && reviewImage !== null && (
           <div className="mt-3">
             <img
               src={reviewImage}

@@ -48,10 +48,11 @@ const Reviews_ReviewerScreen = ({
                   null
                 }
                 reviewImage={
-                  `https://auth-detect.s3.amazonaws.com/reviewImage/${review.image}` ||
-                  `https://auth-detect.s3.amazonaws.com/reviewImage/${review.review_image}` ||
-                  `https://auth-detect.s3.amazonaws.com/reviewImage/${review.image_url}` ||
-                  null
+                  review.image || review.review_image || review.image_url
+                    ? `https://auth-detect.s3.amazonaws.com/reviewImage/${
+                        review.image || review.review_image || review.image_url
+                      }`
+                    : null
                 }
                 reply={review.reply || null}
                 showDivider={index < reviewsToDisplay.length - 1}
