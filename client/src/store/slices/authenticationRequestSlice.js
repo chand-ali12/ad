@@ -64,7 +64,7 @@ export const freeSubmitBulk = createAsyncThunk(
   async (payload, { rejectWithValue, getState }) => {
     try {
       const token = getState()?.auth?.token;
-      return await freeSubmitApi({ ...payload, token });
+      return await freeSubmitApi({ ...payload, token }, { is_expedited: payload.is_expedited });
     } catch (error) {
       return rejectWithValue(error?.message || 'Failed to submit');
     }
@@ -77,7 +77,7 @@ export const bundleQueryFormSubmitBulk = createAsyncThunk(
   async (payload, { rejectWithValue, getState }) => {
     try {
       const token = getState()?.auth?.token;
-      return await bundleQueryFormSubmitApi({ ...payload, token });
+      return await bundleQueryFormSubmitApi({ ...payload, token }, { is_expedited: payload.is_expedited });
     } catch (error) {
       console.error('[bundleQueryFormSubmitBulk] API error:', error?.message, 'Backend data:', error?.data);
       return rejectWithValue(error?.message || 'Failed to submit');
@@ -91,7 +91,17 @@ export const processPaypalPayment = createAsyncThunk(
   async (payload, { rejectWithValue, getState }) => {
     try {
       const token = getState()?.auth?.token;
-      return await processPaypalApi(payload, { token });
+      // Cart may pass { singleFormData, is_expedited }; backend expects flat fields.
+      const formPayload =
+        payload?.singleFormData &&
+        typeof payload.singleFormData === 'object' &&
+        !Array.isArray(payload.singleFormData)
+          ? payload.singleFormData
+          : payload;
+      return await processPaypalApi(formPayload, {
+        token,
+        is_expedited: payload?.is_expedited,
+      });
     } catch (error) {
       console.error('[processPaypalPayment] API error:', error?.message, 'Backend data:', error?.data);
       return rejectWithValue(error?.message || 'Payment failed');

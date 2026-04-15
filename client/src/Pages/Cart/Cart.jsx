@@ -30,8 +30,6 @@ const Cart = () => {
   const [submitError, setSubmitError] = useState("");
   const [orderSuccessMessage, setOrderSuccessMessage] = useState(null);
 
-  const VALUATION_SURCHARGE = 10;
-
   const resolveCheckoutEmail = (item) => {
     const fromItem = item?.email != null ? String(item.email).trim() : "";
     const fromUser = userEmail != null ? String(userEmail).trim() : "";
@@ -71,17 +69,41 @@ const Cart = () => {
     dispatch(updateQuantity({ id: itemId, quantity: Math.max(1, quantity) }));
   };
 
+  // const handleToggleValuation = (itemId, checked) => {
+  //   const item = cartItems.find((entry) => entry.id === itemId);
+  //   if (!item) return;
+  //   const hadValuation = item.valuation === 1 || item.valuation === true;
+  //   if (checked === hadValuation) return;
+
+  //   const valuationPrice = Number(item.valuation_price) || 9;
+  //   const currentPrice = Number(item.price) || 0;
+  //   const newPrice = checked
+  //     ? currentPrice + VALUATION_SURCHARGE
+  //     : Math.max(0, currentPrice - VALUATION_SURCHARGE);
+  //   dispatch(
+  //     updateItem({ id: itemId, valuation: checked ? 1 : 0, price: newPrice }),
+  //   );
+  // };
+
   const handleToggleValuation = (itemId, checked) => {
     const item = cartItems.find((entry) => entry.id === itemId);
     if (!item) return;
     const hadValuation = item.valuation === 1 || item.valuation === true;
     if (checked === hadValuation) return;
+
+    const valuationPrice = Number(item.valuation_price);
     const currentPrice = Number(item.price) || 0;
     const newPrice = checked
-      ? currentPrice + VALUATION_SURCHARGE
-      : Math.max(0, currentPrice - VALUATION_SURCHARGE);
+      ? currentPrice + valuationPrice
+      : Math.max(0, currentPrice - valuationPrice);
+
     dispatch(
-      updateItem({ id: itemId, valuation: checked ? 1 : 0, price: newPrice }),
+      updateItem({
+        id: itemId,
+        valuation: checked ? 1 : 0,
+        price: newPrice,
+        valuation_price: valuationPrice,
+      }),
     );
   };
 
@@ -131,6 +153,7 @@ const Cart = () => {
           queries_count: 0,
           is_user_paid: total > 0 ? 1 : 0,
           add_on: item.add_on ?? 0,
+          is_expedited: item.is_expedited || false,
         };
 
         if (total === 0) {
@@ -160,6 +183,7 @@ const Cart = () => {
                   paid_amount: 0,
                   is_subscription: 0,
                   add_on: 0,
+                  is_expedited: item.is_expedited || false,
                 },
               ],
             }),
@@ -170,7 +194,10 @@ const Cart = () => {
         }
 
         const result = await dispatch(
-          processPaypalPayment(singleFormData),
+          processPaypalPayment({
+            singleFormData,
+            is_expedited: item.is_expedited || false,
+          }),
         ).unwrap();
         const braintreeData = result?.data ?? result;
         const token = braintreeData?.token ?? braintreeData?.client_token;

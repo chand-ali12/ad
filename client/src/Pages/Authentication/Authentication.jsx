@@ -34,6 +34,13 @@ const Authentication = () => {
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [showStickyButtons, setShowStickyButtons] = useState(false);
   const [openBulkDialogRequest, setOpenBulkDialogRequest] = useState(false);
+
+  const [speedType, setSpeedType] = useState("standard"); // can be "standard" | "expedited"
+  const [valuationValue, setValuationValue] = useState(null);
+  const [normalValue, setNormalValue] = useState(null);
+  const [expeditedValue, setexpeditedValue] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+
   const mediaBaseUrl = (
     BASE_URL_OLD_IMAGE_URL && BASE_URL_OLD_IMAGE_URL.trim()
       ? BASE_URL_OLD_IMAGE_URL
@@ -82,37 +89,58 @@ const Authentication = () => {
     };
   };
 
-  const resolvePriceForEntry = async (
-    entry,
-    categoryIdForApi,
-    fallbackPrice,
-  ) => {
-    try {
-      const queryLabel =
-        entry?.model || entry?.sku
-          ? [entry.model, entry.sku].filter(Boolean).join(" · ")
-          : "";
-      const priceRes = await dispatch(
-        getQueryPrice({
-          category_id: categoryIdForApi,
-          valuation: entry.marketValuation ? 1 : 0,
-          brand_id: entry.brand_id,
-          model: entry.model,
-          query: queryLabel || undefined,
-        }),
-      ).unwrap();
-      const rawAmount =
-        priceRes?.data?.amount ??
-        priceRes?.data?.total_price ??
-        priceRes?.amount ??
-        priceRes?.total_price ??
-        priceRes?.data ??
-        0;
-      return Number(rawAmount) || 0;
-    } catch {
-      return fallbackPrice;
+  console.log("Category id is :- ", selectedCategoryId);
+  console.log("Valuation val is :- ", valuationValue);
+  console.log("Speed Type is :- ", speedType);
+  console.log("Normal Value is :- ", normalValue);
+  console.log("Expiteted Value is :- ", expeditedValue);
+
+  useEffect(() => {
+    async function getAllPrices(id) {
+      const res = await dispatch(getQueryPrice({ category_id: id }));
+      console.log("Response is :- ", res);
+      if (res.payload.data !== null) {
+        setValuationValue(Number(res.payload.data.valuation));
+        setexpeditedValue(Number(res.payload.data.expedited_query));
+        setNormalValue(Number(res.payload.data.normal_query));
+      }
     }
-  };
+    if (selectedCategoryId) getAllPrices(selectedCategoryId);
+  }, [selectedCategoryId]);
+
+  // const resolvePriceForEntry = async (
+  //   entry,
+  //   categoryIdForApi,
+  //   fallbackPrice,
+  // ) => {
+  //   try {
+  //     const queryLabel =
+  //       entry?.model || entry?.sku
+  //         ? [entry.model, entry.sku].filter(Boolean).join(" · ")
+  //         : "";
+  //     const priceRes = await dispatch(
+  //       getQueryPrice({
+  //         category_id: categoryIdForApi,
+  //         // valuation: entry.marketValuation ? 1 : 0,
+  //         // brand_id: entry.brand_id,
+  //         // model: entry.model,
+  //         // query: queryLabel || undefined,
+  //       }),
+
+  //       console.log("Prices are 👌👌😒", priceRes),
+  //     ).unwrap();
+  //     const rawAmount =
+  //       priceRes?.data?.amount ??
+  //       priceRes?.data?.total_price ??
+  //       priceRes?.amount ??
+  //       priceRes?.total_price ??
+  //       priceRes?.data ??
+  //       0;
+  //     return Number(rawAmount) || 0;
+  //   } catch {
+  //     return fallbackPrice;
+  //   }
+  // };
 
   const scrollToAuthenticationForm = () => {
     if (typeof window === "undefined") return;
@@ -173,11 +201,30 @@ const Authentication = () => {
             categoryPrice,
             fallbackPrice,
           } = resolveItemMeta(entry);
-          const price = await resolvePriceForEntry(
-            entry,
-            categoryIdForApi,
-            fallbackPrice,
-          );
+          // const price = await resolvePriceForEntry(
+          //   entry,
+          //   categoryIdForApi,
+          //   fallbackPrice,
+          // );
+
+          let price = 0;
+          if (selectedCategoryId) {
+            if (speedType === "standard") {
+              price += normalValue;
+            } else if (speedType === "expedited") {
+              price += expeditedValue;
+            }
+
+            // if (valuationValue != null) {
+            //   price += valuationValue;
+            // }
+            if (valuationValue != null && data.marketValuation === true) {
+              price += valuationValue;
+            }
+          }
+
+          console.log("Price is 😒😒😒😒😒:- ", price);
+
           const cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
           const brandName =
             selectedBrand?.brand ||
@@ -200,6 +247,7 @@ const Authentication = () => {
               image: imageUrl,
               category_id: categoryIdForApi,
               brand_id: brandIdForApi,
+              valuation_price: valuationValue,
               description: entry.additionalInfo ?? "",
               valuation: entry.marketValuation ? 1 : 0,
               add_on: entryAddOn,
@@ -208,6 +256,7 @@ const Authentication = () => {
                 : [entry.imagePaths],
               email: entry.email ?? userEmail,
               sku: entry.sku ?? "",
+              is_expedited: speedType === "expedited",
             }),
           );
         }
@@ -270,7 +319,23 @@ const Authentication = () => {
     // Add to cart (same as ad-old): no API call, save to Redux and go to cart
     if (options?.addToCart) {
       try {
-        const price = await resolvePrice();
+        // const price = await resolvePrice();
+        let price = 0;
+        if (selectedCategoryId) {
+          if (speedType === "standard") {
+            price += normalValue;
+          } else if (speedType === "expedited") {
+            price += expeditedValue;
+          }
+
+          // if (valuationValue != null) {
+          //   price += valuationValue;
+          // }
+
+          if (valuationValue != null && data.marketValuation === true) {
+            price += valuationValue;
+          }
+        }
         const cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         const brandName =
           selectedBrand?.brand || selectedBrand?.name || String(brand_id);
@@ -289,12 +354,14 @@ const Authentication = () => {
             image: imageUrl,
             category_id: categoryIdForApi,
             brand_id: brandIdForApi,
+            valuation_price: valuationValue,
             description: additionalInfo ?? "",
             valuation: marketValuation ? 1 : 0,
             add_on: addOnValue,
             imagePaths: Array.isArray(imagePaths) ? imagePaths : [imagePaths],
             email: email ?? userEmail,
             sku: sku !== undefined && sku !== null ? String(sku) : "",
+            is_expedited: speedType === "expedited",
           }),
         );
         dispatch(clearUploadedPaths());
@@ -425,6 +492,7 @@ const Authentication = () => {
             image: imageUrl,
             category_id: categoryIdForApi,
             brand_id: brandIdForApi,
+            valuation_price: valuationValue,
             description: additionalInfo ?? "",
             valuation: marketValuation ? 1 : 0,
             add_on: addOnValue,
@@ -498,6 +566,8 @@ const Authentication = () => {
             }
             scrollToBulkAuthentication();
           }}
+          speedType={speedType}
+          setSpeedType={setSpeedType}
         />
       </section>
       {/* <Prices /> */}
@@ -516,6 +586,9 @@ const Authentication = () => {
           setIsBulkMode={setIsBulkMode}
           bulkQuantity={bulkQuantity}
           setBulkQuantity={setBulkQuantity}
+          selectedCategoryId={selectedCategoryId}
+          setSelectedCategoryId={setSelectedCategoryId}
+          valuationValue={valuationValue}
         />
       </section>
       {/* {showStickyButtons && (

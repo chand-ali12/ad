@@ -32,6 +32,20 @@ const loadScript = (src) =>
     document.body.appendChild(script);
   });
 
+const sanitizePaymentBody = (payload) => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => {
+      if (value == null) return false;
+      if (Array.isArray(value)) return true;
+      return typeof value !== "object";
+    }),
+  );
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,6 +136,8 @@ const Checkout = () => {
     )
     .filter((id) => id != null && id !== "");
   const checkoutType = location.state?.checkoutType;
+  console.log("Checkout type :- ", checkoutType);
+  
   const coaCount = certificateIds?.length ?? 0;
 
   // ad-old: Checkout receives payload only from previous step (Auth/Cart). No "prepare" API call on Checkout page.
@@ -453,8 +469,9 @@ const Checkout = () => {
             payed_amount: braintreePayload.payed_amount,
           }),
       };
+      const safeBody = sanitizePaymentBody(body);
       if (checkoutType === "valuation") {
-        const result = await dispatch(submitBraintreeValuation(body)).unwrap();
+        const result = await dispatch(submitBraintreeValuation(safeBody)).unwrap();
 
         // Some backend environments require an explicit status sync for admin listing.
         const responseData =
@@ -499,7 +516,7 @@ const Checkout = () => {
         return;
       }
       if (useAuthCheckout) {
-        const result = await dispatch(submitBraintreeCheckout(body)).unwrap();
+        const result = await dispatch(submitBraintreeCheckout(safeBody)).unwrap();
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
@@ -513,7 +530,7 @@ const Checkout = () => {
           navigate("/", { replace: true });
         }, 4000);
       } else {
-        const result = await dispatch(submitBraintreeAuthCards(body)).unwrap();
+        const result = await dispatch(submitBraintreeAuthCards(safeBody)).unwrap();
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
@@ -651,6 +668,7 @@ const Checkout = () => {
                     </button>
                   </div>
                 )}
+
                 {isValuationCheckout && (
                   <div>
                     <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4">

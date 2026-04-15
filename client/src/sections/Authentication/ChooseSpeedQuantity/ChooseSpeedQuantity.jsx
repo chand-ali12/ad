@@ -46,7 +46,7 @@ const LightningIcon = () => (
  * Renders two rows: speed options (Standard / Expedited) and quantity options (Single / Bulk).
  */
 const ChooseSpeedQuantity = ({
-  speed = "standard",
+  // speed = "standard",
   quantity = "single",
   onSpeedChange,
   onQuantityChange,
@@ -54,6 +54,8 @@ const ChooseSpeedQuantity = ({
   setIsBulkMode,
   bulkQuantity,
   setBulkQuantity,
+  speedType,
+  setSpeedType,
 }) => {
   const [showBulkAuthInfoAlert, setShowBulkAuthInfoAlert] = useState(false);
 
@@ -83,12 +85,14 @@ const ChooseSpeedQuantity = ({
             {/* Standard - selected */}
             <button
               type="button"
-              onClick={() => onSpeedChange?.("standard")}
+              onClick={() => setSpeedType("standard")}
               className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
             >
-              <span className="absolute top-3 left-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white">
-                <CheckIcon />
-              </span>
+              {speedType === "standard" && (
+                <span className="absolute top-3 left-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white">
+                  <CheckIcon />
+                </span>
+              )}
               <div className="min-h-[88px] flex flex-col items-center">
                 <span className="font-bold text-primary text-base mt-1">
                   Standard
@@ -107,23 +111,34 @@ const ChooseSpeedQuantity = ({
               </span>
             </button>
 
-            {/* Expedited - coming soon */}
-            <div className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-primary text-white/95 border-2 border-primary cursor-not-allowed opacity-90 w-full">
+            {/* Expedited - selected */}
+            <button
+              type="button"
+              onClick={() => setSpeedType("expedited")}
+              className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
+            >
+              {speedType === "expedited" && (
+                <span className="absolute top-3 left-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white">
+                  <CheckIcon />
+                </span>
+              )}
               <div className="min-h-[88px] flex flex-col items-center">
-                <span className="font-bold text-base mt-1">Expedited</span>
-                <span className="text-sm text-white/80 mt-0.5">
+                <span className="font-bold text-primary text-base mt-1">
+                  Expedited
+                </span>
+                <span className="text-sm text-gray-500 mt-0.5">
                   Under 60 minutes
                 </span>
-                <span className="text-sm text-white/90 mt-2">Coming Soon</span>
-              </div>
-              <hr className="w-full my-3 border-white/30 flex-shrink-0" />
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/80 text-white text-xs font-medium w-fit">
-                <span className="text-yellow-400">
-                  <LightningIcon />
+                <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 rounded-full bg-[#E8DCC8] text-primary text-xs font-medium w-fit">
+                  <CheckIcon />
+                  Fastest Option
                 </span>
-                Fastest Option
-              </span>
-            </div>
+              </div>
+              <hr className="w-full my-3 border-gray-200 flex-shrink-0" />
+              {/* <span className="text-primary font-semibold text-sm">
+                From $12
+              </span> */}
+            </button>
           </div>
         </div>
 

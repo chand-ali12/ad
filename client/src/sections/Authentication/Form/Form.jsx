@@ -31,6 +31,9 @@ const Form = ({
   setIsBulkMode,
   bulkQuantity,
   setBulkQuantity,
+  selectedCategoryId,
+  setSelectedCategoryId,
+  valuationValue,
 }) => {
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -616,6 +619,9 @@ const Form = ({
                     value={field.value}
                     onChange={(value) => {
                       field.onChange(value);
+
+                      console.log("Vale of cat is :- ", value);
+                      setSelectedCategoryId(value);
                       trigger("category");
                     }}
                     placeholder={
@@ -998,7 +1004,7 @@ const Form = ({
                   }}
                   className="text-xs sm:text-sm text-primary font-medium cursor-pointer"
                 >
-                  Market Valuation: $10
+                  Market Valuation: ${valuationValue}
                 </label>
               </div>
 
@@ -1094,9 +1100,9 @@ const Form = ({
               Alert
             </h3>
             <p className="text-primary text-sm sm:text-base font-normal leading-relaxed mb-6 px-1">
-              You are adding a $10 market valuation to your order. Our team will
-              include a current market value, which is how much your item is
-              currently worth, if you select this add-on.
+              You are adding a <b>${valuationValue}</b> market valuation to your
+              order. Our team will include a current market value, which is how
+              much your item is currently worth, if you select this add-on.
             </p>
             <div className="flex justify-center">
               <button
