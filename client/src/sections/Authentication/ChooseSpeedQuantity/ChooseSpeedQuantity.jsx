@@ -58,6 +58,7 @@ const ChooseSpeedQuantity = ({
   setSpeedType,
 }) => {
   const [showBulkAuthInfoAlert, setShowBulkAuthInfoAlert] = useState(false);
+  const lockSpeedSelection = quantity === "bulk" && speedType === "expedited";
 
   const handleQuantitySelect = (value) => {
     if (value === "single" || value === "bulk") {
@@ -86,6 +87,7 @@ const ChooseSpeedQuantity = ({
             <button
               type="button"
               onClick={() => setSpeedType("standard")}
+              disabled={lockSpeedSelection}
               className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
             >
               {speedType === "standard" && (
@@ -115,6 +117,7 @@ const ChooseSpeedQuantity = ({
             <button
               type="button"
               onClick={() => setSpeedType("expedited")}
+              disabled={lockSpeedSelection}
               className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
             >
               {speedType === "expedited" && (

@@ -89,11 +89,11 @@ const Authentication = () => {
     };
   };
 
-  console.log("Category id is :- ", selectedCategoryId);
-  console.log("Valuation val is :- ", valuationValue);
-  console.log("Speed Type is :- ", speedType);
-  console.log("Normal Value is :- ", normalValue);
-  console.log("Expiteted Value is :- ", expeditedValue);
+  // console.log("Category id is :- ", selectedCategoryId);
+  // console.log("Valuation val is :- ", valuationValue);
+  // console.log("Speed Type is :- ", speedType);
+  // console.log("Normal Value is :- ", normalValue);
+  // console.log("Expiteted Value is :- ", expeditedValue);
 
   useEffect(() => {
     async function getAllPrices(id) {
@@ -223,7 +223,7 @@ const Authentication = () => {
             }
           }
 
-          console.log("Price is 😒😒😒😒😒:- ", price);
+          // console.log("Price is 😒😒😒😒😒:- ", price);
 
           const cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
           const brandName =

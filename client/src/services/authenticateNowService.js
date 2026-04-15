@@ -106,12 +106,17 @@ export const freeSubmit = async ({
   token,
   is_expedited,
 } = {}) => {
+  const serializedQueries = Array.isArray(queries)
+    ? JSON.stringify(queries)
+    : typeof queries === "string"
+      ? queries
+      : "[]";
   const body = {
     user_email: user_email ?? "",
     total_price: Number(total_price) ?? 0,
     queries_count: Number(queries_count) ?? 0,
     total_queries_count: Number(total_queries_count) ?? 0,
-    queries: Array.isArray(queries) ? queries : [],
+    queries: serializedQueries,
     ...(coupon_code && { coupon_code }),
   };
 
@@ -142,12 +147,17 @@ export const bundleQueryFormSubmit = async ({
   token,
   is_expedited,
 } = {}) => {
+  const serializedQueries = Array.isArray(queries)
+    ? JSON.stringify(queries)
+    : typeof queries === "string"
+      ? queries
+      : "[]";
   const body = {
     user_email: user_email ?? "",
     total_price: Number(total_price) ?? 0,
     queries_count: Number(queries_count) ?? 0,
     total_queries_count: Number(total_queries_count) ?? 0,
-    queries: Array.isArray(queries) ? queries : [],
+    queries: serializedQueries,
     ...(coupon_code && { coupon_code }),
   };
 

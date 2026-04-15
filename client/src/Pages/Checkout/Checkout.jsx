@@ -136,7 +136,7 @@ const Checkout = () => {
     )
     .filter((id) => id != null && id !== "");
   const checkoutType = location.state?.checkoutType;
-  console.log("Checkout type :- ", checkoutType);
+  // console.log("Checkout type :- ", checkoutType);
   
   const coaCount = certificateIds?.length ?? 0;
 

@@ -69,22 +69,6 @@ const Cart = () => {
     dispatch(updateQuantity({ id: itemId, quantity: Math.max(1, quantity) }));
   };
 
-  // const handleToggleValuation = (itemId, checked) => {
-  //   const item = cartItems.find((entry) => entry.id === itemId);
-  //   if (!item) return;
-  //   const hadValuation = item.valuation === 1 || item.valuation === true;
-  //   if (checked === hadValuation) return;
-
-  //   const valuationPrice = Number(item.valuation_price) || 9;
-  //   const currentPrice = Number(item.price) || 0;
-  //   const newPrice = checked
-  //     ? currentPrice + VALUATION_SURCHARGE
-  //     : Math.max(0, currentPrice - VALUATION_SURCHARGE);
-  //   dispatch(
-  //     updateItem({ id: itemId, valuation: checked ? 1 : 0, price: newPrice }),
-  //   );
-  // };
-
   const handleToggleValuation = (itemId, checked) => {
     const item = cartItems.find((entry) => entry.id === itemId);
     if (!item) return;
@@ -256,16 +240,21 @@ const Cart = () => {
             paid_amount: item.price ?? 0,
             is_subscription: 0,
             add_on: item.add_on ?? 0,
+            is_expedited: item.is_expedited || false,
           };
         });
 
         const bulkUserEmail = resolveCheckoutEmail(firstItem);
+        const isBulkExpedited = cartItems.every(
+          (item) => item?.is_expedited === true,
+        );
         const payload = {
           user_email: bulkUserEmail,
           total_price: total,
           queries_count: cartItems.length,
           total_queries_count: cartItems.length,
           queries,
+          is_expedited: isBulkExpedited,
         };
 
         if (total === 0) {
