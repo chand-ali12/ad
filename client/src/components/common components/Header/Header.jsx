@@ -114,14 +114,6 @@ const Header = ({
     window.location.href = "/";
   };
 
-  const openExternalSubscription = () => {
-    setIsProfileMenuOpen(false);
-    window.open(
-      "https://authenticdetective.com/subscriptions",
-      "_blank",
-      "noopener,noreferrer",
-    );
-  };
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -627,7 +619,7 @@ const Header = ({
                         role="separator"
                       />
                       <button
-                        onClick={openExternalSubscription}
+                        onClick={() => handleMenuClick("/subscription")}
                         className="flex gap-3 items-center px-4 py-2 w-full bg-transparent border-0 transition-colors outline-none text-primary hover:bg-gray-50 focus:outline-none"
                       >
                         <FiCreditCard className="w-5 h-5 text-primary" />
@@ -830,7 +822,7 @@ const Header = ({
                         role="separator"
                       />
                       <button
-                        onClick={openExternalSubscription}
+                        onClick={() => handleMenuClick("/subscription")}
                         className="flex gap-3 items-center px-4 py-2 w-full bg-transparent border-0 transition-colors outline-none text-primary hover:bg-gray-50 focus:outline-none text-left"
                       >
                         <FiCreditCard className="w-5 h-5 text-primary" />
