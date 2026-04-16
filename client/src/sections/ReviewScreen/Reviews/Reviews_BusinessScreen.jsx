@@ -2,14 +2,20 @@ import React from "react";
 import ReviewItem from "../../../components/client/ReviewItem/ReviewItem";
 import PropTypes from "prop-types";
 import { PROFILE_IMAGE_BASE_URL } from "../../../config/env";
+import { useAppSelector } from "../../../store/hooks";
 
 const Reviews_BusinessScreen = ({
   className = "",
   reviews = [],
   onReviewerProfileClick,
+  onReviewDelete,
   // user,
 }) => {
   const reviewsToDisplay = Array.isArray(reviews) ? reviews : [];
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  console.log("Auth user is :- ", authUser);
+
+  console.log("Reviews are :- ", reviewsToDisplay);
 
   if (reviewsToDisplay.length === 0) {
     return (
@@ -22,7 +28,6 @@ const Reviews_BusinessScreen = ({
       </section>
     );
   }
-
 
   return (
     <section className={`w-full py-8 sm:py-12 ${className}`}>
@@ -52,15 +57,18 @@ const Reviews_BusinessScreen = ({
                   review.user?.id ??
                   null
                 }
+                reviewId={review?.id}
                 reviewImage={
                   review.review_image ||
                   review.image ||
                   review.image_url ||
                   null
                 }
+                showReviewDelete={review?.reviewer_id == authUser?.id}
                 reply={review.reply || null}
                 showDivider={index < reviewsToDisplay.length - 1}
                 onReviewerProfileClick={onReviewerProfileClick}
+                onReviewDelete={onReviewDelete}
               />
             ))}
           </div>
@@ -73,6 +81,7 @@ const Reviews_BusinessScreen = ({
 Reviews_BusinessScreen.propTypes = {
   className: PropTypes.string,
   onReviewerProfileClick: PropTypes.func,
+  onReviewDelete: PropTypes.func,
   reviews: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

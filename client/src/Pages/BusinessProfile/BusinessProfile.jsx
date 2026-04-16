@@ -588,6 +588,30 @@ const BusinessProfile = () => {
               <Reviews_BusinessScreen
                 reviews={reviewsWithImageUrls}
                 className="!pt-2"
+                onReviewDelete={async (deletedReviewId) => {
+                  const myReview =
+                    authUser?.id && Array.isArray(reviewsWithImageUrls)
+                      ? reviewsWithImageUrls.find(
+                          (r) =>
+                            String(r.reviewer_id) === String(authUser.id),
+                        )
+                      : null;
+
+                  if (
+                    myReview &&
+                    deletedReviewId != null &&
+                    String(myReview.id) === String(deletedReviewId)
+                  ) {
+                    setReviewText("");
+                    setReviewRating(0);
+                  }
+
+                  setToastMessage("Comment deleted successfully!");
+                  setToastVariant("success");
+                  setTimeout(() => setToastMessage(""), 3000);
+
+                  await fetchProfile();
+                }}
                 onReviewerProfileClick={(reviewerId) => {
                   if (!reviewerId) return;
                   const query = business?.id

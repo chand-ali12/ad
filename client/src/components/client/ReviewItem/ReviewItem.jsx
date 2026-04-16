@@ -5,6 +5,8 @@ import { FaRegStar, FaStar, FaStarHalfAlt } from "react-icons/fa";
 import { FiSend, FiTrash2 } from "react-icons/fi";
 import ReplySection from "../ReplySection/ReplySection";
 import PropTypes from "prop-types";
+import { useDispatch } from "react-redux";
+import { deleteReview } from "../../../store/slices";
 
 const ReviewItem = ({
   profileImage,
@@ -36,6 +38,9 @@ const ReviewItem = ({
   const [showReplyBox, setShowReplyBox] = useState(false);
   const [replyText, setReplyText] = useState("");
   const replyTextareaRef = useRef(null);
+
+  console.log("SHow review delete is :- ", showReviewDelete);
+  const dispatch = useDispatch();
 
   // Scroll lock
   useEffect(() => {
@@ -87,6 +92,43 @@ const ReviewItem = ({
   const fullStars = Math.floor(numericRating);
   const hasHalfStar = numericRating - fullStars >= 0.5;
   const filledCount = Math.min(5, fullStars + (hasHalfStar ? 1 : 0));
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState("error");
+  const [showToast, setShowToast] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleDeleteComment(reviewId) {
+    try {
+      setIsDeleting(true);
+      const res = await dispatch(deleteReview({ id: reviewId })).unwrap();
+      console.log("Response is :- ", res);
+      const msg =
+        res?.msg ||
+        res?.message ||
+        (res?.status_code === 200
+          ? "Comment deleted successfully!"
+          : "Comment deleted successfully!");
+      // If a parent callback is provided, prefer the parent for toast/UI refresh.
+      if (!onReviewDelete) {
+        setToastMessage(msg);
+        setToastVariant("success");
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 4000);
+      }
+
+      // Refresh parent screen data immediately (BusinessProfile / UserProfile).
+      await Promise.resolve(onReviewDelete?.(reviewId));
+    } catch (err) {
+      console.log("Error is :- ", err);
+      setToastMessage("Failure while deleting comment!");
+      setToastVariant("error");
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 4000);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <>
@@ -157,9 +199,20 @@ const ReviewItem = ({
               loading="eager"
             />
           </div>,
-          document.body, 
+          document.body,
         )}
 
+      {showToast && (
+        <div
+          className={`fixed top-4 right-4 z-50 max-w-sm px-4 py-3 rounded-lg text-sm shadow-lg ${
+            toastVariant === "success"
+              ? "bg-green-50 text-green-800"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
+          {toastMessage}
+        </div>
+      )}
       <div className={className}>
         <div className="pb-4 sm:pb-6">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -224,13 +277,10 @@ const ReviewItem = ({
                     })}
                   </div>
                 </div>
-                {showReviewDelete && onReviewDelete && (
+                {showReviewDelete && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onReviewDelete(reviewId);
-                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="text-gray-600 hover:text-red-500 transition-colors bg-transparent border-0 p-1"
                     aria-label="Delete review"
                   >
@@ -240,6 +290,51 @@ const ReviewItem = ({
               </div>
             </div>
           </div>
+
+          {showDeleteConfirm && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl p-5">
+                <h3 className="text-lg font-bold text-primary mb-2">
+                  Delete review?
+                </h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  Are you sure you want to delete this comment? This cannot be undone.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 transition-colors rounded-lg border border-gray-200 bg-white"
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setShowDeleteConfirm(false);
+                      await handleDeleteComment(reviewId);
+                    }}
+                    disabled={isDeleting}
+                    className="px-4 py-2 text-sm text-white bg-red-500 hover:bg-red-600 transition-colors rounded-lg disabled:opacity-60"
+                  >
+                    {isDeleting ? (
+                      <span className="flex items-center gap-2">
+                        <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Deleting...
+                      </span>
+                    ) : (
+                      "Yes, delete"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {comment && (
             <div className="mt-2">
