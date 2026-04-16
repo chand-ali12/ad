@@ -568,6 +568,15 @@ const CertificatesofAuthenticity = ({
                 null;
               // Red border + red text for all Pending cards (like old website) so it's clear why they're pending
               const showPendingStyle = activeTab === "Pending";
+              const cardClassName = showPendingStyle
+                ? "bg-white border border-red-200 shadow-md hover:shadow-lg transition-shadow"
+                : "bg-white border border-gray-200";
+              const previewClassName = showPendingStyle
+                ? "relative h-52 sm:h-64 flex items-center justify-center bg-red-50/30 overflow-hidden"
+                : "relative h-[380px] sm:h-[460px] flex items-center justify-center bg-gray-50 overflow-hidden";
+              const imageClassName = showPendingStyle
+                ? "w-full h-full object-cover"
+                : "max-w-full max-h-[380px] sm:max-h-[460px] w-auto h-auto object-contain";
               return (
                 <div
                   key={
@@ -577,12 +586,13 @@ const CertificatesofAuthenticity = ({
                     certificate.order_number ??
                     Math.random()
                   }
-                  className={`rounded-lg shadow-sm overflow-hidden ${showPendingStyle ? "bg-red-50/80 border-2 border-red-500" : "bg-white border border-gray-200"}`}
+                  className={`rounded-xl overflow-hidden ${cardClassName}`}
                 >
                   {/* Preview: certificate thumbnail PNG (Completed) or real item image (Pending). Use thumbnail so production works (same as Verify page). */}
-                  <div className="relative h-[380px] sm:h-[460px] flex items-center justify-center bg-gray-50 overflow-hidden">
+                  <div className={previewClassName}>
                     {activeTab === "Pending" && !imageSrc ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 text-sm">
+                        <FiFileText className="w-6 h-6 mb-2 text-gray-400" />
                         No image
                       </div>
                     ) : (
@@ -597,7 +607,7 @@ const CertificatesofAuthenticity = ({
                                 ? "Item photo"
                                 : "Certificate of Authenticity"
                             }
-                            className="max-w-full max-h-[380px] sm:max-h-[460px] w-auto h-auto object-contain"
+                            className={imageClassName}
                             onError={(e) => {
                               e.target.onerror = null;
                               if (
@@ -628,7 +638,7 @@ const CertificatesofAuthenticity = ({
                     )}
                     {activeTab === "Pending" &&
                       certificate.hasInconclusiveTag && (
-                        <div className="absolute top-2 right-2 bg-[#FF9800] text-white px-2 py-2.5 rounded-[38.57px] text-xs font-regular">
+                        <div className="absolute top-2 right-2 bg-[#FF9800] text-white px-2 py-1.5 rounded-full text-xs font-medium shadow-sm">
                           Inconclusive
                         </div>
                       )}
@@ -678,12 +688,14 @@ const CertificatesofAuthenticity = ({
                   </div>
                   {/* Certificate Details — brand and order from API. For Pending do not show Status. */}
                   <div
-                    className={`p-3 sm:p-4 rounded-b-lg border-t border-gray-100 ${showPendingStyle ? "bg-transparent" : "bg-white"}`}
+                    className={`p-3 sm:p-4 border-t border-gray-100 ${showPendingStyle ? "bg-red-50/20" : "bg-white"}`}
                   >
                     <h3 className="text-base sm:text-lg font-bold text-primary mb-1 sm:mb-1.5">
                       {displayBrand || "Unknown Brand"}
                     </h3>
-                    <div className="space-y-2 sm:space-y-2.5 text-sm sm:text-base text-primary">
+                    <div
+                      className={`text-sm sm:text-base text-primary ${showPendingStyle ? "space-y-1.5 sm:space-y-2" : "space-y-2 sm:space-y-2.5"}`}
+                    >
                       {activeTab !== "Pending" && (
                         <p>
                           <span className="font-bold">Status:</span>

@@ -128,7 +128,7 @@ const VerifyCertification = ({ className = "" }) => {
         {/* Certificate PDF */}
         {certificatePdfUrl && !isError && (
           <div className="max-w-4xl mx-auto mt-10 mb-4">
-            <div className="w-full bg-white rounded-xl shadow-md border border-gray-300 p-4">
+            <div className="w-full h-full bg-white rounded-xl shadow-md border border-gray-300 p-4">
               <PDFViewer pdfUrl={certificatePdfUrl} bigSize={true} />
             </div>
           </div>
