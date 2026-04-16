@@ -122,21 +122,6 @@ const Chat = () => {
     return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
-  // Fix for iOS Safari: update --vh on resize to handle dynamic viewport changes
-  useEffect(() => {
-    const setVh = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty("--vh", `${vh}px`);
-    };
-    setVh();
-    window.addEventListener("resize", setVh);
-    window.addEventListener("orientationchange", setVh);
-    return () => {
-      window.removeEventListener("resize", setVh);
-      window.removeEventListener("orientationchange", setVh);
-    };
-  }, []);
-
   const chats = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return DUMMY_CHATS;
@@ -199,35 +184,40 @@ const Chat = () => {
 
   return (
     <>
-      {/* Global styles injected once for safe-area and vh fallback */}
       <style>{`
-        :root {
-          --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-          --safe-area-inset-top: env(safe-area-inset-top, 0px);
-        }
+        /*
+         * iOS Safari fix strategy:
+         * - Use 100dvh (dynamic viewport height) which shrinks/grows with Safari's
+         *   collapsing toolbar — supported since iOS 15.4.
+         * - Fall back to 100vh for older browsers.
+         * - Use env(safe-area-inset-*) to pad away from notch, home indicator,
+         *   and Safari's bottom toolbar.
+         * - The chat shell uses display:flex + flex:1 + min-height:0 throughout
+         *   so the messages area gets all remaining space and the input bar is
+         *   always visible above Safari chrome.
+         */
+
         .chat-root {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          /* Fallback for browsers without dvh */
-          height: 100vh;
-          /* Use dvh which accounts for browser chrome dynamically (Safari 15.4+) */
-          height: 100dvh;
-          background: #F5F5F0;
-          font-family: Montserrat, sans-serif;
+          /* Fill the layout slot provided by the parent page.
+             Do NOT use position:fixed here — that breaks when the
+             component is nested inside a page that already has a header. */
           display: flex;
           flex-direction: column;
-          /* Respect notch / status bar at top */
-          padding-top: calc(80px + env(safe-area-inset-top, 0px));
-          /* Respect Safari bottom tab bar */
-          padding-bottom: env(safe-area-inset-bottom, 0px);
+          /* dvh = dynamic viewport height, accounts for Safari's collapsing toolbar */
+          height: 100dvh;
+          /* Fallback for browsers without dvh support (iOS < 15.4) */
+          height: 100vh;
+          /* Give the root itself the safe-area padding so nothing is clipped */
+          padding-top: env(safe-area-inset-top, 0px);
           padding-left: env(safe-area-inset-left, 0px);
           padding-right: env(safe-area-inset-right, 0px);
+          /* Bottom safe area is handled by .input-bar so messages scroll to edge */
           box-sizing: border-box;
+          background: #F5F5F0;
+          font-family: Montserrat, sans-serif;
           overflow: hidden;
         }
+
         .chat-inner {
           flex: 1;
           min-height: 0;
@@ -239,15 +229,10 @@ const Chat = () => {
           padding: 0 12px;
           box-sizing: border-box;
         }
-        @media (min-width: 640px) {
-          .chat-inner { padding: 0 16px; }
-        }
-        @media (min-width: 768px) {
-          .chat-inner { padding: 0 24px; }
-        }
-        @media (min-width: 1024px) {
-          .chat-inner { padding: 0 32px; }
-        }
+        @media (min-width: 640px)  { .chat-inner { padding: 0 16px; } }
+        @media (min-width: 768px)  { .chat-inner { padding: 0 24px; } }
+        @media (min-width: 1024px) { .chat-inner { padding: 0 32px; } }
+
         .chat-shell {
           flex: 1;
           min-height: 0;
@@ -257,7 +242,7 @@ const Chat = () => {
           overflow: hidden;
           display: flex;
         }
-        /* The two-column grid on desktop, single column on mobile */
+
         .chat-grid {
           flex: 1;
           min-height: 0;
@@ -269,7 +254,7 @@ const Chat = () => {
           .chat-grid { grid-template-columns: 360px 1fr; }
         }
 
-        /* Sidebar */
+        /* ── Sidebar ── */
         .sidebar {
           display: flex;
           flex-direction: column;
@@ -282,45 +267,57 @@ const Chat = () => {
           min-height: 0;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
         }
 
-        /* Conversation column */
+        /* ── Conversation column ── */
         .conversation {
           display: flex;
           flex-direction: column;
           min-height: 0;
           overflow: hidden;
         }
+
         .messages-area {
           flex: 1;
           min-height: 0;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          scroll-behavior: smooth;
           padding: 16px;
         }
         @media (min-width: 640px) {
           .messages-area { padding: 16px 24px; }
         }
 
-        /* Input bar — always above Safari bottom tabs */
+        /*
+         * Input bar — the critical piece for iOS Safari.
+         *
+         * Safari's bottom toolbar sits ~83px above the physical bottom edge
+         * (varies by device). env(safe-area-inset-bottom) is the exact inset
+         * Safari exposes for this region. Adding it to the bottom padding
+         * ensures the input is never hidden underneath the toolbar.
+         *
+         * We do NOT use position:fixed or position:sticky here. Because the
+         * whole layout is a flex column that fills dvh, this element naturally
+         * stays at the bottom without any positioning tricks.
+         */
         .input-bar {
           flex-shrink: 0;
           border-top: 1px solid rgba(60,31,27,0.10);
           background: white;
-          padding: 12px;
-          /* extra bottom padding for Safari safe area */
-          padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+          padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
           box-sizing: border-box;
         }
         @media (min-width: 640px) {
-          .input-bar { padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); }
+          .input-bar {
+            padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+          }
         }
 
-        /* Prevent iOS Safari text size adjustment on rotate */
+        /* Prevent iOS Safari from bumping font sizes on rotate */
         * { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-
-        /* Smooth scroll in message list */
-        .messages-area { scroll-behavior: smooth; }
       `}</style>
 
       <div className="chat-root">
@@ -340,8 +337,6 @@ const Chat = () => {
                       alignItems: "center",
                       gap: 12,
                       flexShrink: 0,
-                      // top notch safe area when sidebar is full-screen on mobile
-                      paddingTop: "calc(12px + env(safe-area-inset-top, 0px))",
                     }}
                   >
                     <div
