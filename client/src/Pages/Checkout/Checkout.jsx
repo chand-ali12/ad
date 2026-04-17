@@ -18,6 +18,9 @@ import { valuationCoaChangeStatus } from "../../services/forumService";
 
 const BRAINTREE_SCRIPT =
   "https://js.braintreegateway.com/web/dropin/1.36.0/js/dropin.min.js";
+const CARD_DETAILS_ERROR =
+  "Please enter full card details (number, expiry date, CVC)";
+const PAYMENT_METHOD_NOT_SELECTED_ERROR = "Method of payment not selected";
 
 const loadScript = (src) =>
   new Promise((resolve, reject) => {
@@ -46,6 +49,39 @@ const sanitizePaymentBody = (payload) => {
   );
 };
 
+const getPaymentMethodErrorMessage = (errorLike) => {
+  const errorText = [
+    errorLike?.message,
+    errorLike?.code,
+    errorLike?.name,
+    errorLike?.details?.originalError?.message,
+    errorLike?.details?.originalError?.code,
+    errorLike?.details?.originalError,
+    errorLike?.details,
+  ]
+    .map((value) => (value == null ? "" : String(value)))
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    /hosted_fields|hosted fields|fields_invalid|field is invalid|fields are invalid|number is invalid|expiration|expiry|cvc|cvv|card number|card details|enter.+card|empty fields|fields_empty/i.test(
+      errorText,
+    )
+  ) {
+    return CARD_DETAILS_ERROR;
+  }
+
+  if (
+    /no payment method|payment method.+required|method nonce|requestpaymentmethod errored|payment option|payment method not selected|select.+payment/i.test(
+      errorText,
+    )
+  ) {
+    return PAYMENT_METHOD_NOT_SELECTED_ERROR;
+  }
+
+  return "";
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,6 +91,12 @@ const Checkout = () => {
   const [braintreeReady, setBraintreeReady] = useState(false);
   const [paymentSuccessMessage, setPaymentSuccessMessage] = useState("");
   const [paymentMethodError, setPaymentMethodError] = useState("");
+  // Tracks the payment option the user has picked inside the Braintree
+  // drop-in ("card", "paypal", etc.). Driven by drop-in events so we don't
+  // have to guess from the DOM.
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState("");
+  const [paymentMethodRequestable, setPaymentMethodRequestable] =
+    useState(false);
   const braintreeContainerRef = useRef(null);
   const user = useAppSelector((state) => state.auth?.user);
   const authToken = useAppSelector((state) => state.auth?.token);
@@ -137,7 +179,7 @@ const Checkout = () => {
     .filter((id) => id != null && id !== "");
   const checkoutType = location.state?.checkoutType;
   // console.log("Checkout type :- ", checkoutType);
-  
+
   const coaCount = certificateIds?.length ?? 0;
 
   // ad-old: Checkout receives payload only from previous step (Auth/Cart). No "prepare" API call on Checkout page.
@@ -316,6 +358,54 @@ const Checkout = () => {
     }
   };
 
+  const resolvePaymentMethodError = (errorLike) => {
+    // If the user already has a payment method ready (card filled in, or
+    // a vaulted method), any submit-time issue is treated as a generic
+    // failure from the parsed Braintree error, not a "not selected" one.
+    if (paymentMethodRequestable) {
+      const parsedError = getPaymentMethodErrorMessage(errorLike);
+      return parsedError || CARD_DETAILS_ERROR;
+    }
+
+    // User hasn't picked any option at all.
+    if (!selectedPaymentOption) {
+      return PAYMENT_METHOD_NOT_SELECTED_ERROR;
+    }
+
+    // An option is selected but something is wrong. For card that's almost
+    // always "fields empty / invalid". For other methods, fall back to the
+    // parsed message.
+    if (selectedPaymentOption === "card") {
+      return CARD_DETAILS_ERROR;
+    }
+
+    const parsedError = getPaymentMethodErrorMessage(errorLike);
+    return parsedError || CARD_DETAILS_ERROR;
+  };
+
+  const setSafePaymentMethodError = (message) => {
+    setPaymentMethodError(String(message || ""));
+  };
+
+  // Keep the error message in sync with drop-in state: the moment a payment
+  // method becomes usable (valid card entered, PayPal connected, vaulted
+  // method chosen), any stale "not selected / fill card details" error is
+  // cleared without needing a click.
+  useEffect(() => {
+    if (paymentMethodRequestable && paymentMethodError) {
+      setPaymentMethodError("");
+    }
+  }, [paymentMethodRequestable, paymentMethodError]);
+
+  useEffect(() => {
+    if (
+      selectedPaymentOption &&
+      paymentMethodError === PAYMENT_METHOD_NOT_SELECTED_ERROR
+    ) {
+      setPaymentMethodError("");
+    }
+  }, [selectedPaymentOption, paymentMethodError]);
+
   // Phase 1: Load Braintree script and create drop-in when backend returned a token
   useEffect(() => {
     if (!braintreePayload?.token) return;
@@ -347,6 +437,47 @@ const Checkout = () => {
             instance = inst;
             setBraintreeInstance(inst);
             setBraintreeReady(true);
+
+            // If the drop-in already has a requestable method on init (e.g.
+            // a vaulted payment method for a logged-in user), reflect it.
+            try {
+              const alreadyRequestable =
+                typeof inst.isPaymentMethodRequestable === "function" &&
+                inst.isPaymentMethodRequestable();
+              setPaymentMethodRequestable(!!alreadyRequestable);
+              if (alreadyRequestable) {
+                const active =
+                  typeof inst.getActivePaymentMethod === "function"
+                    ? inst.getActivePaymentMethod()
+                    : null;
+                const type = String(active?.type || "").toLowerCase();
+                if (type.includes("paypal")) setSelectedPaymentOption("paypal");
+                else if (type) setSelectedPaymentOption("card");
+              }
+            } catch (_e) {}
+
+            // Keep selection / requestable state in sync via drop-in events.
+            try {
+              inst.on("paymentOptionSelected", (payload) => {
+                const option = String(
+                  payload?.paymentOption || "",
+                ).toLowerCase();
+                if (option) setSelectedPaymentOption(option);
+                setPaymentMethodError("");
+              });
+              inst.on("paymentMethodRequestable", (payload) => {
+                setPaymentMethodRequestable(true);
+                const type = String(payload?.type || "").toLowerCase();
+                if (type.includes("paypal")) setSelectedPaymentOption("paypal");
+                else if (type) setSelectedPaymentOption("card");
+                setPaymentMethodError("");
+              });
+              inst.on("noPaymentMethodRequestable", () => {
+                setPaymentMethodRequestable(false);
+              });
+            } catch (_e) {
+              // Event API not available – ignore; submit-time checks still apply.
+            }
           },
         );
       })
@@ -358,14 +489,17 @@ const Checkout = () => {
       if (instance && instance.clearSelectedPaymentMethod) {
         instance.clearSelectedPaymentMethod();
       }
+      setSelectedPaymentOption("");
+      setPaymentMethodRequestable(false);
     };
   }, [braintreePayload?.token]);
 
   const onBraintreeSubmit = async (e) => {
     e.preventDefault();
     clearErrors(["firstName", "lastName"]);
-    setPaymentMethodError("");
-    // Ensure customer name is filled before taking payment, even when payload came from a previous step
+    setSafePaymentMethodError("");
+
+    // Validate name fields
     const first = (getValues("firstName") || "").trim();
     const last = (getValues("lastName") || "").trim();
     let hasNameError = false;
@@ -384,33 +518,48 @@ const Checkout = () => {
       hasNameError = true;
     }
     if (hasNameError) {
-      try {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } catch (_e) {}
+      window.scrollTo?.({ top: 0, behavior: "smooth" });
       return;
     }
+
     if (!braintreeInstance || !braintreePayload) return;
-    // Check if a payment method (card/PayPal) has been entered/selected in the drop-in
+
     if (!braintreeInstance.isPaymentMethodRequestable()) {
-      // Try to get more specific error from Braintree
+      // Prefer the state set by drop-in events; fall back to a fresh
+      // `getActivePaymentMethod` probe in case events haven't fired yet.
+      let currentOption = selectedPaymentOption;
+      if (!currentOption) {
+        try {
+          const active =
+            typeof braintreeInstance.getActivePaymentMethod === "function"
+              ? braintreeInstance.getActivePaymentMethod()
+              : null;
+          const type = String(active?.type || "").toLowerCase();
+          if (type.includes("paypal")) currentOption = "paypal";
+          else if (type) currentOption = "card";
+        } catch (_e) {}
+      }
+
+      if (!currentOption) {
+        setSafePaymentMethodError(PAYMENT_METHOD_NOT_SELECTED_ERROR);
+        return;
+      }
+
+      // An option is selected (e.g. card) but the form is incomplete.
       try {
         await braintreeInstance.requestPaymentMethod();
       } catch (methodErr) {
-        const errText = String(
-          methodErr?.message || methodErr || "",
-        ).toLowerCase();
-        if (
-          /card|hosted fields|number|expiry|expiration|cvc|cvv/i.test(errText)
-        ) {
-          setPaymentMethodError(
-            "Please enter full card details (number, expiry date, CVC)",
-          );
-          return;
-        }
+        setSafePaymentMethodError(resolvePaymentMethodError(methodErr));
+        return;
       }
-      setPaymentMethodError("Please select a payment method to continue");
+      setSafePaymentMethodError(
+        currentOption === "card"
+          ? CARD_DETAILS_ERROR
+          : PAYMENT_METHOD_NOT_SELECTED_ERROR,
+      );
       return;
     }
+
     const encryptValue =
       braintreePayload.encrypt_amount ??
       braintreePayload.encryptedAmount ??
@@ -471,7 +620,9 @@ const Checkout = () => {
       };
       const safeBody = sanitizePaymentBody(body);
       if (checkoutType === "valuation") {
-        const result = await dispatch(submitBraintreeValuation(safeBody)).unwrap();
+        const result = await dispatch(
+          submitBraintreeValuation(safeBody),
+        ).unwrap();
 
         // Some backend environments require an explicit status sync for admin listing.
         const responseData =
@@ -516,7 +667,9 @@ const Checkout = () => {
         return;
       }
       if (useAuthCheckout) {
-        const result = await dispatch(submitBraintreeCheckout(safeBody)).unwrap();
+        const result = await dispatch(
+          submitBraintreeCheckout(safeBody),
+        ).unwrap();
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
@@ -530,7 +683,9 @@ const Checkout = () => {
           navigate("/", { replace: true });
         }, 4000);
       } else {
-        const result = await dispatch(submitBraintreeAuthCards(safeBody)).unwrap();
+        const result = await dispatch(
+          submitBraintreeAuthCards(safeBody),
+        ).unwrap();
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
@@ -546,29 +701,15 @@ const Checkout = () => {
       }
     } catch (err) {
       console.error("Braintree payment failed:", err);
-      const errorText = [
-        err?.message,
-        err?.details?.originalError?.message,
-        err?.details?.originalError,
-        err?.details,
-        err?.response?.data?.msg,
-        err?.response?.data?.message,
-      ]
-        .map((v) => (v == null ? "" : String(v)))
-        .join(" ");
       const message =
         err?.message ||
         err?.response?.data?.msg ||
         err?.response?.data?.message ||
         "Payment failed. Please try again.";
 
-      // Check if error is about no payment method/card details being entered
-      if (
-        /no payment method|payment method.+required|requestpaymentmethod errored|card details|enter.+card|method nonce|hosted fields/i.test(
-          errorText,
-        )
-      ) {
-        setPaymentMethodError("Please select payment method");
+      const paymentError = getPaymentMethodErrorMessage(err);
+      if (paymentError) {
+        setSafePaymentMethodError(resolvePaymentMethodError(err));
         return;
       }
 
