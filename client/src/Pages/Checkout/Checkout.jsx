@@ -360,11 +360,12 @@ const Checkout = () => {
 
   const resolvePaymentMethodError = (errorLike) => {
     // If the user already has a payment method ready (card filled in, or
-    // a vaulted method), any submit-time issue is treated as a generic
-    // failure from the parsed Braintree error, not a "not selected" one.
+    // a vaulted method), Braintree's drop-in handles inline field
+    // validation itself — no need for our own banner.
     if (paymentMethodRequestable) {
       const parsedError = getPaymentMethodErrorMessage(errorLike);
-      return parsedError || CARD_DETAILS_ERROR;
+      if (parsedError === CARD_DETAILS_ERROR) return "";
+      return parsedError || "";
     }
 
     // User hasn't picked any option at all.
@@ -372,15 +373,16 @@ const Checkout = () => {
       return PAYMENT_METHOD_NOT_SELECTED_ERROR;
     }
 
-    // An option is selected but something is wrong. For card that's almost
-    // always "fields empty / invalid". For other methods, fall back to the
-    // parsed message.
+    // An option is selected but something is wrong. Braintree's drop-in
+    // already shows inline validation on card fields, so we only surface
+    // our own banner for non-card methods.
     if (selectedPaymentOption === "card") {
-      return CARD_DETAILS_ERROR;
+      return "";
     }
 
     const parsedError = getPaymentMethodErrorMessage(errorLike);
-    return parsedError || CARD_DETAILS_ERROR;
+    if (parsedError === CARD_DETAILS_ERROR) return "";
+    return parsedError || "";
   };
 
   const setSafePaymentMethodError = (message) => {
@@ -546,17 +548,15 @@ const Checkout = () => {
       }
 
       // An option is selected (e.g. card) but the form is incomplete.
+      // Calling requestPaymentMethod() triggers Braintree's own inline
+      // field validation (red highlights on empty/invalid card fields).
       try {
         await braintreeInstance.requestPaymentMethod();
       } catch (methodErr) {
-        setSafePaymentMethodError(resolvePaymentMethodError(methodErr));
+        const resolved = resolvePaymentMethodError(methodErr);
+        if (resolved) setSafePaymentMethodError(resolved);
         return;
       }
-      setSafePaymentMethodError(
-        currentOption === "card"
-          ? CARD_DETAILS_ERROR
-          : PAYMENT_METHOD_NOT_SELECTED_ERROR,
-      );
       return;
     }
 
@@ -709,7 +709,8 @@ const Checkout = () => {
 
       const paymentError = getPaymentMethodErrorMessage(err);
       if (paymentError) {
-        setSafePaymentMethodError(resolvePaymentMethodError(err));
+        const resolved = resolvePaymentMethodError(err);
+        if (resolved) setSafePaymentMethodError(resolved);
         return;
       }
 

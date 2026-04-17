@@ -14,7 +14,7 @@ import {
   bundleQueryFormSubmitBulk,
   getQueryPrice,
 } from "../../store/slices/authenticationRequestSlice";
-import { addItem } from "../../store/slices/cartSlice";
+import { addItem, clearCart } from "../../store/slices/cartSlice";
 import { IMAGE_BASE_URL, BASE_URL_OLD_IMAGE_URL } from "../../config/env";
 
 const Authentication = () => {
@@ -192,6 +192,7 @@ const Authentication = () => {
 
     if (Array.isArray(options?.bulkItems) && options.bulkItems.length > 0) {
       try {
+        dispatch(clearCart());
         for (const entry of options.bulkItems) {
           const {
             selectedBrand,
@@ -312,6 +313,7 @@ const Authentication = () => {
     // Add to cart (same as ad-old): no API call, save to Redux and go to cart
     if (options?.addToCart) {
       try {
+        dispatch(clearCart());
         // const price = await resolvePrice();
         let price = 0;
         if (selectedCategoryId) {
@@ -467,6 +469,7 @@ const Authentication = () => {
           return true;
         }
 
+        dispatch(clearCart());
         const cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         const brandName =
           selectedBrand?.brand || selectedBrand?.name || String(brand_id);
