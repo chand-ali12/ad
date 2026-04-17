@@ -208,17 +208,10 @@ const Authentication = () => {
           // );
 
           let price = 0;
-          if (selectedCategoryId) {
-            if (speedType === "standard") {
-              price += normalValue;
-            } else if (speedType === "expedited") {
-              price += expeditedValue;
-            }
+          if (categoryIdForApi) {
+            price += normalValue;
 
-            // if (valuationValue != null) {
-            //   price += valuationValue;
-            // }
-            if (valuationValue != null && data.marketValuation === true) {
+            if (valuationValue != null && entry.marketValuation === true) {
               price += valuationValue;
             }
           }
@@ -256,7 +249,7 @@ const Authentication = () => {
                 : [entry.imagePaths],
               email: entry.email ?? userEmail,
               sku: entry.sku ?? "",
-              is_expedited: speedType === "expedited",
+              is_expedited: false,
             }),
           );
         }

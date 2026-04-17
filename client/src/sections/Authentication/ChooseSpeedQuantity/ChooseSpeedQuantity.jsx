@@ -58,7 +58,7 @@ const ChooseSpeedQuantity = ({
   setSpeedType,
 }) => {
   const [showBulkAuthInfoAlert, setShowBulkAuthInfoAlert] = useState(false);
-  const lockSpeedSelection = quantity === "bulk" && speedType === "expedited";
+  const isExpedited = speedType === "expedited";
 
   const handleQuantitySelect = (value) => {
     if (value === "single" || value === "bulk") {
@@ -70,6 +70,13 @@ const ChooseSpeedQuantity = ({
     handleQuantitySelect("single");
     setIsBulkMode(false);
     setBulkQuantity(0);
+  };
+
+  const handleSpeedChange = (type) => {
+    setSpeedType(type);
+    if (type === "expedited" && quantity === "bulk") {
+      handleSingleAuthClick();
+    }
   };
 
   return (
@@ -86,8 +93,7 @@ const ChooseSpeedQuantity = ({
             {/* Standard - selected */}
             <button
               type="button"
-              onClick={() => setSpeedType("standard")}
-              disabled={lockSpeedSelection}
+              onClick={() => handleSpeedChange("standard")}
               className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
             >
               {speedType === "standard" && (
@@ -116,8 +122,7 @@ const ChooseSpeedQuantity = ({
             {/* Expedited - selected */}
             <button
               type="button"
-              onClick={() => setSpeedType("expedited")}
-              disabled={lockSpeedSelection}
+              onClick={() => handleSpeedChange("expedited")}
               className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
             >
               {speedType === "expedited" && (
@@ -178,20 +183,26 @@ const ChooseSpeedQuantity = ({
             <button
               type="button"
               onClick={() => handleQuantitySelect("bulk")}
+              disabled={isExpedited}
               className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl border-2 transition-colors ${
-                quantity === "bulk"
-                  ? "bg-white border-[#D4AF37]/40 shadow-sm"
-                  : "bg-white/80 border-gray-200 hover:border-gray-300"
+                isExpedited
+                  ? "opacity-50 cursor-not-allowed bg-gray-100 border-gray-200"
+                  : quantity === "bulk"
+                    ? "bg-white border-[#D4AF37]/40 shadow-sm"
+                    : "bg-white/80 border-gray-200 hover:border-gray-300"
               }`}
             >
-              {quantity === "bulk" && (
+              {quantity === "bulk" && !isExpedited && (
                 <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
                   <CheckIcon />
                 </span>
               )}
-              <span className="font-semibold text-primary text-base">
+              <span className={`font-semibold text-base ${isExpedited ? "text-gray-400" : "text-primary"}`}>
                 Bulk Authentication
               </span>
+              {isExpedited && (
+                <span className="text-xs text-gray-400 ml-1">(Standard only)</span>
+              )}
 
               {/* Info icon - stop propagation so it doesn't toggle selection */}
               <span

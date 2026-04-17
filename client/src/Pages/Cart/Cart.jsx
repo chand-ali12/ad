@@ -240,21 +240,16 @@ const Cart = () => {
             paid_amount: item.price ?? 0,
             is_subscription: 0,
             add_on: item.add_on ?? 0,
-            is_expedited: item.is_expedited || false,
           };
         });
 
         const bulkUserEmail = resolveCheckoutEmail(firstItem);
-        const isBulkExpedited = cartItems.every(
-          (item) => item?.is_expedited === true,
-        );
         const payload = {
           user_email: bulkUserEmail,
           total_price: total,
           queries_count: cartItems.length,
           total_queries_count: cartItems.length,
           queries,
-          is_expedited: isBulkExpedited,
         };
 
         if (total === 0) {
