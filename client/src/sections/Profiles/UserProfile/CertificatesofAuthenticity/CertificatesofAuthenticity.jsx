@@ -14,10 +14,7 @@ import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
 import { getBrands } from "../../../../store/slices";
 import RequestMoreImagesModal from "./RequestMoreImagesModal";
 import { MEDIA_BASE_URL } from "../../../../config/env";
-import {pdfjs } from "react-pdf";
-import PDFViewer from "../../../../utils/PDFViewer";
-
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import PDFViewer_ProfileSection from "../../../../utils/PDFViewer_ProfileSection";
 
 // Old website uses certificate.is_sold (0 = available, 1 = sold). Also support status string.
 const isCertificateSold = (cert) => {
@@ -362,6 +359,9 @@ const CertificatesofAuthenticity = ({
   });
 
   // Counts for tabs that respect current search + brand filters
+  const expeditedCount = certificates.filter(
+    (cert) => matchesSearchAndBrand(cert) && cert.speed === "expedited",
+  ).length;
   const completedCount = certificates.filter((cert) =>
     matchesSearchAndBrand(cert),
   ).length;
@@ -378,6 +378,7 @@ const CertificatesofAuthenticity = ({
 
   // Top-level tabs: Completed | Pending | Sold items | Available items (single row, like old website)
   const mainTabs = [
+    { label: "Expedited", count: expeditedCount, value: "Expedited" },
     { label: "Completed", count: completedCount, value: "Completed" },
     { label: "Pending", count: pendingCount, value: "Pending" },
     { label: "Sold items", count: soldCount, value: "Sold" },
@@ -570,13 +571,13 @@ const CertificatesofAuthenticity = ({
               const showPendingStyle = activeTab === "Pending";
               const cardClassName = showPendingStyle
                 ? "bg-white border border-red-200 shadow-md hover:shadow-lg transition-shadow"
-                : "bg-white border border-gray-200";
+                : "bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow";
               const previewClassName = showPendingStyle
                 ? "relative h-52 sm:h-64 flex items-center justify-center bg-red-50/30 overflow-hidden"
-                : "relative h-[380px] sm:h-[460px] flex items-center justify-center bg-gray-50 overflow-hidden";
+                : "relative h-[340px] sm:h-[420px] flex items-center justify-center bg-white overflow-hidden";
               const imageClassName = showPendingStyle
                 ? "w-full h-full object-cover"
-                : "max-w-full max-h-[380px] sm:max-h-[460px] w-auto h-auto object-contain";
+                : "max-w-full max-h-full w-auto h-auto object-contain";
               return (
                 <div
                   key={
@@ -598,7 +599,7 @@ const CertificatesofAuthenticity = ({
                     ) : (
                       <>
                         {pdfUrl ? (
-                          <PDFViewer pdfUrl={pdfUrl} />
+                          <PDFViewer_ProfileSection pdfUrl={pdfUrl} />
                         ) : (
                           <img
                             src={imageSrc}

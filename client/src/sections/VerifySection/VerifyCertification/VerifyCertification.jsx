@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import SectionHeader from "../../../components/client/SectionHeader/SectionHeader";
 import { verifyCertificate } from "../../../services/forumService";
 import { MEDIA_BASE_URL } from "../../../config/env";
-import PDFViewer from "../../../utils/PDFViewer";
+import PDFViewer_VerifyCerificate from "../../../utils/PDFViewer_VerifyCerificate";
 
 const VerifyCertification = ({ className = "" }) => {
   const {
@@ -127,9 +127,12 @@ const VerifyCertification = ({ className = "" }) => {
 
         {/* Certificate PDF */}
         {certificatePdfUrl && !isError && (
-          <div className="max-w-4xl mx-auto mt-10 mb-4">
-            <div className="w-full h-full bg-white rounded-xl shadow-md border border-gray-300 p-4">
-              <PDFViewer pdfUrl={certificatePdfUrl} bigSize={true} />
+          <div className="max-w-3xl mx-auto mt-10 mb-4">
+            <div
+              className="w-full bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+              style={{ height: "90vh", maxHeight: "1050px" }}
+            >
+              <PDFViewer_VerifyCerificate pdfUrl={certificatePdfUrl} />
             </div>
           </div>
         )}
