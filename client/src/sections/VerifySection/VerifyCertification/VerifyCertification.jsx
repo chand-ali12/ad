@@ -130,7 +130,7 @@ const VerifyCertification = ({ className = "" }) => {
           <div className="max-w-3xl mx-auto mt-10 mb-4">
             <div
               className="w-full bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
-              style={{ height: "90vh", maxHeight: "1050px" }}
+              style={{ aspectRatio: "8.5 / 11" }}
             >
               <PDFViewer_VerifyCerificate pdfUrl={certificatePdfUrl} />
             </div>

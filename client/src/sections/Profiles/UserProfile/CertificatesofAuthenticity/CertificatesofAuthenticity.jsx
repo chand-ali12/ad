@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiFilter,
@@ -7,7 +8,7 @@ import {
   FiDownload,
   FiPrinter,
 } from "react-icons/fi";
-import { Tag, ImagePlus } from "lucide-react";
+import { Tag, ImagePlus, MessageCircle } from "lucide-react";
 import certificateImage from "../../../../assets/images/Image (Certificate of Authenticity).png";
 import PropTypes from "prop-types";
 import { useAppDispatch, useAppSelector } from "../../../../store/hooks";
@@ -15,6 +16,11 @@ import { getBrands } from "../../../../store/slices";
 import RequestMoreImagesModal from "./RequestMoreImagesModal";
 import { MEDIA_BASE_URL } from "../../../../config/env";
 import PDFViewer_ProfileSection from "../../../../utils/PDFViewer_ProfileSection";
+import {
+  createRoom,
+  roomExistsForOrder,
+} from "../../../../services/expeditedChatService";
+import { getUserProfile as getUserProfileApi } from "../../../../services/profileServices";
 
 // Old website uses certificate.is_sold (0 = available, 1 = sold). Also support status string.
 const isCertificateSold = (cert) => {
@@ -200,9 +206,12 @@ const CertificatesofAuthenticity = ({
   onShareCoaPdf,
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { user: authUser } = useAppSelector((state) => state.auth);
   const { brands: brandsList = [] } = useAppSelector((state) => state.brands);
 
   const [activeTab, setActiveTab] = useState("Completed"); // 'Completed' | 'Pending' | 'Sold' | 'Available'
+  const [startingChatId, setStartingChatId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [noteModalCertificate, setNoteModalCertificate] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
@@ -220,12 +229,12 @@ const CertificatesofAuthenticity = ({
 
   // Derive pendingQueries first so it can be used in useEffects below
   const pendingQueries = (queries || []).filter((q) => {
-    if (q.type === 2) return false;
+    if (Number(q.type) === 2) return false;
     const s = String(q.status ?? q.type ?? "").toLowerCase();
     return s === "pending" || s === "0" || q.type === 0;
   });
 
-  const expeditedQueries = (queries || []).filter((q) => q.type === 2);
+  const expeditedQueries = (queries || []).filter((q) => Number(q.type) === 2);
 
   useEffect(() => {
     dispatch(getBrands());
@@ -461,12 +470,97 @@ const CertificatesofAuthenticity = ({
   const openPdfForBestView = (url) => {
     if (!url || typeof window === "undefined") return;
     const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
-    // Mobile: same-tab gives a more reliable full-screen PDF view.
     if (isMobileViewport) {
       window.location.href = url;
       return;
     }
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const resolveAuthenticatorInfo = async (card) => {
+    const aq = card.authenticate_query ?? card.query_detail ?? {};
+    const authenticatorUserId = aq.expedited_claimed_by ?? null;
+
+    if (!authenticatorUserId) return null;
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await getUserProfileApi({ id: authenticatorUserId, token });
+      const user =
+        res?.additional_data?.user ?? res?.data?.user ?? res?.user ?? null;
+      if (user) {
+        return {
+          id: String(user.id),
+          name: user.name || "Authenticator",
+          image: user.profile_picture || "",
+          email: user.email || "",
+        };
+      }
+    } catch (err) {
+      console.warn("Could not fetch authenticator profile:", err);
+    }
+
+    return {
+      id: String(authenticatorUserId),
+      name: aq.brand ?? card.brand ?? "Authenticator",
+      image: "",
+      email: "",
+    };
+  };
+
+  const handleStartChat = async (card) => {
+    const aq = card.authenticate_query ?? card.query_detail ?? {};
+    const orderId = String(
+      aq.order_number ??
+        card.order_id ??
+        card.order_number ??
+        card.order ??
+        card.coa_number ??
+        card.id ??
+        "",
+    );
+    if (!orderId || !authUser?.id) return;
+
+    const cardId = card.id ?? orderId;
+    setStartingChatId(cardId);
+
+    try {
+      let exists = false;
+      try {
+        exists = await roomExistsForOrder(orderId);
+      } catch (checkErr) {
+        console.warn("Room existence check failed, will try creating:", checkErr);
+      }
+
+      if (exists) {
+        navigate(`/expedited-chat?room=exp_${orderId}`);
+        return;
+      }
+
+      const authenticatorInfo = await resolveAuthenticatorInfo(card);
+      if (!authenticatorInfo) {
+        alert(
+          "This expedited query hasn't been claimed by an authenticator yet. " +
+          "Chat will be available once an authenticator is assigned.",
+        );
+        return;
+      }
+
+      const clientInfo = {
+        id: String(authUser.id),
+        name: authUser.name || authUser.first_name || "Client",
+        image: authUser.profile_picture || authUser.image || "",
+        email: authUser.email || "",
+      };
+
+      await createRoom(orderId, clientInfo, authenticatorInfo);
+      navigate(`/expedited-chat?room=exp_${orderId}`);
+    } catch (err) {
+      console.error("Failed to start chat:", err);
+      alert("Failed to start chat: " + (err?.message || "Unknown error"));
+    } finally {
+      setStartingChatId(null);
+    }
   };
 
   return (
@@ -649,6 +743,32 @@ const CertificatesofAuthenticity = ({
                       >
                         {result}
                       </span>
+                    )}
+                    {activeTab === "Expedited" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartChat(certificate);
+                        }}
+                        disabled={
+                          startingChatId != null &&
+                          String(startingChatId) ===
+                            String(certificate.id ?? certificate.order_id)
+                        }
+                        className="absolute top-2 right-2 p-2 rounded-full bg-white/90 hover:bg-white shadow-md border border-gray-200 z-10 transition-all hover:scale-110 disabled:opacity-50"
+                        title="Chat with authenticator"
+                        aria-label="Chat with authenticator"
+                        style={{ color: "#3C1F1B" }}
+                      >
+                        {startingChatId != null &&
+                        String(startingChatId) ===
+                          String(certificate.id ?? certificate.order_id) ? (
+                          <span className="block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <MessageCircle className="w-5 h-5" />
+                        )}
+                      </button>
                     )}
                     {isPendingLike &&
                       certificate.hasInconclusiveTag && (

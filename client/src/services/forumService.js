@@ -226,6 +226,7 @@ export const prepareAuthCheckoutBraintree = async (
     amount,
     coa_count,
     coupon_code,
+    is_expedited,
   },
   { token } = {},
 ) => {
@@ -267,7 +268,13 @@ export const prepareAuthCheckoutBraintree = async (
     .filter(Boolean);
   if (ids.length) body.query_ids = ids.join(",");
   if (coupon_code) body.coupon_code = coupon_code;
-  return request("/ad/checkout-braintree", {
+
+  let url = "/ad/checkout-braintree";
+  if (is_expedited !== undefined) {
+    url += `?is_expedited=${is_expedited}`;
+  }
+
+  return request(url, {
     method: "POST",
     body,
     headers: {
@@ -282,8 +289,13 @@ export const prepareAuthCheckoutBraintree = async (
  * POST /ad/checkout-braintree
  * Body: JSON with _token, first_name, last_name, id, query_type, payment_method_nonce, amount, order_number, queries_count, user_id?, encrypt_amount, coupon_code?
  */
-export const checkoutBraintree = async (body, { token } = {}) => {
-  return request("/ad/checkout-braintree", {
+export const checkoutBraintree = async (body, { token, is_expedited } = {}) => {
+  let url = "/ad/checkout-braintree";
+  if (is_expedited !== undefined) {
+    url += `?is_expedited=${is_expedited}`;
+  }
+
+  return request(url, {
     method: "POST",
     body: body && typeof body === "object" ? body : {},
     headers: {

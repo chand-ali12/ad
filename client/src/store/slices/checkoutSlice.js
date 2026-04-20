@@ -120,10 +120,11 @@ export const submitBraintreeValuation = createAsyncThunk(
 /** Phase 1: General checkout via Braintree (submit payment with nonce) */
 export const submitBraintreeCheckout = createAsyncThunk(
   'checkout/submitBraintreeCheckout',
-  async (body, { rejectWithValue, getState }) => {
+  async (payload, { rejectWithValue, getState }) => {
     try {
       const token = getState()?.auth?.token;
-      return await checkoutBraintreeApi(body, { token });
+      const { is_expedited, ...body } = payload && typeof payload === 'object' ? payload : {};
+      return await checkoutBraintreeApi(body, { token, is_expedited });
     } catch (error) {
       return rejectWithValue(error?.message || 'Payment failed');
     }
@@ -136,7 +137,7 @@ export const getAuthCheckoutBraintreeToken = createAsyncThunk(
   async (payload, { rejectWithValue, getState }) => {
     try {
       const token = getState()?.auth?.token;
-      return await prepareAuthCheckoutBraintreeApi(payload, { token });
+      return await prepareAuthCheckoutBraintreeApi(payload, { token, is_expedited: payload?.is_expedited });
     } catch (error) {
       const msg = error?.response?.data?.msg ?? error?.response?.data?.message ?? error?.message;
       return rejectWithValue(msg || 'Failed to prepare checkout');
