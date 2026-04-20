@@ -19,7 +19,7 @@ import PDFViewer_ProfileSection from "../../../../utils/PDFViewer_ProfileSection
 // Old website uses certificate.is_sold (0 = available, 1 = sold). Also support status string.
 const isCertificateSold = (cert) => {
   if (!cert) return false;
-  const s = (cert.status ?? "").toLowerCase();
+  const s = String(cert.status ?? "").toLowerCase();
   if (s === "sold") return true;
   if (s === "available") return false;
   const isSold = cert.certificate?.is_sold ?? cert.is_sold ?? cert.issold;
@@ -220,9 +220,12 @@ const CertificatesofAuthenticity = ({
 
   // Derive pendingQueries first so it can be used in useEffects below
   const pendingQueries = (queries || []).filter((q) => {
+    if (q.type === 2) return false;
     const s = String(q.status ?? q.type ?? "").toLowerCase();
     return s === "pending" || s === "0" || q.type === 0;
   });
+
+  const expeditedQueries = (queries || []).filter((q) => q.type === 2);
 
   useEffect(() => {
     dispatch(getBrands());
@@ -323,6 +326,7 @@ const CertificatesofAuthenticity = ({
 
   // Pre-map all pending queries once so we can reuse for counts and lists
   const allPendingCards = pendingQueries.map(mapQueryToCard);
+  const allExpeditedCards = expeditedQueries.map(mapQueryToCard);
 
   // Filter certificates: based on activeTab using is_sold
   const filteredCertificates = certificates.filter((cert) => {
@@ -341,8 +345,18 @@ const CertificatesofAuthenticity = ({
       ? allPendingCards.filter((card) => matchesSearchAndBrand(card))
       : [];
 
+  // Expedited: show items from queries where type === 2
+  const expeditedCards =
+    activeTab === "Expedited"
+      ? allExpeditedCards.filter((card) => matchesSearchAndBrand(card))
+      : [];
+
   const listToShow =
-    activeTab === "Pending" ? pendingCards : filteredCertificates;
+    activeTab === "Pending"
+      ? pendingCards
+      : activeTab === "Expedited"
+        ? expeditedCards
+        : filteredCertificates;
 
   // At this point search + brand are already applied in listToShow; just sort.
   const brandFiltered = listToShow;
@@ -359,8 +373,8 @@ const CertificatesofAuthenticity = ({
   });
 
   // Counts for tabs that respect current search + brand filters
-  const expeditedCount = certificates.filter(
-    (cert) => matchesSearchAndBrand(cert) && cert.speed === "expedited",
+  const expeditedCount = allExpeditedCards.filter((card) =>
+    matchesSearchAndBrand(card),
   ).length;
   const completedCount = certificates.filter((cert) =>
     matchesSearchAndBrand(cert),
@@ -529,19 +543,19 @@ const CertificatesofAuthenticity = ({
                 activeTab === "Completed"
                   ? getCertificatePdfUrl(certificate)
                   : null;
+              const isPendingLike = activeTab === "Pending" || activeTab === "Expedited";
               const thumbnailUrl =
                 activeTab === "Completed" &&
                 getCompletedThumbnailUrl(certificate)
                   ? getCompletedThumbnailUrl(certificate)
-                  : activeTab === "Pending"
+                  : isPendingLike
                     ? (getPendingImageUrl(certificate) ??
                       certificate.image ??
                       certificate.thumbnail ??
                       null)
                     : (certificate.image ?? certificate.thumbnail ?? null);
-              // Pending: never show certificate PDF/placeholder; use real item image or "No image" only.
               const imageSrc =
-                activeTab === "Pending"
+                isPendingLike
                   ? thumbnailUrl || null
                   : thumbnailUrl || certificateImage;
               // get-user-queries API: brand and order_number live under authenticate_query
@@ -567,8 +581,7 @@ const CertificatesofAuthenticity = ({
                 certificate.certificate?.date ??
                 certificate.created_at ??
                 null;
-              // Red border + red text for all Pending cards (like old website) so it's clear why they're pending
-              const showPendingStyle = activeTab === "Pending";
+              const showPendingStyle = isPendingLike;
               const cardClassName = showPendingStyle
                 ? "bg-white border border-red-200 shadow-md hover:shadow-lg transition-shadow"
                 : "bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow";
@@ -591,7 +604,7 @@ const CertificatesofAuthenticity = ({
                 >
                   {/* Preview: certificate thumbnail PNG (Completed) or real item image (Pending). Use thumbnail so production works (same as Verify page). */}
                   <div className={previewClassName}>
-                    {activeTab === "Pending" && !imageSrc ? (
+                    {isPendingLike && !imageSrc ? (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 text-gray-500 text-sm">
                         <FiFileText className="w-6 h-6 mb-2 text-gray-400" />
                         No image
@@ -604,7 +617,7 @@ const CertificatesofAuthenticity = ({
                           <img
                             src={imageSrc}
                             alt={
-                              activeTab === "Pending"
+                              isPendingLike
                                 ? "Item photo"
                                 : "Certificate of Authenticity"
                             }
@@ -620,7 +633,7 @@ const CertificatesofAuthenticity = ({
                                   imageSrc?.substring?.(0, 120),
                                 );
                               }
-                              if (activeTab === "Pending")
+                              if (isPendingLike)
                                 e.target.style.display = "none";
                               else e.target.src = certificateImage;
                             }}
@@ -637,14 +650,14 @@ const CertificatesofAuthenticity = ({
                         {result}
                       </span>
                     )}
-                    {activeTab === "Pending" &&
+                    {isPendingLike &&
                       certificate.hasInconclusiveTag && (
                         <div className="absolute top-2 right-2 bg-[#FF9800] text-white px-2 py-1.5 rounded-full text-xs font-medium shadow-sm">
                           Inconclusive
                         </div>
                       )}
                     {/* Request More Images: show for Pending only when admin requested more images — opens modal */}
-                    {activeTab === "Pending" &&
+                    {isPendingLike &&
                       onRequestMoreImages &&
                       isMorePhotosRequested(certificate) && (
                         <button
@@ -660,7 +673,7 @@ const CertificatesofAuthenticity = ({
                           <ImagePlus className="w-5 h-5" />
                         </button>
                       )}
-                    {activeTab !== "Pending" &&
+                    {!isPendingLike &&
                       activeTab !== "Sold" &&
                       onMarkAsSold &&
                       !isCertificateSold(certificate) &&
@@ -697,7 +710,7 @@ const CertificatesofAuthenticity = ({
                     <div
                       className={`text-sm sm:text-base text-primary ${showPendingStyle ? "space-y-1.5 sm:space-y-2" : "space-y-2 sm:space-y-2.5"}`}
                     >
-                      {activeTab !== "Pending" && (
+                      {!isPendingLike && (
                         <p>
                           <span className="font-bold">Status:</span>
                           <span className="ml-3">
