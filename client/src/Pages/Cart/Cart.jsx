@@ -194,6 +194,7 @@ const Cart = () => {
             ...braintreeData,
             email: braintreeData?.email ?? itemEmail,
             brand_name: braintreeData?.brand_name ?? singleFormData.brand_name,
+            is_expedited: item.is_expedited || false,
           };
           const query =
             "?data=" +
@@ -203,6 +204,7 @@ const Cart = () => {
             state: {
               braintreePayload: payloadForCheckout,
               checkoutType: "auth",
+              is_expedited: item.is_expedited || false,
             },
           });
         } else {
@@ -211,6 +213,7 @@ const Cart = () => {
             state: {
               certificateIds: [braintreeData?.id ?? result?.data],
               checkoutType: "auth",
+              is_expedited: item.is_expedited || false,
             },
           });
         }

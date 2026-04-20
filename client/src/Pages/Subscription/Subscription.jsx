@@ -457,7 +457,7 @@ const Subscription = () => {
                 )}
 
                 {/* Alert Card */}
-                <div className="w-full">
+                <div className="w-full px-6 sm:px-8 md:px-10 lg:px-12">
                     <AlertCard
                         icon={FiInfo}
                         title="Important Details"

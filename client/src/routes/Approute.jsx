@@ -93,6 +93,7 @@ import MyValuations from "../Pages/MyValuations/MyValuations";
 import Settings from "../Pages/Settings/Settings";
 
 import Chat from "../Pages/Chat/Chat";
+import ExpeditedChat from "../Pages/ExpeditedChat/ExpeditedChat";
 import NotFound from "../Pages/NotFound/NotFound";
 
 // Scroll to top on route change so new pages open from top, not center
@@ -127,7 +128,9 @@ const AppRoute = () => {
 
   const { token } = useAppSelector((state) => state.auth);
 
-  const hideFooter = location.pathname.startsWith("/chat");
+  const hideFooter =
+    location.pathname.startsWith("/chat") ||
+    location.pathname.startsWith("/expedited-chat");
 
   const handleButtonClick = () => {
     console.log("Button clicked!");
@@ -151,7 +154,12 @@ const AppRoute = () => {
     { label: "Authentication", path: "/authentication" },
     { label: "Our App", path: "/app" },
     { label: "Contact us", path: "/contact" },
-    ...(token ? [{ label: "Chat", path: "/chat" }] : []),
+    ...(token
+      ? [
+          { label: "Chat", path: "/chat" },
+          { label: "Expedited Chat", path: "/expedited-chat" },
+        ]
+      : []),
     { label: "Verify Certificate", path: "/verify" },
     {
       label: "Blogs",
@@ -165,12 +173,7 @@ const AppRoute = () => {
   // Items under Features dropdown (desktop only); mobile drawer shows all as flat links
   const featureLinks = [
     { label: "Prices", path: "/prices" },
-    {
-      label: "Subscriptions",
-      path: "/subscription",
-      href: "https://authenticdetective.com/subscriptions",
-      external: true,
-    },
+    { label: "Subscriptions", path: "/subscription" },
     { label: "Authenticity Cards", path: "/authenticity-cards" },
     { label: "Sellers Collective", path: "/sellers-collective" },
   ];
@@ -382,6 +385,15 @@ const AppRoute = () => {
             element={
               <ProtectedRoute>
                 <Chat />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/expedited-chat"
+            element={
+              <ProtectedRoute>
+                <ExpeditedChat />
               </ProtectedRoute>
             }
           />
@@ -651,6 +663,15 @@ const AppRoute = () => {
           <Route path="/Chat" element={<Navigate to="/chat" replace />} />
 
           <Route path="/CHAT" element={<Navigate to="/chat" replace />} />
+
+          <Route
+            path="/Expedited-Chat"
+            element={<Navigate to="/expedited-chat" replace />}
+          />
+          <Route
+            path="/EXPEDITED-CHAT"
+            element={<Navigate to="/expedited-chat" replace />}
+          />
 
           {/* 404: any unmatched route */}
           <Route path="*" element={<NotFound />} />

@@ -7,6 +7,8 @@ import {
   FiX,
 } from "react-icons/fi";
 
+const CHATBOT_LOGO = "/assets/images/header-logo.png";
+
 const DUMMY_CHATS = [
   {
     id: "support",
@@ -344,16 +346,25 @@ const Chat = () => {
                         width: 40,
                         height: 40,
                         borderRadius: "50%",
-                        background: "rgba(255,255,255,0.15)",
+                        background: "#fff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 14,
-                        fontWeight: 600,
+                        overflow: "hidden",
                         flexShrink: 0,
                       }}
                     >
-                      AD
+                      <img
+                        src={CHATBOT_LOGO}
+                        alt="Authentic Detective"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          padding: 4,
+                          boxSizing: "border-box",
+                        }}
+                      />
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div
@@ -464,17 +475,32 @@ const Chat = () => {
                                 height: 40,
                                 borderRadius: "50%",
                                 flexShrink: 0,
-                                background: "#F5F5F0",
+                                background: "#fff",
                                 border: "1px solid rgba(60,31,27,0.10)",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
+                                overflow: "hidden",
                                 fontSize: 12,
                                 fontWeight: 600,
                                 color: "#3C1F1B",
                               }}
                             >
-                              {initials(c.title)}
+                              {c.id === "support" ? (
+                                <img
+                                  src={CHATBOT_LOGO}
+                                  alt="Authentic Detective"
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "contain",
+                                    padding: 4,
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                              ) : (
+                                initials(c.title)
+                              )}
                             </div>
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <div
@@ -603,15 +629,35 @@ const Chat = () => {
                           height: 40,
                           borderRadius: "50%",
                           flexShrink: 0,
-                          background: "rgba(255,255,255,0.15)",
+                          background:
+                            activeChat?.id === "support"
+                              ? "#fff"
+                              : "rgba(255,255,255,0.15)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          overflow: "hidden",
                           fontSize: 14,
                           fontWeight: 600,
                         }}
                       >
-                        {activeChat ? initials(activeChat.title) : "—"}
+                        {activeChat?.id === "support" ? (
+                          <img
+                            src={CHATBOT_LOGO}
+                            alt="Authentic Detective"
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "contain",
+                              padding: 4,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        ) : activeChat ? (
+                          initials(activeChat.title)
+                        ) : (
+                          "—"
+                        )}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div

@@ -761,11 +761,11 @@ const Form = ({
               <p className="text-xs sm:text-sm text-primary/80 leading-relaxed">
                 To avoid delay please make sure you submit at least 6 images,
                 including clear photos of all the logos, heat stamps, hardware,
-                and serial numbers.{" "}
+                and serial numbers.
                 <button
                   type="button"
                   onClick={() => setShowPhotoGuideModal(true)}
-                  className="font-medium text-blue-600 hover:underline"
+                  className="inline font-medium text-blue-600 hover:underline p-0 pl-1"
                 >
                   Photo guide
                 </button>
@@ -1023,11 +1023,21 @@ const Form = ({
                   className="text-xs sm:text-sm text-primary"
                 >
                   By clicking checkout, you accept the{" "}
-                  <Link to="/terms" className="text-blue-600 hover:underline">
+                  <Link
+                    to="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link to="/privacy" className="text-blue-600 hover:underline">
+                  <Link
+                    to="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
                     Privacy Policy
                   </Link>
                 </label>
@@ -1208,12 +1218,14 @@ const Form = ({
       {bulkDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-semibold text-primary mb-2">
+            <h3 className="text-lg font-semibold text-primary text-center">
               Bulk Query
             </h3>
-            <div className="pt-2">
-              <p className="text-sm text-primary mb-3">Select quantity</p>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            <div className="pt-1">
+              <p className="text-sm text-primary mb-3 text-center">
+                Select quantity
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-2">
                 {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                   <label
                     key={num}

@@ -178,7 +178,7 @@ const Checkout = () => {
     )
     .filter((id) => id != null && id !== "");
   const checkoutType = location.state?.checkoutType;
-  // console.log("Checkout type :- ", checkoutType);
+  const isExpedited = location.state?.is_expedited ?? braintreePayload?.is_expedited ?? false;
 
   const coaCount = certificateIds?.length ?? 0;
 
@@ -317,6 +317,7 @@ const Checkout = () => {
           amount: total,
           coa_count: certificateIds.length,
           coupon_code: getValues("promoCode")?.trim() || undefined,
+          is_expedited: isExpedited,
         }),
       ).unwrap();
       const payload = result?.data ?? result;
@@ -617,6 +618,7 @@ const Checkout = () => {
           braintreePayload.payed_amount != null && {
             payed_amount: braintreePayload.payed_amount,
           }),
+        is_expedited: isExpedited,
       };
       const safeBody = sanitizePaymentBody(body);
       if (checkoutType === "valuation") {
