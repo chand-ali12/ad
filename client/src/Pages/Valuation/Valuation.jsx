@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { CustomSelect } from "../../components";
 import { getBrands } from "../../store/slices/brandsSlice";
@@ -40,9 +40,38 @@ const Valuation = () => {
     },
   });
 
+  const selectedBrandId = useWatch({ control, name: "brand" });
+
   useEffect(() => {
     dispatch(getBrands());
   }, [dispatch]);
+
+  // Merge the two possible brand sources (brands slice takes priority) so we
+  // can look up the selected brand's price regardless of which slice provided
+  // the list of options.
+  const brandsSource = useMemo(() => {
+    if (Array.isArray(apiBrands) && apiBrands.length) return apiBrands;
+    if (Array.isArray(authBrands)) return authBrands;
+    return [];
+  }, [apiBrands, authBrands]);
+
+  const selectedBrand = useMemo(() => {
+    if (!selectedBrandId) return null;
+    return (
+      brandsSource.find((b) => String(b.id) === String(selectedBrandId)) || null
+    );
+  }, [brandsSource, selectedBrandId]);
+
+  const selectedBrandPrice = useMemo(() => {
+    if (!selectedBrand) return null;
+    const raw =
+      selectedBrand.brand_price ??
+      selectedBrand.price ??
+      selectedBrand.amount ??
+      null;
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : null;
+  }, [selectedBrand]);
 
   useEffect(() => {
     reset({
@@ -107,7 +136,13 @@ const Valuation = () => {
               token: bt.token,
               id: bt.id,
               order_number: bt.order_number,
-              amount: bt.amount ?? bt.payed_amount ?? 10,
+              // Prefer the brand's brand_price (what the user saw on this
+              // page) so the Checkout summary stays dynamic instead of
+              // falling back to the legacy static $10 value.
+              amount:
+                selectedBrandPrice ?? bt.amount ?? bt.payed_amount ?? 10,
+              payed_amount:
+                selectedBrandPrice ?? bt.payed_amount ?? bt.amount ?? 10,
               queries_count: bt.queries_count,
               query_type: bt.query_type ?? "valuation",
               first_name: bt.first_name || firstFromForm,
@@ -189,7 +224,11 @@ const Valuation = () => {
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
                 In order to purchase this add on, a previous certificate of
                 authenticity from Authentic Detective is required.{" "}
-                <span className="font-bold">Price - $10</span>
+                <span className="font-bold">
+                  {selectedBrandPrice != null
+                    ? `Price - $${selectedBrandPrice.toFixed(2)}`
+                    : "Price - select a brand"}
+                </span>
               </p>
             </div>
 
@@ -308,14 +347,9 @@ const Valuation = () => {
                     control={control}
                     rules={{ required: "Brand is required" }}
                     render={({ field }) => {
-                      // Reuse the same brand source logic as Sign Up:
-                      // prefer brands from brands slice, fall back to authenticationRequest.brands
-                      const brandsSource =
-                        Array.isArray(apiBrands) && apiBrands.length
-                          ? apiBrands
-                          : Array.isArray(authBrands)
-                            ? authBrands
-                            : [];
+                      // Use the shared brandsSource computed above so the
+                      // selected brand's brand_price lookup stays in sync
+                      // with the options shown in the dropdown.
                       const sortedBrands = [...brandsSource].sort((a, b) => {
                         const nameA = (a.brand || a.name || a.brand_name || "")
                           .toString()
