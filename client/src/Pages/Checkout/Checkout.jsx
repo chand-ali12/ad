@@ -165,7 +165,12 @@ const Checkout = () => {
       cvc: "",
       promoCode: "",
     });
-  }, [location.pathname, reset]);
+    
+    dispatch(clearCoupon());
+    return () => {
+      dispatch(clearCoupon());
+    };
+  }, [location.pathname, reset, dispatch]);
 
   const rawIds =
     location.state?.certificateIds ??
