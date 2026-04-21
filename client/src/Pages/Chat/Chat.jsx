@@ -318,6 +318,18 @@ const Chat = () => {
           }
         }
 
+        /*
+         * Small-screen (phone) fix: mobile browser chrome (Safari's floating
+         * toolbar, Chrome's address bar, etc.) tends to overlap the input bar.
+         * On any phone-sized screen, add extra bottom margin so the
+         * "Type a message" input stays above the browser UI and fully tappable.
+         */
+        @media (max-width: 767px) {
+          .input-bar {
+            margin-bottom: 90px;
+          }
+        }
+
         /* Prevent iOS Safari from bumping font sizes on rotate */
         * { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
       `}</style>
