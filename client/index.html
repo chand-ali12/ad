@@ -16,7 +16,7 @@
       window.AIStylistConfig = {
         // Uses the same working key as the old production site.
         apiKey:
-          "41ad5c5593866074417ea397c6bb21396e38486cf2008adb282a47f8378d82ac9b7d8ef038656e8fac1110bcadc968f76fdaf613182b9595bb88253118c855e6231f9b8b76c55634ee986ac32d7ab5ed",
+          "1c60aed5401b51d285f34e033ae238d0ab9555b0684a41b55e013e39c834462be66c471938bc4f149397a3f9ef5aaef619c7b019f9ca8c07021527017174b0944343ff4f8d1ae6da7092030827999d68",
         apiUrl: "https://kaido.sandboxdevenv.com",
         title: "Authentic Detective",
         subtitle: "Your personal assistant",
@@ -32,5 +32,91 @@
       src="https://kaido.sandboxdevenv.com/plugin/ai-stylist-chat-widget.js"
       async
     ></script>
+    <script>
+      (function () {
+        const WELCOME_CLASS = "aisw-welcome-message";
+        const PROMPTS_CLASS = "aisw-quick-prompts";
+
+        const defaultPrompts = [
+          { label: "Order status", msg: "I'd like to check my order status", icon: "📦" },
+          { label: "Pricing", msg: "How much does authentication cost?", icon: "💰" },
+          { label: "Turnaround time", msg: "What is the turnaround time?", icon: "⏱️" },
+          { label: "Services", msg: "What authentication services do you offer?", icon: "🛎️" },
+          { label: "Authentication process", msg: "How does your authentication process work?", icon: "🔍" },
+        ];
+
+        function createDefaultUi(messagesEl) {
+          if (!messagesEl || messagesEl.querySelector(`.${WELCOME_CLASS}`)) return;
+
+          const title = window.AIStylistConfig?.title || "Authentic Detective";
+          const subtitle =
+            window.AIStylistConfig?.subtitle || "Your personal assistant";
+
+          const welcome = document.createElement("div");
+          welcome.className = WELCOME_CLASS;
+          welcome.innerHTML = `
+            <div class="aisw-welcome-content">
+              <div class="aisw-welcome-emoji">🕵️‍♂️</div>
+              <h3 class="aisw-welcome-title">Welcome to ${title}!</h3>
+              <p class="aisw-welcome-text">${subtitle} We're here to assist you.</p>
+            </div>
+          `;
+
+          const quickPrompts = document.createElement("div");
+          quickPrompts.className = PROMPTS_CLASS;
+          quickPrompts.innerHTML = defaultPrompts
+            .map(
+              (p) => `
+                <button
+                  type="button"
+                  class="aisw-quick-prompt-btn"
+                  aria-label="${p.label}"
+                  data-message="${p.msg.replace(/"/g, "&quot;")}"
+                >
+                  <span class="aisw-quick-prompt-icon">${p.icon}</span>
+                  <span class="aisw-quick-prompt-label">${p.label}</span>
+                </button>
+              `,
+            )
+            .join("");
+
+          messagesEl.appendChild(welcome);
+          messagesEl.appendChild(quickPrompts);
+        }
+
+        function attachQuickPromptClick() {
+          document.addEventListener("click", function (event) {
+            const promptBtn = event.target.closest(".aisw-quick-prompt-btn");
+            if (!promptBtn) return;
+
+            const chatWindow = promptBtn.closest(".aisw-chat-window");
+            if (!chatWindow) return;
+
+            const textarea = chatWindow.querySelector(".aisw-textarea");
+            const sendBtn = chatWindow.querySelector(".aisw-send-btn");
+            const msg = promptBtn.getAttribute("data-message") || "";
+            if (!textarea || !sendBtn || !msg) return;
+
+            textarea.value = msg;
+            textarea.dispatchEvent(new Event("input", { bubbles: true }));
+            sendBtn.click();
+          });
+        }
+
+        function ensureDefaultUi() {
+          const messagesEl = document.querySelector(".aisw-messages");
+          if (messagesEl) createDefaultUi(messagesEl);
+        }
+
+        const observer = new MutationObserver(ensureDefaultUi);
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+        });
+
+        attachQuickPromptClick();
+        ensureDefaultUi();
+      })();
+    </script>
   </body>
 </html>
