@@ -401,7 +401,7 @@ const CertificatesofAuthenticity = ({
 
   // Top-level tabs: Completed | Pending | Sold items | Available items (single row, like old website)
   const mainTabs = [
-    { label: "Expedited", count: expeditedCount, value: "Expedited" },
+    // { label: "Expedited", count: expeditedCount, value: "Expedited" },
     { label: "Completed", count: completedCount, value: "Completed" },
     { label: "Pending", count: pendingCount, value: "Pending" },
     { label: "Sold items", count: soldCount, value: "Sold" },

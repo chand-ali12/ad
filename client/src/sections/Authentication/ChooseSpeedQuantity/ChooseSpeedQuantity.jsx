@@ -122,8 +122,9 @@ const ChooseSpeedQuantity = ({
             {/* Expedited - selected */}
             <button
               type="button"
-              onClick={() => handleSpeedChange("expedited")}
-              className="relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
+              // onClick={() => handleSpeedChange("expedited")}
+              disabled={true}
+              className="cursor-not-allowed relative flex flex-col items-center text-center p-5 rounded-2xl bg-white border-2 border-[#D4AF37]/40 shadow-sm hover:border-[#D4AF37]/70 transition-colors w-full"
             >
               {speedType === "expedited" && (
                 <span className="absolute top-3 left-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-white">
@@ -143,9 +144,10 @@ const ChooseSpeedQuantity = ({
                 </span>
               </div>
               <hr className="w-full my-3 border-gray-200 flex-shrink-0" />
-              {/* <span className="text-primary font-semibold text-sm">
-                From $12
-              </span> */}
+              <span className="text-primary font-semibold text-sm">
+                Coming Soon
+              </span>
+              {/* <span className="text-white text-xs font-medium">Coming Soon</span> */}
             </button>
           </div>
         </div>
@@ -197,11 +199,15 @@ const ChooseSpeedQuantity = ({
                   <CheckIcon />
                 </span>
               )}
-              <span className={`font-semibold text-base ${isExpedited ? "text-gray-400" : "text-primary"}`}>
+              <span
+                className={`font-semibold text-base ${isExpedited ? "text-gray-400" : "text-primary"}`}
+              >
                 Bulk Authentication
               </span>
               {isExpedited && (
-                <span className="text-xs text-gray-400 ml-1">(Standard only)</span>
+                <span className="text-xs text-gray-400 ml-1">
+                  (Standard only)
+                </span>
               )}
 
               {/* Info icon - stop propagation so it doesn't toggle selection */}
