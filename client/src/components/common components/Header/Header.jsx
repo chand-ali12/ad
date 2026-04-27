@@ -623,7 +623,7 @@ const Header = ({
                         className="flex gap-3 items-center px-4 py-2 w-full bg-transparent border-0 transition-colors outline-none text-primary hover:bg-gray-50 focus:outline-none"
                       >
                         <FiCreditCard className="w-5 h-5 text-primary" />
-                        <span className="text-primary">Subscription</span>
+                        <span className="text-primary">Subscriptions</span>
                       </button>
                       {!hasBusinessAccount && (
                         <>
@@ -826,7 +826,7 @@ const Header = ({
                         className="flex gap-3 items-center px-4 py-2 w-full bg-transparent border-0 transition-colors outline-none text-primary hover:bg-gray-50 focus:outline-none text-left"
                       >
                         <FiCreditCard className="w-5 h-5 text-primary" />
-                        <span className="text-primary">Subscription</span>
+                        <span className="text-primary">Subscriptions</span>
                       </button>
                       {!hasBusinessAccount && (
                         <>
