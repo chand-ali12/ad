@@ -12,7 +12,7 @@ const ProfileCard = ({
     website,
     reviewsCount,
     onReviewsClick,
-    showEditProfile = true,
+    showEditProfile = false,
     onEditProfileClick,
     onProfileClick,
     editButtonText = "Edit profile",
