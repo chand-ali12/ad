@@ -255,6 +255,7 @@ const AppRoute = () => {
           <Route path="/prices" element={<Prices />} />
 
           <Route path="/signin" element={<SignInPage />} />
+          <Route path="/login" element={<Navigate to="/signin" replace />} />
 
           <Route path="/signup" element={<SignUpPage />} />
 
@@ -479,6 +480,8 @@ const AppRoute = () => {
           <Route path="/SignIn" element={<Navigate to="/signin" replace />} />
 
           <Route path="/SIGNIN" element={<Navigate to="/signin" replace />} />
+          <Route path="/Login" element={<Navigate to="/signin" replace />} />
+          <Route path="/LOGIN" element={<Navigate to="/signin" replace />} />
 
           <Route path="/SignUp" element={<Navigate to="/signup" replace />} />
 
