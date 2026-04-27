@@ -192,7 +192,7 @@ const AddBusiness = () => {
                                         ref={field.ref}
                                         name={field.name}
                                         onBlur={field.onBlur}
-                                        options={[{ value: '', label: 'Country' }, ...(businessCountries || []).map((c) => ({ value: c.business_country, label: c.business_country }))]}
+                                        options={[...(businessCountries || []).map((c) => ({ value: c.business_country, label: c.business_country }))]}
                                         value={field.value}
                                         onChange={field.onChange}
                                         placeholder="Country"
