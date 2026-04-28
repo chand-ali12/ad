@@ -10,6 +10,15 @@ import {
   pickValuationBraintreePayload,
 } from "../../services/forumService";
 
+const parseCurrencyValue = (value) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/[^0-9.-]/g, "");
+  if (!cleaned) return null;
+  const parsed = Number.parseFloat(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const Valuation = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,7 +67,10 @@ const Valuation = () => {
   const selectedBrand = useMemo(() => {
     if (!selectedBrandId) return null;
     return (
-      brandsSource.find((b) => String(b.id) === String(selectedBrandId)) || null
+      brandsSource.find(
+        (b) =>
+          String(b.id ?? b.brand_id ?? b.brandId) === String(selectedBrandId),
+      ) || null
     );
   }, [brandsSource, selectedBrandId]);
 
@@ -69,8 +81,7 @@ const Valuation = () => {
       selectedBrand.price ??
       selectedBrand.amount ??
       null;
-    const num = Number(raw);
-    return Number.isFinite(num) ? num : null;
+    return parseCurrencyValue(raw);
   }, [selectedBrand]);
 
   useEffect(() => {
@@ -137,12 +148,17 @@ const Valuation = () => {
               id: bt.id,
               order_number: bt.order_number,
               // Prefer the brand's brand_price (what the user saw on this
-              // page) so the Checkout summary stays dynamic instead of
-              // falling back to the legacy static $10 value.
+              // page) only as a fallback. Source of truth is backend amount.
               amount:
-                selectedBrandPrice ?? bt.amount ?? bt.payed_amount ?? 10,
+                parseCurrencyValue(bt.amount) ??
+                parseCurrencyValue(bt.payed_amount) ??
+                selectedBrandPrice ??
+                10,
               payed_amount:
-                selectedBrandPrice ?? bt.payed_amount ?? bt.amount ?? 10,
+                parseCurrencyValue(bt.payed_amount) ??
+                parseCurrencyValue(bt.amount) ??
+                selectedBrandPrice ??
+                10,
               queries_count: bt.queries_count,
               query_type: bt.query_type ?? "valuation",
               first_name: bt.first_name || firstFromForm,
@@ -225,9 +241,10 @@ const Valuation = () => {
                 In order to purchase this add on, a previous certificate of
                 authenticity from Authentic Detective is required.{" "}
                 <span className="font-bold">
-                  {selectedBrandPrice != null
-                    ? `Price - $${selectedBrandPrice.toFixed(2)}`
-                    : "Price - select a brand"}
+                  {/* {selectedBrandPrice != null
+                    ? `Price - $${Number(10.00).toFixed(2)}`
+                    : "Price - select a brand"} */}
+                  Price - $10.00 for each brand.
                 </span>
               </p>
             </div>
@@ -362,7 +379,7 @@ const Valuation = () => {
                       const options = [
                         // { value: '', label: 'Select Brand' },
                         ...sortedBrands.map((b) => ({
-                          value: String(b.id),
+                          value: String(b.id ?? b.brand_id ?? b.brandId),
                           label:
                             b.brand || b.name || b.brand_name || String(b.id),
                         })),

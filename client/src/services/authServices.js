@@ -5,6 +5,18 @@ const appendIfPresent = (formData, key, value) => {
   formData.append(key, value);
 };
 
+const resolveClientUrl = (envValue, fallbackPath) => {
+  const raw = String(envValue || "").trim();
+  if (raw) return raw;
+  const base = String(import.meta.env.VITE_CLIENT_WEB_URL || "").trim();
+  if (!base) return "";
+  return `${base.replace(/\/+$/, "")}${fallbackPath}`;
+};
+
+const appendRedirectAliases = (formData, url, aliases = []) => {
+  aliases.forEach((key) => appendIfPresent(formData, key, url));
+};
+
 const buildQueryString = (params = {}) => {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -28,6 +40,21 @@ export const registerUser = async ({
   appendIfPresent(formData, "password", password);
   appendIfPresent(formData, "business_name", business_name);
   appendIfPresent(formData, "website", website);
+  const clientVerifyUrl = resolveClientUrl(
+    import.meta.env.VITE_CLIENT_VERIFY_URL,
+    "/login",
+  );
+  // Send common verify-link keys so backend can use this website in email.
+  appendRedirectAliases(formData, clientVerifyUrl, [
+    "verify_url",
+    "verification_url",
+    "verify_link",
+    "login_url",
+    "redirect_url",
+    "web_url",
+    "frontend_url",
+    "redirect_to",
+  ]);
 
   return request("/register-user", {
     method: "POST",
@@ -53,6 +80,21 @@ export const registerBusinessUser = async ({
   appendIfPresent(formData, "website", website);
   appendIfPresent(formData, "business_brands", business_brands);
   appendIfPresent(formData, "country", country);
+  const clientVerifyUrl = resolveClientUrl(
+    import.meta.env.VITE_CLIENT_VERIFY_URL,
+    "/login",
+  );
+  // Send common verify-link keys so backend can use this website in email.
+  appendRedirectAliases(formData, clientVerifyUrl, [
+    "verify_url",
+    "verification_url",
+    "verify_link",
+    "login_url",
+    "redirect_url",
+    "web_url",
+    "frontend_url",
+    "redirect_to",
+  ]);
 
   return request("/register-business-user", {
     method: "POST",
@@ -92,14 +134,19 @@ export const logoutUser = async (token) =>
 export const forgetPassword = async ({ email } = {}) => {
   const formData = new FormData();
   appendIfPresent(formData, "email", email);
-  const clientResetUrl = import.meta.env.VITE_CLIENT_RESET_URL
+  const clientResetUrl = resolveClientUrl(
+    import.meta.env.VITE_CLIENT_RESET_URL,
+    "/reset-password",
+  );
   // Send common redirect keys so backend can generate reset link for this website.
-  appendIfPresent(formData, "reset_url", clientResetUrl);
-  appendIfPresent(formData, "redirect_url", clientResetUrl);
-  appendIfPresent(formData, "web_url", clientResetUrl);
-  appendIfPresent(formData, "frontend_url", clientResetUrl);
-  appendIfPresent(formData, "redirect_to", clientResetUrl);
-  appendIfPresent(formData, "reset_link", clientResetUrl);
+  appendRedirectAliases(formData, clientResetUrl, [
+    "reset_url",
+    "redirect_url",
+    "web_url",
+    "frontend_url",
+    "redirect_to",
+    "reset_link",
+  ]);
 
   return request("/forget-password", {
     method: "POST",
