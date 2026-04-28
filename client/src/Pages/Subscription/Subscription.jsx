@@ -35,11 +35,14 @@ const Subscription = () => {
   const [isCheckboxChecked, setIsCheckboxChecked] = useState(false);
   const [isSubmittingModal, setIsSubmittingModal] = useState(false);
   const [hasLoadedSubscription, setHasLoadedSubscription] = useState(false);
+  const [hasLoadedPlans, setHasLoadedPlans] = useState(false);
   const plansSectionRef = useRef(null);
   const [plansInView, setPlansInView] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchAllPlans());
+    dispatch(fetchAllPlans()).finally(() => {
+      setHasLoadedPlans(true);
+    });
     if (token) {
       dispatch(fetchSubscription())
         .finally(() => {
@@ -63,7 +66,13 @@ const Subscription = () => {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [plansInView, hasLoadedSubscription, currentSubscription, showUpgradePlans]);
+  }, [
+    plansInView,
+    hasLoadedPlans,
+    hasLoadedSubscription,
+    currentSubscription,
+    showUpgradePlans,
+  ]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -226,7 +235,7 @@ const Subscription = () => {
   // Prefer API-driven plans whenever available; fall back to static plans only
   // when the backend returns none. The old site uses whatever the API returns,
   // so using fallback IDs here can cause "No Record Found" from create-subscription.
-  const displayPlans = apiPlans.length > 0 ? apiPlans : fallbackPlans;
+  const displayPlans = apiPlans.length > 0 ? apiPlans : (hasLoadedPlans ? fallbackPlans : []);
 
   const subscriptionPlans = displayPlans;
 
@@ -406,12 +415,12 @@ const Subscription = () => {
                 {hasLoadedSubscription && (
                   (!subscriptionDetails ||
                     showUpgradePlans ||
-                    (subscriptionDetails && !activePlan)) && (
+                    (subscriptionDetails && hasLoadedPlans && !activePlan)) && (
                     <div
                       ref={plansSectionRef}
                       className="flex justify-center mb-8 sm:mb-12 md:mb-16 min-h-[200px]"
                     >
-                      {!plansInView ? (
+                      {!hasLoadedPlans || !plansInView ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10 max-w-5xl lg:max-w-6xl w-full">
                           {[0, 1, 2].map((i) => (
                             <div

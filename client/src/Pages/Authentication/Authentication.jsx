@@ -36,7 +36,7 @@ const Authentication = () => {
   const [openBulkDialogRequest, setOpenBulkDialogRequest] = useState(false);
 
   const [speedType, setSpeedType] = useState("standard"); // can be "standard" | "expedited"
-  const [valuationValue, setValuationValue] = useState(null);
+  const [valuationValue, setValuationValue] = useState(10);
   const [normalValue, setNormalValue] = useState(null);
   const [expeditedValue, setexpeditedValue] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -100,7 +100,6 @@ const Authentication = () => {
       const res = await dispatch(getQueryPrice({ category_id: id }));
       console.log("Response is :- ", res);
       if (res.payload.data !== null) {
-        setValuationValue(Number(res.payload.data.valuation));
         setexpeditedValue(Number(res.payload.data.expedited_query));
         setNormalValue(Number(res.payload.data.normal_query));
       }

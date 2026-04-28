@@ -36,7 +36,12 @@ const UserProfile = () => {
 
     );
 
-    const { business, businessUserLogin, reviews: businessReviews } = useAppSelector((state) => state.business);
+    const {
+        business,
+        businessUserLogin,
+        reviews: businessReviews,
+        status: businessStatus,
+    } = useAppSelector((state) => state.business);
 
     const { status: reviewStatus } = useAppSelector((state) => state.reviews);
     const { status: checkoutStatus } = useAppSelector((state) => state.checkout);
@@ -628,7 +633,16 @@ const UserProfile = () => {
 
 
 
-    if (status === 'loading') {
+    const hasBusinessAccount = Boolean(user?.user_business?.length);
+    const hasBusinessData = Boolean(business && Object.keys(business).length > 0);
+    const businessResolved =
+        !hasBusinessAccount || hasBusinessData || businessStatus === 'failed';
+    const effectiveBusiness =
+        hasBusinessData ? business : (hasBusinessAccount ? user?.user_business?.[0] : null);
+    const showProfileLoading =
+        status === 'loading' || (status === 'succeeded' && hasBusinessAccount && !businessResolved);
+
+    if (showProfileLoading) {
 
         return (
 
@@ -725,9 +739,9 @@ const UserProfile = () => {
 
                             user={user}
 
-                            business={business}
+                            business={effectiveBusiness}
 
-                            businessUserLogin={businessUserLogin}
+                            businessUserLogin={hasBusinessAccount || businessUserLogin}
 
                             businessReviewCount={businessReviewCount}
 
