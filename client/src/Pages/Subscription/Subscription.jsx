@@ -524,9 +524,9 @@ const Subscription = () => {
                 {showCancelModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" aria-modal="true">
                         <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm mx-4">
-                            <p className="font-semibold text-lg mb-2">Cancel subscription?</p>
-                            <p className="text-sm text-gray-600 mb-4">Are you sure you want to cancel your subscription?</p>
-                            <div className="flex gap-3 justify-end">
+                            <p className="font-semibold text-lg mb-2 text-center">Cancel subscription?</p>
+                            <p className="text-sm text-gray-600 mb-4 text-center">Are you sure you want to cancel your subscription?</p>
+                            <div className="flex gap-3 justify-center">
                                 <button
                                     type="button"
                                     onClick={() => setShowCancelModal(false)}
