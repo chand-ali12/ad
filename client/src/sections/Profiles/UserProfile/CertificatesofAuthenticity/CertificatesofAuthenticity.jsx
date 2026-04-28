@@ -633,11 +633,10 @@ const CertificatesofAuthenticity = ({
             {sortedList.map((certificate) => {
               const result = getCertificateResult(certificate);
               const resultColor = getResultBadgeColor(result);
-              const pdfUrl =
-                activeTab === "Completed"
-                  ? getCertificatePdfUrl(certificate)
-                  : null;
               const isPendingLike = activeTab === "Pending" || activeTab === "Expedited";
+              const pdfUrl = !isPendingLike
+                ? getCertificatePdfUrl(certificate)
+                : null;
               const thumbnailUrl =
                 activeTab === "Completed" &&
                 getCompletedThumbnailUrl(certificate)
@@ -794,26 +793,29 @@ const CertificatesofAuthenticity = ({
                         </button>
                       )}
                     {!isPendingLike &&
-                      activeTab !== "Sold" &&
                       onMarkAsSold &&
-                      !isCertificateSold(certificate) &&
                       (() => {
                         const soldCertId =
                           getMarkSoldCertificateId(certificate);
+                        const sold = isCertificateSold(certificate);
                         const busy =
                           markingSoldId != null &&
                           String(markingSoldId) === String(soldCertId);
                         return soldCertId ? (
                           <button
                             type="button"
-                            title="Mark as sold"
-                            aria-label="Mark as sold"
+                            title={sold ? "Mark as available" : "Mark as sold"}
+                            aria-label={
+                              sold ? "Mark as available" : "Mark as sold"
+                            }
                             disabled={busy}
                             onClick={(e) => {
                               e.stopPropagation();
                               onMarkAsSold(certificate);
                             }}
-                            className="absolute bottom-2 left-3 bg-primary text-white p-2 rounded-[12.99px] z-10 shadow-sm hover:opacity-90 disabled:opacity-60"
+                            className={`absolute bottom-2 left-3 text-white p-2 rounded-[12.99px] z-10 shadow-sm hover:opacity-90 disabled:opacity-60 ${
+                              sold ? "bg-green-600" : "bg-primary"
+                            }`}
                           >
                             <Tag className="w-4 h-4" />
                           </button>
@@ -864,7 +866,7 @@ const CertificatesofAuthenticity = ({
                           </p>
                         )}
                       {/* View COA PDF: open actual certificate PDF (from API pdf field) in new tab */}
-                      {activeTab === "Completed" && pdfUrl && (
+                      {!isPendingLike && pdfUrl && (
                         <div className="mt-2 flex flex-col gap-2">
                           <a
                             href={`${pdfUrl}${String(pdfUrl).includes("#") ? "" : "#toolbar=1"}`}
@@ -883,7 +885,7 @@ const CertificatesofAuthenticity = ({
                           </a>
                         </div>
                       )}
-                      {activeTab === "Completed" &&
+                      {!isPendingLike &&
                         !pdfUrl &&
                         onViewCoaPdf &&
                         !certificate.isFromQueries &&

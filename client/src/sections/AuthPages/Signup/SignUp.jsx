@@ -339,7 +339,7 @@ const SignUp = ({ className = "" }) => {
                             name={field.name}
                             onBlur={field.onBlur}
                             options={[
-                              { value: "", label: "Country" },
+                              // { value: "", label: "Country" },
                               ...countries.map((country) => ({
                                 value: country.code,
                                 label: country.name,
