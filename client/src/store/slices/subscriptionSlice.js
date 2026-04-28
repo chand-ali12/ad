@@ -22,7 +22,7 @@ export const fetchAllPlans = createAsyncThunk(
       const res = await getAllPlansApi({ token });
       const data = res?.data ?? res;
       const list = Array.isArray(data) ? data : data?.plans ?? data?.data ?? [];
-      return Array.isArray(list) ? list.reverse() : [];
+      return Array.isArray(list) ? list : [];
     } catch (e) {
       return rejectWithValue(e?.message || 'Failed to fetch plans');
     }

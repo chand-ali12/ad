@@ -38,15 +38,36 @@
         const PROMPTS_CLASS = "aisw-quick-prompts";
 
         const defaultPrompts = [
-          { label: "Order status", msg: "I'd like to check my order status", icon: "📦" },
-          { label: "Pricing", msg: "How much does authentication cost?", icon: "💰" },
-          { label: "Turnaround time", msg: "What is the turnaround time?", icon: "⏱️" },
-          { label: "Services", msg: "What authentication services do you offer?", icon: "🛎️" },
-          { label: "Authentication process", msg: "How does your authentication process work?", icon: "🔍" },
+          {
+            label: "Order status",
+            msg: "I'd like to check my order status",
+            icon: "📦",
+          },
+          {
+            label: "Pricing",
+            msg: "How much does authentication cost?",
+            icon: "💰",
+          },
+          {
+            label: "Turnaround time",
+            msg: "What is the turnaround time?",
+            icon: "⏱️",
+          },
+          {
+            label: "Services",
+            msg: "What authentication services do you offer?",
+            icon: "🛎️",
+          },
+          {
+            label: "Authentication process",
+            msg: "How does your authentication process work?",
+            icon: "🔍",
+          },
         ];
 
         function createDefaultUi(messagesEl) {
-          if (!messagesEl || messagesEl.querySelector(`.${WELCOME_CLASS}`)) return;
+          if (!messagesEl || messagesEl.querySelector(`.${WELCOME_CLASS}`))
+            return;
 
           const title = window.AIStylistConfig?.title || "Authentic Detective";
           const subtitle =
