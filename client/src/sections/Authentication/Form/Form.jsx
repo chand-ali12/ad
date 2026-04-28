@@ -87,11 +87,15 @@ const Form = ({
   const [showModelInfoAlert, setShowModelInfoAlert] = useState(false);
   const [showPhotoGuideModal, setShowPhotoGuideModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadPopupState, setUploadPopupState] = useState("hidden");
   const isSubmittingRef = useRef(false);
   const fileInputRef = useRef(null);
   const recaptchaRef = useRef(null);
   const formCardRef = useRef(null);
   const previewFilesRef = useRef(previewFiles);
+  const uploadPopupTimeoutRef = useRef(null);
+  const wasUploadingRef = useRef(false);
+  const uploadStartSuccessCountRef = useRef(0);
   previewFilesRef.current = previewFiles;
 
   const brandsList = apiBrands?.length ? apiBrands : authBrands;
@@ -510,6 +514,46 @@ const Form = ({
   };
 
   const isUploading = previewFiles.some((f) => f.uploading);
+  const successfulUploadsCount = previewFiles.filter((f) => f.uuid).length;
+
+  useEffect(() => {
+    if (isUploading) {
+      if (!wasUploadingRef.current) {
+        uploadStartSuccessCountRef.current = successfulUploadsCount;
+      }
+      if (uploadPopupTimeoutRef.current) {
+        clearTimeout(uploadPopupTimeoutRef.current);
+        uploadPopupTimeoutRef.current = null;
+      }
+      setUploadPopupState("uploading");
+      wasUploadingRef.current = true;
+      return;
+    }
+
+    if (wasUploadingRef.current) {
+      const hasNewSuccess =
+        successfulUploadsCount > uploadStartSuccessCountRef.current;
+
+      if (hasNewSuccess) {
+        setUploadPopupState("success");
+        uploadPopupTimeoutRef.current = setTimeout(() => {
+          setUploadPopupState("hidden");
+        }, 1200);
+      } else {
+        setUploadPopupState("hidden");
+      }
+
+      wasUploadingRef.current = false;
+    }
+  }, [isUploading, successfulUploadsCount]);
+
+  useEffect(() => {
+    return () => {
+      if (uploadPopupTimeoutRef.current) {
+        clearTimeout(uploadPopupTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={`bg-secondary py-8 sm:py-12 md:py-16 ${className}`}>
@@ -792,7 +836,7 @@ const Form = ({
                 />
                 {previewFiles.length > 0 ? (
                   <div className="space-y-3">
-                    <div className="flex flex-wrap gap-3">
+                    <div className="grid grid-cols-4 gap-2 sm:gap-3">
                       {previewFiles.map((item, index) => (
                         <div
                           key={index}
@@ -813,7 +857,7 @@ const Form = ({
                               setExpandedImageIndex(index);
                             }
                           }}
-                          className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-lg overflow-hidden border border-gray-300 bg-white group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+                          className="relative w-full aspect-square rounded-lg overflow-hidden border border-gray-300 bg-white group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
                           aria-label={`Expand image ${index + 1}`}
                         >
                           <img
@@ -835,10 +879,10 @@ const Form = ({
                               removePreview(index);
                             }}
                             title="Remove image"
-                            className="absolute top-1 right-1 p-0.5 text-gray-700 hover:text-red-600 transition-colors"
+                            className="absolute bg-white top-1 right-1 p-0.5 text-gray-700 hover:text-red-600 transition-colors"
                             aria-label="Remove image"
                           >
-                            <FiX className="w-5 h-5" strokeWidth={2.5} />
+                            <FiX className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
                           </button>
                         </div>
                       ))}
@@ -1069,6 +1113,39 @@ const Form = ({
           </form>
         </div>
       </div>
+
+      {(uploadPopupState === "uploading" || uploadPopupState === "success") && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image upload status"
+        >
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-2xl">
+            {uploadPopupState === "uploading" ? (
+              <>
+                <div className="mx-auto mb-4 h-12 w-12 rounded-full border-4 border-primary/25 border-t-primary animate-spin" />
+                <h3 className="text-primary text-lg sm:text-xl font-bold">
+                  Uploading
+                </h3>
+                <p className="mt-2 text-sm sm:text-base text-primary/80">
+                  Please wait while image is being uploaded.
+                </p>
+              </>
+            ) : (
+              <>
+                <FiCheckCircle className="mx-auto mb-4 h-14 w-14 text-green-600" />
+                <h3 className="text-primary text-lg sm:text-xl font-bold">
+                  Upload complete
+                </h3>
+                <p className="mt-2 text-sm sm:text-base text-primary/80">
+                  Your image was uploaded successfully.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Model info alert popup */}
       {showModelInfoAlert && (

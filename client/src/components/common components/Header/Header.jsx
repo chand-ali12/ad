@@ -49,6 +49,12 @@ const Header = ({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
   const mobileProfileMenuRef = useRef(null);
+  const mobileDrawerScrollRef = useRef(null);
+  const [mobileScrollThumb, setMobileScrollThumb] = useState({
+    visible: false,
+    height: 0,
+    top: 0,
+  });
   const dispatch = useAppDispatch();
   const { token, user } = useAppSelector((state) => state.auth);
   const { profile: profileState, user: profileUser } = useAppSelector(
@@ -137,6 +143,58 @@ const Header = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isProfileMenuOpen]);
+
+  useEffect(() => {
+    const updateMobileDrawerThumb = () => {
+      const el = mobileDrawerScrollRef.current;
+      if (!el) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      const canScroll = scrollHeight > clientHeight + 1;
+
+      if (!canScroll) {
+        setMobileScrollThumb((prev) =>
+          prev.visible
+            ? { visible: false, height: 0, top: 0 }
+            : prev,
+        );
+        return;
+      }
+
+      const trackPadding = 8;
+      const trackHeight = Math.max(clientHeight - trackPadding * 2, 0);
+      const thumbHeight = Math.max(
+        28,
+        (clientHeight / scrollHeight) * trackHeight,
+      );
+      const maxThumbOffset = Math.max(trackHeight - thumbHeight, 0);
+      const maxScroll = Math.max(scrollHeight - clientHeight, 1);
+      const scrollRatio = scrollTop / maxScroll;
+      const thumbTop = trackPadding + scrollRatio * maxThumbOffset;
+
+      setMobileScrollThumb({
+        visible: true,
+        height: thumbHeight,
+        top: thumbTop,
+      });
+    };
+
+    if (!isMobileMenuOpen) return;
+
+    updateMobileDrawerThumb();
+    const el = mobileDrawerScrollRef.current;
+    if (!el) return;
+
+    el.addEventListener("scroll", updateMobileDrawerThumb, { passive: true });
+    window.addEventListener("resize", updateMobileDrawerThumb);
+    const raf = window.requestAnimationFrame(updateMobileDrawerThumb);
+
+    return () => {
+      window.cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", updateMobileDrawerThumb);
+      window.removeEventListener("resize", updateMobileDrawerThumb);
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <div className={`relative w-full ${className}`}>
@@ -922,7 +980,7 @@ const Header = ({
         {/* Drawer Menu - sectioned mobile-style navbar (also on desktop) */}
         {isMobileMenuOpen && (
           <div
-            className="absolute left-0 right-0 top-full z-50 border-t border-gray-200 bg-secondary shadow-md xl:hidden flex flex-col overflow-hidden"
+            className="absolute left-0 right-0 top-full z-50 border-t border-gray-200 bg-secondary shadow-md xl:hidden flex flex-col overflow-hidden relative"
             style={{
               WebkitOverflowScrolling: "touch",
               touchAction: "pan-y",
@@ -930,7 +988,10 @@ const Header = ({
               overscrollBehavior: "contain",
             }}
           >
-            <div className="flex-1 overflow-y-auto overscroll-contain px-3 sm:px-4 md:px-6 lg:px-8 pt-3 pb-3 sm:pt-4 sm:pb-4">
+            <div
+              ref={mobileDrawerScrollRef}
+              className="flex-1 overflow-y-scroll overscroll-contain mobile-drawer-native-hide px-3 sm:px-4 md:px-6 lg:px-8 pt-3 pb-3 sm:pt-4 sm:pb-4"
+            >
               <div className="flex flex-col gap-2">
                 {/* PRIMARY */}
                 <div className="px-4 pt-1 text-[11px] font-semibold tracking-wider text-primary/60 uppercase">
@@ -1191,6 +1252,21 @@ const Header = ({
                   {isAuthenticated ? "Sign Out" : authCtaText}
                 </button>
               </div>
+            </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute right-1 top-2 bottom-2 w-[6px]"
+            >
+              <div className="absolute inset-0 rounded-full bg-primary/10" />
+              {mobileScrollThumb.visible && (
+                <div
+                  className="absolute left-0 right-0 rounded-full bg-primary/45 transition-all duration-150"
+                  style={{
+                    height: `${mobileScrollThumb.height}px`,
+                    transform: `translateY(${mobileScrollThumb.top}px)`,
+                  }}
+                />
+              )}
             </div>
           </div>
         )}

@@ -453,6 +453,35 @@ button.password-toggle:hover {
   display: none;
 }
 
+/* Keep mobile header drawer scrollbar visible on the right side */
+.mobile-drawer-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(60, 31, 27, 0.55) rgba(60, 31, 27, 0.12);
+}
+.mobile-drawer-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.mobile-drawer-scrollbar::-webkit-scrollbar-track {
+  background: rgba(60, 31, 27, 0.12);
+  border-radius: 9999px;
+}
+.mobile-drawer-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(60, 31, 27, 0.55);
+  border-radius: 9999px;
+}
+.mobile-drawer-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(60, 31, 27, 0.7);
+}
+
+/* Hide native scrollbar when using custom drawer indicator */
+.mobile-drawer-native-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mobile-drawer-native-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Recent Reviews carousel: equal-height cards (same size as Melissa-style card) */
 .trusted-by-carousel .trusted-by-swiper .swiper-wrapper {
   align-items: stretch;
