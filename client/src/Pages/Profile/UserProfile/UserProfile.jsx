@@ -98,18 +98,25 @@ const UserProfile = () => {
   const [certificateToToggleStatus, setCertificateToToggleStatus] =
     useState(null);
   const [markingSoldId, setMarkingSoldId] = useState(null);
+  const [isInitialProfileLoading, setIsInitialProfileLoading] = useState(true);
 
   useEffect(() => {
     // Always refetch profile data when component mounts
     // This ensures we show the latest data after edits
     if (authUser?.id) {
-      dispatch(getUserProfile({ id: authUser.id }));
+      setIsInitialProfileLoading(true);
+      const profileReq = dispatch(getUserProfile({ id: authUser.id }));
       // Fetch completed certificates (old website uses get-user-queries with type=1)
-      dispatch(getUserQueries({ type: 1 }));
+      const completedReq = dispatch(getUserQueries({ type: 1 }));
       // Fetch user certificates from dedicated endpoint (may also return completed)
-      dispatch(getUserCertificate());
+      const certReq = dispatch(getUserCertificate());
       // Fetch pending queries (type=0) so backend returns data[]
-      dispatch(getUserQueries({ type: 0 }));
+      const pendingReq = dispatch(getUserQueries({ type: 0 }));
+      Promise.allSettled([profileReq, completedReq, certReq, pendingReq]).finally(
+        () => setIsInitialProfileLoading(false),
+      );
+    } else {
+      setIsInitialProfileLoading(false);
     }
   }, [dispatch, authUser?.id]);
 
@@ -729,7 +736,7 @@ const UserProfile = () => {
       ? user?.user_business?.[0]
       : null;
   const showProfileLoading =
-    status === "loading" ||
+    isInitialProfileLoading ||
     (status === "succeeded" && hasBusinessAccount && !businessResolved);
 
   if (showProfileLoading) {

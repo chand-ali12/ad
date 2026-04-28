@@ -882,7 +882,10 @@ const Form = ({
                             className="absolute bg-white top-1 right-1 p-0.5 text-gray-700 hover:text-red-600 transition-colors"
                             aria-label="Remove image"
                           >
-                            <FiX className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
+                            <FiX
+                              className="w-4 h-4 sm:w-5 sm:h-5"
+                              strokeWidth={2.5}
+                            />
                           </button>
                         </div>
                       ))}
@@ -1320,7 +1323,7 @@ const Form = ({
                 ))}
               </div>
             </div>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex justify-center gap-2">
               <button
                 type="button"
                 onClick={handleCloseBulkDialog}
