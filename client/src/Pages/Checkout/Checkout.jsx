@@ -89,6 +89,8 @@ const Checkout = () => {
   const [braintreePayload, setBraintreePayload] = useState(null);
   const [braintreeInstance, setBraintreeInstance] = useState(null);
   const [braintreeReady, setBraintreeReady] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState("success");
   const [paymentMethodError, setPaymentMethodError] = useState("");
   // Tracks the payment option the user has picked inside the Braintree
   // drop-in ("card", "paypal", etc.). Driven by drop-in events so we don't
@@ -96,6 +98,7 @@ const Checkout = () => {
   const [selectedPaymentOption, setSelectedPaymentOption] = useState("");
   const [paymentMethodRequestable, setPaymentMethodRequestable] =
     useState(false);
+  const successRedirectTimeoutRef = useRef(null);
   const braintreeContainerRef = useRef(null);
   const user = useAppSelector((state) => state.auth?.user);
   const authToken = useAppSelector((state) => state.auth?.token);
@@ -168,8 +171,20 @@ const Checkout = () => {
     dispatch(clearCoupon());
     return () => {
       dispatch(clearCoupon());
+      if (successRedirectTimeoutRef.current) {
+        clearTimeout(successRedirectTimeoutRef.current);
+      }
     };
   }, [location.pathname, reset, dispatch]);
+
+  const showToastMsg = (msg, variant = "success", duration = 3000) => {
+    if (!msg) return;
+    setToastVariant(variant);
+    setToastMessage(String(msg));
+    window.setTimeout(() => {
+      setToastMessage("");
+    }, duration);
+  };
 
   const rawIds =
     location.state?.certificateIds ??
@@ -662,10 +677,10 @@ const Checkout = () => {
 
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
-        navigate("/", {
-          replace: true,
-          state: { toastMessage: successMsg, toastVariant: "success" },
-        });
+        showToastMsg(successMsg, "success", 3000);
+        successRedirectTimeoutRef.current = setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 1200);
         return;
       }
       if (useAuthCheckout) {
@@ -675,10 +690,10 @@ const Checkout = () => {
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
-        navigate("/", {
-          replace: true,
-          state: { toastMessage: successMsg, toastVariant: "success" },
-        });
+        showToastMsg(successMsg, "success", 3000);
+        successRedirectTimeoutRef.current = setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 1200);
       } else {
         const result = await dispatch(
           submitBraintreeAuthCards(safeBody),
@@ -686,10 +701,10 @@ const Checkout = () => {
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
-        navigate("/", {
-          replace: true,
-          state: { toastMessage: successMsg, toastVariant: "success" },
-        });
+        showToastMsg(successMsg, "success", 3000);
+        successRedirectTimeoutRef.current = setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 1200);
       }
     } catch (err) {
       console.error("Braintree payment failed:", err);
@@ -748,6 +763,18 @@ const Checkout = () => {
 
   return (
     <div className="w-full min-h-screen bg-[#F5F5F0] py-8 sm:py-12 md:py-16">
+      {toastMessage && (
+        <div
+          className={`fixed top-4 right-4 z-[100] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
+            toastVariant === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+          role="alert"
+        >
+          <p className="font-medium">{toastMessage}</p>
+        </div>
+      )}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div
           className="bg-white rounded-[22px] shadow-lg border border-gray-200 overflow-hidden"

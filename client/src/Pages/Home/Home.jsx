@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import HeroSection from "../../sections/HomeSection/HeroSection/HeroSection";
 import PremiumSolution from "../../sections/HomeSection/PremiumSloution/PremiumSloution";
 import SubscriptionsSection from "../../sections/HomeSection/Subscriptions/Subscriptions";
@@ -129,7 +129,6 @@ const STATIC_RECENT_REVIEWS = [
 
 const Home = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useAppDispatch();
   const {
     business,
@@ -158,8 +157,6 @@ const Home = () => {
   const [dontShowCertificatesModalAgain, setDontShowCertificatesModalAgain] =
     useState(false);
   const [showAuthPromptModal, setShowAuthPromptModal] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastVariant, setToastVariant] = useState("success");
 
   useEffect(() => {
     dispatch(getAllSellers({ page: 1, per_page: 50 }));
@@ -180,18 +177,6 @@ const Home = () => {
       setShowCertificatesModal(true);
     }
   }, []);
-
-  useEffect(() => {
-    const stateToastMessage = location.state?.toastMessage;
-    if (!stateToastMessage) return;
-    setToastMessage(String(stateToastMessage));
-    setToastVariant(
-      location.state?.toastVariant === "error" ? "error" : "success",
-    );
-    const timeout = window.setTimeout(() => setToastMessage(""), 3000);
-    navigate(location.pathname, { replace: true, state: {} });
-    return () => clearTimeout(timeout);
-  }, [location.pathname, location.state, navigate]);
 
   const handleStartAuthenticationClick = () => {
     // Always take user to Authentication page, regardless of auth status
@@ -313,18 +298,6 @@ const Home = () => {
 
   return (
     <div>
-      {toastMessage && (
-        <div
-          className={`fixed top-4 right-4 z-[100] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
-            toastVariant === "success"
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-700"
-          }`}
-          role="alert"
-        >
-          <p className="font-medium">{toastMessage}</p>
-        </div>
-      )}
       <HeroSection
         backgroundImage={heroImage}
         bannerText="Need It Fast? 60-Minute Expedited Service Available Now"
