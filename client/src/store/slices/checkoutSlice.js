@@ -210,15 +210,17 @@ const checkoutSlice = createSlice({
         state.couponError = null;
       })
       .addCase(verifyCoupon.fulfilled, (state, action) => {
-        const data = action.payload?.data;
-        if (data === null || data === undefined) {
+        const raw = action.payload?.data;
+        if (raw === null || raw === undefined) {
           // API signals an invalid/unrecognised coupon by returning data: null
           state.coupon = null;
           state.couponError = 'Invalid coupon code';
           state.couponStatus = 'failed';
         } else {
-          // data is the new total after the discount (works for both fixed-price and percentage coupons)
-          state.coupon = data;
+          // data may arrive as a string (e.g. "10.80") — always coerce to number
+          // so the typeof === "number" branch in Checkout fires correctly
+          const asNumber = Number(raw);
+          state.coupon = Number.isNaN(asNumber) ? raw : asNumber;
           state.couponError = null;
           state.couponStatus = 'succeeded';
         }

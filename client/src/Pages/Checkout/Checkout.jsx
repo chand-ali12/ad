@@ -1140,30 +1140,39 @@ const Checkout = () => {
 
                     {/* Promo Code */}
                     <div className="mb-0 -mx-4 sm:-mx-6 md:-mx-8 px-4">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Promo code"
-                          {...register("promoCode")}
-                          onFocus={() => dispatch(clearCoupon())}
-                          className={`w-full px-2.5 py-2.5 pr-16 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white ${
-                            couponError ? "border-red-500" : "border-gray-300"
-                          }`}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleApplyCoupon}
-                          disabled={couponStatus === "loading"}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-black font-semibold text-sm hover:text-primary-hover transition-colors bg-transparent border-0 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                          style={{ backgroundColor: "transparent" }}
-                        >
-                          {couponStatus === "loading" ? "Applying..." : "Apply"}
-                        </button>
-                      </div>
-                      {couponError && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {couponError}
-                        </p>
+                      {couponStatus === "succeeded" ? (
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-green-400 bg-green-50">
+                          <span className="text-sm font-medium text-green-700">
+                            Coupon applied!
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Promo code"
+                              {...register("promoCode")}
+                              className={`w-full px-2.5 py-2.5 pr-16 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white ${
+                                couponError ? "border-red-500" : "border-gray-300"
+                              }`}
+                            />
+                            <button
+                              type="button"
+                              onClick={handleApplyCoupon}
+                              disabled={couponStatus === "loading"}
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-black font-semibold text-sm hover:text-primary-hover transition-colors bg-transparent border-0 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                              style={{ backgroundColor: "transparent" }}
+                            >
+                              {couponStatus === "loading" ? "Applying..." : "Apply"}
+                            </button>
+                          </div>
+                          {couponError && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {couponError}
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
