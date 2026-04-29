@@ -7,7 +7,24 @@ import {
   FiX,
   FiDownload,
   FiPrinter,
+  FiShare2,
 } from "react-icons/fi";
+import {
+  FacebookShareButton,
+  FacebookIcon,
+  TwitterShareButton,
+  XIcon,
+  WhatsappShareButton,
+  WhatsappIcon,
+  LinkedinShareButton,
+  LinkedinIcon,
+  TelegramShareButton,
+  TelegramIcon,
+  EmailShareButton,
+  EmailIcon,
+  RedditShareButton,
+  RedditIcon,
+} from "react-share";
 import { Tag, ImagePlus, MessageCircle } from "lucide-react";
 import certificateImage from "../../../../assets/images/Image (Certificate of Authenticity).png";
 import PropTypes from "prop-types";
@@ -219,6 +236,23 @@ const CertificatesofAuthenticity = ({
     useState(null);
   const [pdfModalCert, setPdfModalCert] = useState(null);
   const [downloadingPng, setDownloadingPng] = useState(false);
+  const [showShareOptions, setShowShareOptions] = useState(false);
+
+  // Lock background scroll when PDF modal is open
+  useEffect(() => {
+    if (!pdfModalCert) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+    };
+  }, [pdfModalCert]);
 
   // Filter & Sort panel (like old website)
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -945,7 +979,7 @@ const CertificatesofAuthenticity = ({
         return (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-5"
-            onClick={() => setPdfModalCert(null)}
+            onClick={() => { setPdfModalCert(null); setShowShareOptions(false); }}
           >
             <div
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden"
@@ -966,7 +1000,7 @@ const CertificatesofAuthenticity = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setPdfModalCert(null)}
+                  onClick={() => { setPdfModalCert(null); setShowShareOptions(false); }}
                   className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0 ml-4"
                   aria-label="Close"
                 >
@@ -988,6 +1022,111 @@ const CertificatesofAuthenticity = ({
                   </div>
                 )}
               </div>
+
+              {/* Share Options Panel */}
+              {showShareOptions && modalPdfUrl && (
+                <div className="px-5 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-primary">Share Certificate</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowShareOptions(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      aria-label="Close share options"
+                    >
+                      <FiX className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-col items-center gap-1">
+                      <FacebookShareButton
+                        url={modalPdfUrl}
+                        hashtag="#CertificateOfAuthenticity"
+                      >
+                        <FacebookIcon size={40} round />
+                      </FacebookShareButton>
+                      <span className="text-xs text-gray-500">Facebook</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <TwitterShareButton
+                        url={modalPdfUrl}
+                        title={`Certificate of Authenticity — ${modalBrand}`}
+                        hashtags={["CertificateOfAuthenticity", "Authentic"]}
+                      >
+                        <XIcon size={40} round />
+                      </TwitterShareButton>
+                      <span className="text-xs text-gray-500">X</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <WhatsappShareButton
+                        url={modalPdfUrl}
+                        title={`Certificate of Authenticity — ${modalBrand}`}
+                      >
+                        <WhatsappIcon size={40} round />
+                      </WhatsappShareButton>
+                      <span className="text-xs text-gray-500">WhatsApp</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <TelegramShareButton
+                        url={modalPdfUrl}
+                        title={`Certificate of Authenticity — ${modalBrand}`}
+                      >
+                        <TelegramIcon size={40} round />
+                      </TelegramShareButton>
+                      <span className="text-xs text-gray-500">Telegram</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <LinkedinShareButton
+                        url={modalPdfUrl}
+                        title={`Certificate of Authenticity — ${modalBrand}`}
+                        summary={modalOrder ? `Order: ${modalOrder}` : ""}
+                        source="Auth-Detect"
+                      >
+                        <LinkedinIcon size={40} round />
+                      </LinkedinShareButton>
+                      <span className="text-xs text-gray-500">LinkedIn</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <RedditShareButton
+                        url={modalPdfUrl}
+                        title={`Certificate of Authenticity — ${modalBrand}`}
+                      >
+                        <RedditIcon size={40} round />
+                      </RedditShareButton>
+                      <span className="text-xs text-gray-500">Reddit</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <EmailShareButton
+                        url={modalPdfUrl}
+                        subject={`Certificate of Authenticity — ${modalBrand}`}
+                        body={`Here is the Certificate of Authenticity for ${modalBrand}${modalOrder ? ` (Order: ${modalOrder})` : ""}:\n\n${modalPdfUrl}`}
+                      >
+                        <EmailIcon size={40} round />
+                      </EmailShareButton>
+                      <span className="text-xs text-gray-500">Email</span>
+                    </div>
+                    {typeof navigator !== "undefined" && navigator.share && (
+                      <div className="flex flex-col items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigator.share({
+                              title: `Certificate of Authenticity — ${modalBrand}`,
+                              text: `Certificate of Authenticity${modalOrder ? ` for Order ${modalOrder}` : ""}`,
+                              url: modalPdfUrl,
+                            })
+                          }
+                          className="w-10 h-10 rounded-full bg-gray-700 hover:bg-gray-900 text-white flex items-center justify-center transition-colors"
+                          aria-label="More share options"
+                        >
+                          <FiShare2 className="w-5 h-5" />
+                        </button>
+                        <span className="text-xs text-gray-500">More</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Download Buttons */}
               <div className="px-5 py-3 border-t border-gray-200 flex flex-wrap items-center gap-3 justify-end flex-shrink-0">
@@ -1017,6 +1156,21 @@ const CertificatesofAuthenticity = ({
                   >
                     <FiDownload className="w-4 h-4" />
                     PDF
+                  </button>
+                )}
+                {modalPdfUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setShowShareOptions((prev) => !prev)}
+                    className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                      showShareOptions
+                        ? "bg-primary text-white border-primary"
+                        : "text-primary border-gray-300 hover:bg-gray-50"
+                    }`}
+                    aria-label="Share certificate"
+                  >
+                    <FiShare2 className="w-4 h-4" />
+                    Share
                   </button>
                 )}
               </div>

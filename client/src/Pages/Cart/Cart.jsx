@@ -370,9 +370,9 @@ const Cart = () => {
                         handleToggleValuation(item.id, checked)
                       }
                       onDelete={() => handleDelete(item.id)}
-                      onQuantityChange={(qty) =>
-                        handleQuantityChange(item.id, qty)
-                      }
+                      // onQuantityChange={(qty) =>
+                      //   handleQuantityChange(item.id, qty)
+                      // }
                     />
                     {index < cartItems.length - 1 && (
                       <div className="border-t border-gray-200"></div>
