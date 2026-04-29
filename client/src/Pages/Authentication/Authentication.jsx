@@ -35,6 +35,8 @@ const Authentication = () => {
   const brandsList = apiBrands?.length ? apiBrands : authBrands;
   const userEmail = authUser?.email ?? authUser?.user_email ?? "";
   const [submitError, setSubmitError] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVariant, setToastVariant] = useState("success");
   const [isBulkMode, setIsBulkMode] = useState(false);
   const [showStickyButtons, setShowStickyButtons] = useState(false);
   const [openBulkDialogRequest, setOpenBulkDialogRequest] = useState(false);
@@ -200,10 +202,21 @@ const Authentication = () => {
         is_expedited: speedType === "expedited",
       }),
     ).unwrap();
+    setToastVariant("success");
+    setToastMessage("Your query was submitted successfully.");
     dispatch(clearUploadedPaths());
     dispatch(clearCart());
     window.scrollTo({ top: 0, behavior: "auto" });
-    navigate("/");
+    setTimeout(() => navigate("/"), 1200);
+  };
+
+  const showToastMsg = (msg, variant = "success", duration = 3000) => {
+    if (!msg) return;
+    setToastVariant(variant);
+    setToastMessage(String(msg));
+    window.setTimeout(() => {
+      setToastMessage("");
+    }, duration);
   };
 
   // console.log("Category id is :- ", selectedCategoryId);
@@ -222,7 +235,12 @@ const Authentication = () => {
       }
     }
     if (selectedCategoryId) getAllPrices(selectedCategoryId);
-  }, [selectedCategoryId]);
+  }, [selectedCategoryId, dispatch]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    dispatch(fetchSubscription());
+  }, [dispatch, authUser?.id]);
 
   // const resolvePriceForEntry = async (
   //   entry,
@@ -317,60 +335,35 @@ const Authentication = () => {
             selectedCategory,
             brandIdForApi,
             categoryIdForApi,
-            categoryPrice,
-            fallbackPrice,
           } = resolveItemMeta(entry);
-          // const price = await resolvePriceForEntry(
-          //   entry,
-          //   categoryIdForApi,
-          //   fallbackPrice,
-          // );
+          const priced = buildPricedItem({
+            entry,
+            selectedBrand,
+            selectedCategory,
+            brandIdForApi,
+            categoryIdForApi,
+            imagePaths: entry.imagePaths,
+            availableSubscriptionCredits,
+          });
+          availableSubscriptionCredits -= priced.usedSubscriptionCredit;
+          pricedItems.push(priced);
+        }
 
-          let price = 0;
-          if (categoryIdForApi) {
-            price += normalValue;
+        const payableTotal = pricedItems.reduce(
+          (sum, item) => sum + toSafeNumber(item.payablePrice),
+          0,
+        );
 
-            if (valuationValue != null && entry.marketValuation === true) {
-              price += valuationValue;
-            }
-          }
+        if (payableTotal === 0) {
+          await submitFreeQueriesAndExit({
+            email: options?.bulkItems?.[0]?.email ?? userEmail,
+            queries: pricedItems.map((item) => item.queryPayload),
+          });
+          return true;
+        }
 
-          // console.log("Price is 😒😒😒😒😒:- ", price);
-
-          const cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-          const brandName =
-            selectedBrand?.brand ||
-            selectedBrand?.name ||
-            String(entry.brand_id);
-          const categoryName =
-            selectedCategory?.name || String(categoryIdForApi);
-          const firstPath = Array.isArray(entry.imagePaths)
-            ? entry.imagePaths[0]
-            : entry.imagePaths;
-          const imageUrl = buildAuthImageUrl(firstPath);
-          const entryAddOn = entry.insurance ? 1 : 0;
-          dispatch(
-            addItem({
-              id: cartId,
-              brand: brandName,
-              model: entry.model || categoryName || "—",
-              price: Number(price) || categoryPrice || 0,
-              quantity: 1,
-              image: imageUrl,
-              category_id: categoryIdForApi,
-              brand_id: brandIdForApi,
-              valuation_price: valuationValue,
-              description: entry.additionalInfo ?? "",
-              valuation: entry.marketValuation ? 1 : 0,
-              add_on: entryAddOn,
-              imagePaths: Array.isArray(entry.imagePaths)
-                ? entry.imagePaths
-                : [entry.imagePaths],
-              email: entry.email ?? userEmail,
-              sku: entry.sku ?? "",
-              is_expedited: false,
-            }),
-          );
+        for (const item of pricedItems) {
+          dispatch(addItem(item.cartPayload));
         }
         dispatch(clearUploadedPaths());
         window.scrollTo({ top: 0, behavior: "auto" });
@@ -432,51 +425,33 @@ const Authentication = () => {
     if (options?.addToCart) {
       try {
         dispatch(clearCart());
-        // const price = await resolvePrice();
-        let price = 0;
-        if (selectedCategoryId) {
-          if (speedType === "standard") {
-            price += normalValue;
-          } else if (speedType === "expedited") {
-            price += expeditedValue;
-          }
+        const priced = buildPricedItem({
+          entry: {
+            brand_id,
+            model,
+            sku,
+            additionalInfo,
+            marketValuation,
+            insurance,
+            email,
+          },
+          selectedBrand,
+          selectedCategory,
+          brandIdForApi,
+          categoryIdForApi,
+          imagePaths,
+          availableSubscriptionCredits: remainingCertificates,
+        });
 
-          // if (valuationValue != null) {
-          //   price += valuationValue;
-          // }
-
-          if (valuationValue != null && data.marketValuation === true) {
-            price += valuationValue;
-          }
-        }
-        const cartId = `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-        const brandName =
-          selectedBrand?.brand || selectedBrand?.name || String(brand_id);
-        const categoryName = selectedCategory?.name || String(categoryIdForApi);
-        const firstPath = Array.isArray(imagePaths)
-          ? imagePaths[0]
-          : imagePaths;
-        const imageUrl = buildAuthImageUrl(firstPath);
-        dispatch(
-          addItem({
-            id: cartId,
-            brand: brandName,
-            model: model || categoryName || "—",
-            price: Number(price) || categoryPrice || 0,
-            quantity: 1,
-            image: imageUrl,
-            category_id: categoryIdForApi,
-            brand_id: brandIdForApi,
-            valuation_price: valuationValue,
-            description: additionalInfo ?? "",
-            valuation: marketValuation ? 1 : 0,
-            add_on: addOnValue,
-            imagePaths: Array.isArray(imagePaths) ? imagePaths : [imagePaths],
+        if (priced.payablePrice === 0) {
+          await submitFreeQueriesAndExit({
             email: email ?? userEmail,
-            sku: sku !== undefined && sku !== null ? String(sku) : "",
-            is_expedited: speedType === "expedited",
-          }),
-        );
+            queries: [priced.queryPayload],
+          });
+          return true;
+        }
+
+        dispatch(addItem(priced.cartPayload));
         dispatch(clearUploadedPaths());
         window.scrollTo({ top: 0, behavior: "auto" });
         navigate(options?.goToCheckout ? "/checkout" : "/cart");
@@ -528,6 +503,7 @@ const Authentication = () => {
               ).unwrap();
         dispatch(clearUploadedPaths());
         if (totalPrice === 0) {
+          showToastMsg("Your query was submitted successfully.");
           navigate("/");
           return true;
         }
@@ -583,6 +559,7 @@ const Authentication = () => {
             }),
           ).unwrap();
           dispatch(clearUploadedPaths());
+          showToastMsg("Your query was submitted successfully.");
           navigate("/");
           return true;
         }
@@ -661,6 +638,18 @@ const Authentication = () => {
 
   return (
     <div>
+      {toastMessage && (
+        <div
+          className={`fixed top-4 right-4 z-[100] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
+            toastVariant === "success"
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+          role="alert"
+        >
+          <p className="font-medium">{toastMessage}</p>
+        </div>
+      )}
       <AuthenticationHero onGetStartedClick={scrollToChooseSpeedSection} />
       <WhyChooseUs />
       <ViewPricingCard />

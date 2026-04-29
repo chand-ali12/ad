@@ -217,6 +217,8 @@ const CertificatesofAuthenticity = ({
   const [noteDraft, setNoteDraft] = useState("");
   const [requestImagesCertificate, setRequestImagesCertificate] =
     useState(null);
+  const [pdfModalCert, setPdfModalCert] = useState(null);
+  const [downloadingPng, setDownloadingPng] = useState(false);
 
   // Filter & Sort panel (like old website)
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -477,6 +479,35 @@ const CertificatesofAuthenticity = ({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
+  const handleModalOpenPdf = (url) => {
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleModalDownloadPng = async (url) => {
+    if (!url) return;
+    setDownloadingPng(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = "certificate.png";
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      // Fallback: open in new tab if fetch fails
+      window.open(url, "_blank", "noopener,noreferrer");
+    } finally {
+      setDownloadingPng(false);
+    }
+  };
+
   const resolveAuthenticatorInfo = async (card) => {
     const aq = card.authenticate_query ?? card.query_detail ?? {};
     const authenticatorUserId = aq.expedited_claimed_by ?? null;
@@ -705,7 +736,18 @@ const CertificatesofAuthenticity = ({
                     ) : (
                       <>
                         {pdfUrl ? (
-                          <PDFViewer_ProfileSection pdfUrl={pdfUrl} />
+                          <div className="relative w-full h-full">
+                            <PDFViewer_ProfileSection pdfUrl={pdfUrl} />
+                            {/* Transparent overlay sits on top of the <embed> to capture pointer events */}
+                            <div
+                              className="absolute inset-0 cursor-pointer group flex items-end justify-center pb-4 hover:bg-black/10 transition-colors"
+                              onClick={() => setPdfModalCert(certificate)}
+                            >
+                              <span className="opacity-0 group-hover:opacity-100 bg-black/60 text-white text-xs sm:text-sm px-3 py-1.5 rounded-full transition-opacity select-none pointer-events-none">
+                                Click to view
+                              </span>
+                            </div>
+                          </div>
                         ) : (
                           <img
                             src={imageSrc}
@@ -865,58 +907,6 @@ const CertificatesofAuthenticity = ({
                             * More photos required for proper authentication
                           </p>
                         )}
-                      {/* View COA PDF: open actual certificate PDF (from API pdf field) in new tab */}
-                      {!isPendingLike && pdfUrl && (
-                        <div className="mt-2 flex flex-col gap-2">
-                          <a
-                            href={`${pdfUrl}${String(pdfUrl).includes("#") ? "" : "#toolbar=1"}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openPdfForBestView(
-                                `${pdfUrl}${String(pdfUrl).includes("#") ? "" : "#toolbar=1"}`,
-                              );
-                            }}
-                            className="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-primary hover:underline w-fit"
-                          >
-                            <FiFileText className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                            View COA PDF
-                          </a>
-                        </div>
-                      )}
-                      {!isPendingLike &&
-                        !pdfUrl &&
-                        onViewCoaPdf &&
-                        !certificate.isFromQueries &&
-                        certificate.id && (
-                          <div className="mt-2 flex flex-col gap-2">
-                            <button
-                              type="button"
-                              onClick={() => onViewCoaPdf(certificate.id)}
-                              className="inline-flex items-center gap-1.5 text-sm sm:text-base font-medium text-primary hover:underline w-fit"
-                            >
-                              <FiFileText className="w-4 h-4 sm:w-5 sm:h-5" />
-                              View COA PDF
-                            </button>
-                          </div>
-                        )}
-                      {onViewCertificatePdf &&
-                        (certificate.uuid || certificate.certificate_uuid) && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onViewCertificatePdf(
-                                certificate.uuid ??
-                                  certificate.certificate_uuid,
-                              )
-                            }
-                            className="mt-2 flex items-center gap-1.5 text-sm sm:text-base font-medium text-primary hover:underline"
-                          >
-                            <FiFileText className="w-4 h-4 sm:w-5 sm:h-5" />
-                            View certificate PDF
-                          </button>
-                        )}
                       {certificate.isFromQueries && (
                         <p className="mt-2 text-sm sm:text-base text-gray-500">
                           COA PDF available after authentication is completed.
@@ -930,6 +920,110 @@ const CertificatesofAuthenticity = ({
           </div>
         )}
       </div>
+
+      {/* PDF Viewer Modal */}
+      {pdfModalCert && (() => {
+        const modalPdfUrl = getCertificatePdfUrl(pdfModalCert);
+        const modalPngUrl = getCompletedThumbnailUrl(pdfModalCert);
+        const aqModal = pdfModalCert.authenticate_query;
+        const modalBrand =
+          aqModal?.brand ??
+          pdfModalCert.brands?.brand ??
+          pdfModalCert.brands?.[0]?.brand ??
+          pdfModalCert.brands?.[0]?.name ??
+          pdfModalCert.brand ??
+          pdfModalCert.brand_name ??
+          "Certificate of Authenticity";
+        const modalOrder =
+          aqModal?.order_number ??
+          pdfModalCert.certificate_id ??
+          pdfModalCert.coa_number ??
+          pdfModalCert.order_number ??
+          pdfModalCert.order ??
+          pdfModalCert.order_id ??
+          null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-5"
+            onClick={() => setPdfModalCert(null)}
+          >
+            <div
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden"
+              style={{ height: "calc(100vh - 40px)" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 flex-shrink-0">
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-primary leading-tight">
+                    {modalBrand}
+                  </h3>
+                  {modalOrder && (
+                    <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                      Order: {modalOrder}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPdfModalCert(null)}
+                  className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0 ml-4"
+                  aria-label="Close"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* PDF Viewer — flex-1 fills all remaining height */}
+              <div className="flex-1 min-h-0 bg-gray-100">
+                {modalPdfUrl ? (
+                  <iframe
+                    src={`${modalPdfUrl}#toolbar=1&navpanes=0`}
+                    title="Certificate of Authenticity"
+                    className="w-full h-full border-0 block"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                    PDF not available
+                  </div>
+                )}
+              </div>
+
+              {/* Download Buttons */}
+              <div className="px-5 py-3 border-t border-gray-200 flex flex-wrap items-center gap-3 justify-end flex-shrink-0">
+                <span className="text-sm text-gray-500 mr-auto">
+                  Download as:
+                </span>
+                {modalPngUrl && (
+                  <button
+                    type="button"
+                    disabled={downloadingPng}
+                    onClick={() => handleModalDownloadPng(modalPngUrl)}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {downloadingPng ? (
+                      <span className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FiDownload className="w-4 h-4" />
+                    )}
+                    PNG
+                  </button>
+                )}
+                {modalPdfUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleModalOpenPdf(modalPdfUrl)}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:opacity-90 transition-colors"
+                  >
+                    <FiDownload className="w-4 h-4" />
+                    PDF
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Request More Images modal (like old site) */}
       <RequestMoreImagesModal
