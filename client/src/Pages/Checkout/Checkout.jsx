@@ -89,7 +89,6 @@ const Checkout = () => {
   const [braintreePayload, setBraintreePayload] = useState(null);
   const [braintreeInstance, setBraintreeInstance] = useState(null);
   const [braintreeReady, setBraintreeReady] = useState(false);
-  const [paymentSuccessMessage, setPaymentSuccessMessage] = useState("");
   const [paymentMethodError, setPaymentMethodError] = useState("");
   // Tracks the payment option the user has picked inside the Braintree
   // drop-in ("card", "paypal", etc.). Driven by drop-in events so we don't
@@ -165,7 +164,7 @@ const Checkout = () => {
       cvc: "",
       promoCode: "",
     });
-    
+
     dispatch(clearCoupon());
     return () => {
       dispatch(clearCoupon());
@@ -183,7 +182,8 @@ const Checkout = () => {
     )
     .filter((id) => id != null && id !== "");
   const checkoutType = location.state?.checkoutType;
-  const isExpedited = location.state?.is_expedited ?? braintreePayload?.is_expedited ?? false;
+  const isExpedited =
+    location.state?.is_expedited ?? braintreePayload?.is_expedited ?? false;
 
   const coaCount = certificateIds?.length ?? 0;
 
@@ -662,15 +662,10 @@ const Checkout = () => {
 
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
-        setBraintreePayload(null);
-        setBraintreeInstance(null);
-        setPaymentSuccessMessage(successMsg);
-        try {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } catch (_e) {}
-        setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 4000);
+        navigate("/", {
+          replace: true,
+          state: { toastMessage: successMsg, toastVariant: "success" },
+        });
         return;
       }
       if (useAuthCheckout) {
@@ -680,15 +675,10 @@ const Checkout = () => {
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
-        setBraintreePayload(null);
-        setBraintreeInstance(null);
-        setPaymentSuccessMessage(successMsg);
-        try {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } catch (_e) {}
-        setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 4000);
+        navigate("/", {
+          replace: true,
+          state: { toastMessage: successMsg, toastVariant: "success" },
+        });
       } else {
         const result = await dispatch(
           submitBraintreeAuthCards(safeBody),
@@ -696,15 +686,10 @@ const Checkout = () => {
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
         dispatch(clearCart());
-        setBraintreePayload(null);
-        setBraintreeInstance(null);
-        setPaymentSuccessMessage(successMsg);
-        try {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } catch (_e) {}
-        setTimeout(() => {
-          navigate("/", { replace: true });
-        }, 4000);
+        navigate("/", {
+          replace: true,
+          state: { toastMessage: successMsg, toastVariant: "success" },
+        });
       }
     } catch (err) {
       console.error("Braintree payment failed:", err);
@@ -769,36 +754,25 @@ const Checkout = () => {
           style={{ borderRadius: "22px" }}
         >
           <div className="p-6 sm:p-8 md:p-10 lg:p-12">
-            {/* Header (hidden after successful payment so only success card shows) */}
-            {!paymentSuccessMessage && (
-              <>
-                <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="text-primary hover:text-primary-hover transition-colors bg-transparent border-0 outline-none p-0"
-                    style={{ backgroundColor: "transparent" }}
-                    aria-label="Go back"
-                  >
-                    <FiArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                  </button>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-                    Checkout
-                  </h1>
-                </div>
-                <div className="border-t border-gray-200 mb-6 sm:mb-8"></div>
-              </>
-            )}
-
-            {paymentSuccessMessage && (
-              <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                {paymentSuccessMessage}
-              </div>
-            )}
+            <div className="flex items-center gap-3 mb-6 sm:mb-8">
+              <button
+                onClick={() => navigate(-1)}
+                className="text-primary hover:text-primary-hover transition-colors bg-transparent border-0 outline-none p-0"
+                style={{ backgroundColor: "transparent" }}
+                aria-label="Go back"
+              >
+                <FiArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              </button>
+              <h1 className="text-2xl sm:text-3xl font-bold text-primary">
+                Checkout
+              </h1>
+            </div>
+            <div className="border-t border-gray-200 mb-6 sm:mb-8"></div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
               {/* Left Section - Customer Information & Payment (hidden for valuation; ad-old: valuation pays on Checkout) */}
               <div className="lg:col-span-2">
-                {authCheckoutWithoutPayload && !paymentSuccessMessage && (
+                {authCheckoutWithoutPayload && (
                   <div className="p-6 rounded-lg bg-amber-50 border border-amber-200">
                     <p className="text-primary font-medium mb-2">
                       Payment could not be prepared.
@@ -1068,146 +1042,139 @@ const Checkout = () => {
 
               {/* Right Section - Order Summary */}
               <div className="lg:col-span-1">
-                {!paymentSuccessMessage && (
-                  <div className="bg-[#EDEAE5] rounded-lg p-6 sm:p-8 h-fit sticky top-4">
-                    {/* Order Summary */}
-                    <div
-                      className={`mb-6 flex flex-col ${isValuationCheckout ? "" : "min-h-[400px]"}`}
-                    >
-                      {!isValuationCheckout && (
-                        <>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm sm:text-base font-semibold text-[#767676]">
-                              SUBTOTAL
+                <div className="bg-[#EDEAE5] rounded-lg p-6 sm:p-8 h-fit sticky top-4">
+                  {/* Order Summary */}
+                  <div
+                    className={`mb-6 flex flex-col ${isValuationCheckout ? "" : "min-h-[400px]"}`}
+                  >
+                    {!isValuationCheckout && (
+                      <>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm sm:text-base font-semibold text-[#767676]">
+                            SUBTOTAL
+                          </span>
+                        </div>
+                        {cartItems.length > 0 ? (
+                          cartItems.map((item, idx) => {
+                            const lineTotal =
+                              (Number(item.price) || 0) * (item.quantity || 1);
+                            const label =
+                              item.brand ?? item.model ?? `Item ${idx + 1}`;
+                            return (
+                              <div key={item.id ?? idx} className="mb-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm sm:text-base text-black">
+                                    {label}
+                                  </span>
+                                  <span className="text-sm sm:text-base font-semibold text-black">
+                                    ${lineTotal.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="mb-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm sm:text-base text-black">
+                                Order
+                              </span>
+                              <span className="text-sm sm:text-base font-semibold text-black">
+                                ${subtotal.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {discount > 0 && (
+                          <div className="flex justify-between items-center mb-2 text-green-600">
+                            <span className="text-sm font-medium">
+                              Discount applied
+                            </span>
+                            <span className="text-sm font-semibold">
+                              -${discount.toFixed(2)}
                             </span>
                           </div>
-                          {cartItems.length > 0 ? (
-                            cartItems.map((item, idx) => {
-                              const lineTotal =
-                                (Number(item.price) || 0) *
-                                (item.quantity || 1);
-                              const label =
-                                item.brand ?? item.model ?? `Item ${idx + 1}`;
-                              return (
-                                <div key={item.id ?? idx} className="mb-2">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-sm sm:text-base text-black">
-                                      {label}
-                                    </span>
-                                    <span className="text-sm sm:text-base font-semibold text-black">
-                                      ${lineTotal.toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <div className="mb-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm sm:text-base text-black">
-                                  Order
-                                </span>
-                                <span className="text-sm sm:text-base font-semibold text-black">
-                                  ${subtotal.toFixed(2)}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          {discount > 0 && (
-                            <div className="flex justify-between items-center mb-2 text-green-600">
-                              <span className="text-sm font-medium">
-                                Discount applied
-                              </span>
-                              <span className="text-sm font-semibold">
-                                -${discount.toFixed(2)}
-                              </span>
-                            </div>
-                          )}
-                          <div className="border-t border-gray-400 my-2"></div>
-                        </>
-                      )}
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-base sm:text-lg font-bold text-black">
-                          TOTAL
-                        </span>
-                        <span className="text-base sm:text-lg font-bold text-black">
-                          $
-                          {(isValuationCheckout
-                            ? (braintreePayload?.amount ?? 0)
-                            : total
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-
-                      {/* Promo Code */}
-                      <div className="mb-0 -mx-4 sm:-mx-6 md:-mx-8 px-4">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Promo code"
-                            {...register("promoCode")}
-                            onFocus={() => dispatch(clearCoupon())}
-                            className={`w-full px-2.5 py-2.5 pr-16 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white ${
-                              couponError ? "border-red-500" : "border-gray-300"
-                            }`}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleApplyCoupon}
-                            disabled={couponStatus === "loading"}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-black font-semibold text-sm hover:text-primary-hover transition-colors bg-transparent border-0 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: "transparent" }}
-                          >
-                            {couponStatus === "loading"
-                              ? "Applying..."
-                              : "Apply"}
-                          </button>
-                        </div>
-                        {couponError && (
-                          <p className="text-red-500 text-sm mt-1">
-                            {couponError}
-                          </p>
                         )}
-                      </div>
+                        <div className="border-t border-gray-400 my-2"></div>
+                      </>
+                    )}
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-base sm:text-lg font-bold text-black">
+                        TOTAL
+                      </span>
+                      <span className="text-base sm:text-lg font-bold text-black">
+                        $
+                        {(isValuationCheckout
+                          ? (braintreePayload?.amount ?? 0)
+                          : total
+                        ).toFixed(2)}
+                      </span>
                     </div>
 
-                    {checkoutStatus === "failed" && checkoutError && (
-                      <p className="text-red-500 text-sm mb-2">
-                        {checkoutError}
-                      </p>
-                    )}
-                    {/* Complete Order Button (hidden when Braintree step is shown or when no payload – ad-old: no prepare on Checkout) */}
-                    {!showBraintreeStep && !authCheckoutWithoutPayload && (
+                    {/* Promo Code */}
+                    <div className="mb-0 -mx-4 sm:-mx-6 md:-mx-8 px-4">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Promo code"
+                          {...register("promoCode")}
+                          onFocus={() => dispatch(clearCoupon())}
+                          className={`w-full px-2.5 py-2.5 pr-16 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white ${
+                            couponError ? "border-red-500" : "border-gray-300"
+                          }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyCoupon}
+                          disabled={couponStatus === "loading"}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-black font-semibold text-sm hover:text-primary-hover transition-colors bg-transparent border-0 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: "transparent" }}
+                        >
+                          {couponStatus === "loading" ? "Applying..." : "Apply"}
+                        </button>
+                      </div>
+                      {couponError && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {couponError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {checkoutStatus === "failed" && checkoutError && (
+                    <p className="text-red-500 text-sm mb-2">{checkoutError}</p>
+                  )}
+                  {/* Complete Order Button (hidden when Braintree step is shown or when no payload – ad-old: no prepare on Checkout) */}
+                  {!showBraintreeStep && !authCheckoutWithoutPayload && (
+                    <button
+                      type="submit"
+                      onClick={handleSubmit(onSubmit)}
+                      disabled={checkoutStatus === "loading"}
+                      className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {checkoutStatus === "loading"
+                        ? "Processing..."
+                        : "Complete Order"}
+                    </button>
+                  )}
+                  {/* Braintree step: drop-in container (in left column) and Pay button when token is ready */}
+                  {showBraintreeStep && (
+                    <div className="mt-4">
                       <button
-                        type="submit"
-                        onClick={handleSubmit(onSubmit)}
-                        disabled={checkoutStatus === "loading"}
+                        type="button"
+                        onClick={onBraintreeSubmit}
+                        disabled={
+                          !braintreeReady || checkoutStatus === "loading"
+                        }
                         className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {checkoutStatus === "loading"
                           ? "Processing..."
-                          : "Complete Order"}
+                          : "Confirm & pay"}
                       </button>
-                    )}
-                    {/* Braintree step: drop-in container (in left column) and Pay button when token is ready */}
-                    {showBraintreeStep && (
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={onBraintreeSubmit}
-                          disabled={
-                            !braintreeReady || checkoutStatus === "loading"
-                          }
-                          className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {checkoutStatus === "loading"
-                            ? "Processing..."
-                            : "Confirm & pay"}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
