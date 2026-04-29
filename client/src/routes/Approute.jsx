@@ -319,6 +319,7 @@ const AppRoute = () => {
 
           {/* Subscription page should be accessible to guests as well as logged-in users */}
           <Route path="/subscription" element={<Subscription />} />
+          <Route path="/subscriptions" element={<Navigate to="/subscription" replace />} />
 
           {/* Cart should be accessible to guests so unauthenticated users can complete purchases */}
           <Route path="/cart" element={<Cart />} />
