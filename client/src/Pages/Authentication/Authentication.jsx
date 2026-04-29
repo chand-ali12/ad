@@ -15,6 +15,7 @@ import {
   getQueryPrice,
 } from "../../store/slices/authenticationRequestSlice";
 import { addItem, clearCart } from "../../store/slices/cartSlice";
+import { fetchSubscription } from "../../store/slices/subscriptionSlice";
 import { IMAGE_BASE_URL, BASE_URL_OLD_IMAGE_URL } from "../../config/env";
 
 const Authentication = () => {
@@ -25,6 +26,9 @@ const Authentication = () => {
     useAppSelector((state) => state.authenticationRequest);
   const { brands: apiBrands = [] } = useAppSelector((state) => state.brands);
   const { user: authUser } = useAppSelector((state) => state.auth);
+  const currentSubscription = useAppSelector(
+    (state) => state.subscription?.currentSubscription,
+  );
   const profileAddOns = useAppSelector((state) => state.profile?.addOns);
   const businessAddOns = useAppSelector((state) => state.business?.addOns);
   const addOns = profileAddOns || businessAddOns;
@@ -40,6 +44,11 @@ const Authentication = () => {
   const [normalValue, setNormalValue] = useState(null);
   const [expeditedValue, setexpeditedValue] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const subscriptionDetails =
+    currentSubscription?.subscription ?? currentSubscription ?? null;
+  const remainingCertificates = Number(
+    subscriptionDetails?.remaining_certificates ?? 0,
+  );
 
   const mediaBaseUrl = (
     BASE_URL_OLD_IMAGE_URL && BASE_URL_OLD_IMAGE_URL.trim()
@@ -87,6 +96,114 @@ const Authentication = () => {
       categoryPrice,
       fallbackPrice,
     };
+  };
+
+  const toSafeNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getCategoryBasePrice = (category, speed) => {
+    const categoryPricing = category?.pricing;
+    const normalCandidate =
+      categoryPricing?.normal_query ?? category?.price ?? normalValue ?? 0;
+    const expeditedCandidate =
+      categoryPricing?.expedited_query ??
+      expeditedValue ??
+      normalCandidate ??
+      0;
+    return speed === "expedited"
+      ? toSafeNumber(expeditedCandidate)
+      : toSafeNumber(normalCandidate);
+  };
+
+  const isCategorySpecial = (category) =>
+    Number(category?.is_special ?? 1) === 1;
+
+  const buildPricedItem = ({
+    entry,
+    selectedBrand,
+    selectedCategory,
+    brandIdForApi,
+    categoryIdForApi,
+    imagePaths,
+    availableSubscriptionCredits = 0,
+  }) => {
+    const basePrice = getCategoryBasePrice(selectedCategory, speedType);
+    const valuationSurcharge =
+      entry.marketValuation === true ? toSafeNumber(valuationValue) : 0;
+    const eligibleForSubscription =
+      !isCategorySpecial(selectedCategory) && availableSubscriptionCredits > 0;
+    const payableBase = eligibleForSubscription ? 0 : basePrice;
+    const payablePrice = toSafeNumber(payableBase + valuationSurcharge);
+    const firstPath = Array.isArray(imagePaths) ? imagePaths[0] : imagePaths;
+    const imageUrl = buildAuthImageUrl(firstPath);
+    const brandName =
+      selectedBrand?.brand || selectedBrand?.name || String(entry.brand_id);
+    const categoryName = selectedCategory?.name || String(categoryIdForApi);
+
+    return {
+      cartPayload: {
+        id: `cart_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        brand: brandName,
+        model: entry.model || categoryName || "—",
+        price: payablePrice,
+        quantity: 1,
+        image: imageUrl,
+        category_id: categoryIdForApi,
+        brand_id: brandIdForApi,
+        valuation_price: valuationValue,
+        description: entry.additionalInfo ?? "",
+        valuation: entry.marketValuation ? 1 : 0,
+        add_on: entry.insurance ? 1 : 0,
+        imagePaths: Array.isArray(imagePaths) ? imagePaths : [imagePaths],
+        email: entry.email ?? userEmail,
+        sku: entry.sku ?? "",
+        is_expedited: speedType === "expedited",
+        is_subscription: eligibleForSubscription ? 1 : 0,
+      },
+      queryPayload: {
+        uploadedImages: Array.isArray(imagePaths)
+          ? imagePaths.join(",")
+          : String(imagePaths ?? ""),
+        brand_id: brandIdForApi,
+        brand_name: brandIdForApi,
+        selectCategory: categoryIdForApi,
+        category: categoryIdForApi,
+        email: entry.email ?? userEmail,
+        user_email: entry.email ?? userEmail,
+        model: entry.model ?? "",
+        sku: entry.sku ?? "",
+        description: entry.additionalInfo ?? "",
+        valuation: entry.marketValuation ? 1 : 0,
+        ip: "",
+        query_amount: payablePrice,
+        is_user_paid: payablePrice > 0 ? 1 : 0,
+        paid_amount: payablePrice,
+        is_subscription: eligibleForSubscription ? 1 : 0,
+        add_on: entry.insurance ? 1 : 0,
+        is_expedited: speedType === "expedited",
+      },
+      usedSubscriptionCredit: eligibleForSubscription ? 1 : 0,
+      payablePrice,
+    };
+  };
+
+  const submitFreeQueriesAndExit = async ({ email, queries }) => {
+    await dispatch(
+      freeSubmitBulk({
+        user_email: email ?? userEmail,
+        total_price: 0,
+        queries_count: queries.length,
+        total_queries_count: queries.length,
+        queries,
+        is_expedited: speedType === "expedited",
+      }),
+    ).unwrap();
+    dispatch(clearUploadedPaths());
+    dispatch(clearCart());
+    window.scrollTo({ top: 0, behavior: "auto" });
+    navigate("/");
   };
 
   // console.log("Category id is :- ", selectedCategoryId);
@@ -192,6 +309,8 @@ const Authentication = () => {
     if (Array.isArray(options?.bulkItems) && options.bulkItems.length > 0) {
       try {
         dispatch(clearCart());
+        let availableSubscriptionCredits = remainingCertificates;
+        const pricedItems = [];
         for (const entry of options.bulkItems) {
           const {
             selectedBrand,
@@ -584,6 +703,7 @@ const Authentication = () => {
           selectedCategoryId={selectedCategoryId}
           setSelectedCategoryId={setSelectedCategoryId}
           valuationValue={valuationValue}
+          remainingRequests={remainingCertificates}
         />
       </section>
       {/* {showStickyButtons && (

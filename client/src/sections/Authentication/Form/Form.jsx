@@ -34,6 +34,7 @@ const Form = ({
   selectedCategoryId,
   setSelectedCategoryId,
   valuationValue,
+  remainingRequests = 0,
 }) => {
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -582,6 +583,19 @@ const Form = ({
             >
               Back to cart
             </Link>
+          </div>
+        )}
+
+        {remainingRequests > 0 && (
+          <div className="max-w-[900px] mx-auto mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-primary">
+              You have {remainingRequests} requests remaining in your
+              subscription.
+            </p>
+            <p className="mt-1 text-xs sm:text-sm text-primary/90">
+              Note: Our subscription plans do not include premium brands,
+              valuations, or jewelry.
+            </p>
           </div>
         )}
 
@@ -1389,6 +1403,7 @@ Form.propTypes = {
   openBulkDialog: PropTypes.bool,
   onBulkDialogOpened: PropTypes.func,
   className: PropTypes.string,
+  remainingRequests: PropTypes.number,
 };
 
 export default Form;
