@@ -14,6 +14,10 @@ import {
   submitBraintreeValuation,
 } from "../../store/slices/checkoutSlice";
 import { clearCart } from "../../store/slices/cartSlice";
+import {
+  freeProcessPaypalOrder,
+  freeSubmitBulk,
+} from "../../store/slices/authenticationRequestSlice";
 import { valuationCoaChangeStatus } from "../../services/forumService";
 
 const BRAINTREE_SCRIPT =
@@ -308,6 +312,10 @@ const Checkout = () => {
     discount = Number(coupon.discount ?? coupon.discount_amount ?? 0) || 0;
     total = Math.max(0, subtotal - discount);
   }
+
+  // When a coupon reduces the payable total to $0 the card / Braintree UI is
+  // unnecessary — the order can be submitted as a free order.
+  const isFreeAfterCoupon = couponStatus === "succeeded" && total === 0;
 
   // ad-old: auth checkout uses /ad/checkout-braintree (get token), then Braintree, then same endpoint with nonce
   const onSubmit = async (data) => {
@@ -742,6 +750,111 @@ const Checkout = () => {
     await dispatch(verifyCoupon({ coupon_code: code, amount: subtotal }));
   };
 
+  // Called when coupon reduces total to $0 — uses /ad/free-process-paypal (single)
+  // or /ad/free-submit (bulk) instead of going through Braintree.
+  const handleFreeCheckout = async () => {
+    if (!cartItems.length) return;
+    const couponCode = getValues("promoCode")?.trim() || undefined;
+
+    try {
+      if (cartItems.length === 1) {
+        const item = cartItems[0];
+        const itemEmail =
+          item.email?.trim() ||
+          user?.email?.trim() ||
+          user?.user_email?.trim() ||
+          "";
+        const brandIdNum = Number(item.brand_id) || item.brand_id;
+        const payload = {
+          brand_name: brandIdNum,
+          category_id: item.category_id,
+          model: item.model ?? "",
+          description: item.description ?? "",
+          sku: item.sku ?? "",
+          email: itemEmail,
+          emailc: itemEmail,
+          user_email: itemEmail,
+          valuation: item.valuation ?? 0,
+          uploadedImages: Array.isArray(item.imagePaths)
+            ? item.imagePaths.join(",")
+            : (item.imagePaths ?? ""),
+          terms_and_condition_privacy_policy: true,
+          amount: 0,
+          query_amount: item.price ?? subtotal,
+          queries_count: 0,
+          is_user_paid: 0,
+          add_on: item.add_on ?? 0,
+          ...(couponCode && { coupon_code: couponCode }),
+          is_expedited: item.is_expedited || isExpedited || false,
+        };
+        await dispatch(
+          freeProcessPaypalOrder({
+            singleFormData: payload,
+            is_expedited: item.is_expedited || isExpedited || false,
+          }),
+        ).unwrap();
+      } else {
+        // Multiple items — use existing free bulk endpoint
+        const firstItem = cartItems[0];
+        const bulkEmail =
+          firstItem.email?.trim() ||
+          user?.email?.trim() ||
+          user?.user_email?.trim() ||
+          "";
+        const queries = cartItems.map((item) => {
+          const qBrandId = Number(item.brand_id) || item.brand_id;
+          const itemEmail =
+            item.email?.trim() || user?.email?.trim() || "";
+          return {
+            uploadedImages: Array.isArray(item.imagePaths)
+              ? item.imagePaths.join(",")
+              : (item.imagePaths ?? ""),
+            brand_id: qBrandId,
+            brand_name: qBrandId,
+            selectCategory: item.category_id,
+            category: item.category_id,
+            email: itemEmail,
+            user_email: itemEmail,
+            model: item.model ?? "",
+            sku: item.sku ?? "",
+            description: item.description ?? "",
+            valuation: item.valuation ?? 0,
+            ip: "",
+            query_amount: item.price ?? 0,
+            is_user_paid: 0,
+            paid_amount: 0,
+            is_subscription: 0,
+            add_on: item.add_on ?? 0,
+          };
+        });
+        await dispatch(
+          freeSubmitBulk({
+            user_email: bulkEmail,
+            total_price: 0,
+            queries_count: cartItems.length,
+            total_queries_count: cartItems.length,
+            queries,
+            ...(couponCode && { coupon_code: couponCode }),
+          }),
+        ).unwrap();
+      }
+
+      dispatch(clearCart());
+      showToastMsg("Your order has been submitted successfully!", "success", 3000);
+      successRedirectTimeoutRef.current = setTimeout(() => {
+        navigate("/", { replace: true });
+      }, 1200);
+    } catch (err) {
+      console.error("Free checkout failed:", err);
+      const message =
+        err?.message ||
+        err?.response?.data?.msg ||
+        err?.response?.data?.message ||
+        "Order submission failed. Please try again.";
+      dispatch(setError(message));
+    }
+  };
+
   const formatExpirationDate = (e) => {
     let val = e.target.value.replace(/\D/g, "");
     if (val.length >= 2) {
@@ -871,18 +984,22 @@ const Checkout = () => {
                         </div>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Choose a way to pay
-                    </p>
-                    {paymentMethodError && (
-                      <p className="text-red-500 text-sm mb-3 p-3 rounded-lg">
-                        {paymentMethodError}
-                      </p>
+                    {!isFreeAfterCoupon && (
+                      <>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Choose a way to pay
+                        </p>
+                        {paymentMethodError && (
+                          <p className="text-red-500 text-sm mb-3 p-3 rounded-lg">
+                            {paymentMethodError}
+                          </p>
+                        )}
+                        <div
+                          id="braintree-dropin-container"
+                          ref={braintreeContainerRef}
+                        />
+                      </>
                     )}
-                    <div
-                      id="braintree-dropin-container"
-                      ref={braintreeContainerRef}
-                    />
                     {errors.paymentMethodNonce && (
                       <p className="text-red-500 text-sm mt-2">
                         {errors.paymentMethodNonce.message}
@@ -941,8 +1058,8 @@ const Checkout = () => {
                       </div>
                     </div>
 
-                    {/* Payment method (hidden when Braintree drop-in is shown – use "Complete payment" for card/PayPal) */}
-                    {!showBraintreeStep && (
+                    {/* Payment method (hidden when Braintree drop-in is shown, or when coupon makes total $0) */}
+                    {!showBraintreeStep && !isFreeAfterCoupon && (
                       <div>
                         <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">
                           Payment method
@@ -1047,7 +1164,7 @@ const Checkout = () => {
                         </div>
                       </div>
                     )}
-                    {showBraintreeStep && (
+                    {showBraintreeStep && !isFreeAfterCoupon && (
                       <div className="mt-6">
                         <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4">
                           Complete payment
@@ -1183,8 +1300,12 @@ const Checkout = () => {
                   {/* Complete Order Button (hidden when Braintree step is shown or when no payload – ad-old: no prepare on Checkout) */}
                   {!showBraintreeStep && !authCheckoutWithoutPayload && (
                     <button
-                      type="submit"
-                      onClick={handleSubmit(onSubmit)}
+                      type={isFreeAfterCoupon ? "button" : "submit"}
+                      onClick={
+                        isFreeAfterCoupon
+                          ? handleFreeCheckout
+                          : handleSubmit(onSubmit)
+                      }
                       disabled={checkoutStatus === "loading"}
                       className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                     >
@@ -1193,20 +1314,25 @@ const Checkout = () => {
                         : "Complete Order"}
                     </button>
                   )}
-                  {/* Braintree step: drop-in container (in left column) and Pay button when token is ready */}
+                  {/* Braintree step: Pay button (drop-in hidden when free after coupon) */}
                   {showBraintreeStep && (
                     <div className="mt-4">
                       <button
                         type="button"
-                        onClick={onBraintreeSubmit}
+                        onClick={
+                          isFreeAfterCoupon ? handleFreeCheckout : onBraintreeSubmit
+                        }
                         disabled={
-                          !braintreeReady || checkoutStatus === "loading"
+                          (!isFreeAfterCoupon && !braintreeReady) ||
+                          checkoutStatus === "loading"
                         }
                         className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {checkoutStatus === "loading"
                           ? "Processing..."
-                          : "Confirm & pay"}
+                          : isFreeAfterCoupon
+                            ? "Complete Order"
+                            : "Confirm & pay"}
                       </button>
                     </div>
                   )}

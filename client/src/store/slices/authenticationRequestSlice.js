@@ -7,6 +7,7 @@ import {
   freeSubmit as freeSubmitApi,
   bundleQueryFormSubmit as bundleQueryFormSubmitApi,
   processPaypal as processPaypalApi,
+  freeProcessPaypal as freeProcessPaypalApi,
 } from '../../services/authenticateNowService';
 
 export const fetchAuthenticateNowView = createAsyncThunk(
@@ -105,6 +106,29 @@ export const processPaypalPayment = createAsyncThunk(
     } catch (error) {
       console.error('[processPaypalPayment] API error:', error?.message, 'Backend data:', error?.data);
       return rejectWithValue(error?.message || 'Payment failed');
+    }
+  }
+);
+
+/** Free single auth when coupon reduces total to $0 - POST /ad/free-process-paypal */
+export const freeProcessPaypalOrder = createAsyncThunk(
+  'authenticationRequest/freeProcessPaypalOrder',
+  async (payload, { rejectWithValue, getState }) => {
+    try {
+      const token = getState()?.auth?.token;
+      const formPayload =
+        payload?.singleFormData &&
+        typeof payload.singleFormData === 'object' &&
+        !Array.isArray(payload.singleFormData)
+          ? payload.singleFormData
+          : payload;
+      return await freeProcessPaypalApi(formPayload, {
+        token,
+        is_expedited: payload?.is_expedited,
+      });
+    } catch (error) {
+      console.error('[freeProcessPaypalOrder] API error:', error?.message, 'Backend data:', error?.data);
+      return rejectWithValue(error?.message || 'Free order submission failed');
     }
   }
 );
@@ -224,6 +248,17 @@ const authenticationRequestSlice = createSlice({
       .addCase(processPaypalPayment.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.payload || 'Failed to process payment';
+      })
+      .addCase(freeProcessPaypalOrder.pending, (state) => {
+        state.status = 'loading';
+        state.error = null;
+      })
+      .addCase(freeProcessPaypalOrder.fulfilled, (state) => {
+        state.status = 'succeeded';
+      })
+      .addCase(freeProcessPaypalOrder.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload || 'Free order submission failed';
       });
   },
 });

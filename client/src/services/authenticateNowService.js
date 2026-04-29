@@ -177,6 +177,25 @@ export const bundleQueryFormSubmit = async ({
   });
 };
 
+/** Phase 1: Free single authentication - POST /ad/free-process-paypal (used when coupon reduces total to $0) */
+export const freeProcessPaypal = async (formData, { token, is_expedited } = {}) => {
+  const body = formData && typeof formData === "object" ? formData : {};
+
+  let url = "/ad/free-process-paypal";
+  if (is_expedited !== undefined) {
+    url += `?is_expedited=${is_expedited}`;
+  }
+
+  return request(url, {
+    method: "POST",
+    body,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { sessiontoken: token } : {}),
+    },
+  });
+};
+
 /** Phase 1: Single authentication PayPal - POST /ad/process-paypal */
 export const processPaypal = async (formData, { token, is_expedited } = {}) => {
   const body = formData && typeof formData === "object" ? formData : {};
