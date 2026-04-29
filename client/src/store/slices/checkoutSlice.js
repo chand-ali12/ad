@@ -210,9 +210,18 @@ const checkoutSlice = createSlice({
         state.couponError = null;
       })
       .addCase(verifyCoupon.fulfilled, (state, action) => {
-        state.coupon = action.payload?.data ?? action.payload;
-        state.couponError = null;
-        state.couponStatus = 'succeeded';
+        const data = action.payload?.data;
+        if (data === null || data === undefined) {
+          // API signals an invalid/unrecognised coupon by returning data: null
+          state.coupon = null;
+          state.couponError = 'Invalid coupon code';
+          state.couponStatus = 'failed';
+        } else {
+          // data is the new total after the discount (works for both fixed-price and percentage coupons)
+          state.coupon = data;
+          state.couponError = null;
+          state.couponStatus = 'succeeded';
+        }
       })
       .addCase(verifyCoupon.rejected, (state, action) => {
         state.coupon = null;
