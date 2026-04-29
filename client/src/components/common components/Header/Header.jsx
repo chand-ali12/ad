@@ -60,7 +60,7 @@ const Header = ({
   const { profile: profileState, user: profileUser } = useAppSelector(
     (state) => state.profile,
   );
-  const { business } = useAppSelector((state) => state.business);
+  const { business, businessUserLogin } = useAppSelector((state) => state.business);
   const isAuthenticated = Boolean(token || user?.id);
   const hasBusinessAccount = Boolean(user?.user_business?.length > 0);
   const authCtaText = signUpText === "Sign Up" ? "Sign In" : signUpText;
@@ -86,16 +86,16 @@ const Header = ({
   );
   const pricingLink = featureLinks.find((l) => l.path === "/prices");
 
-  // Avatar URL: same as old site (authentic-detective-talha header) — MEDIA_BASE_URL/usersProfile/ or /businessProfile/
-  const avatarSrc =
-    hasBusinessAccount && business?.business_profile_picture
-      ? getBusinessProfileImageUrl(business.business_profile_picture)
-      : getProfileImageUrl(
-          profileUser?.profile_picture ||
-            profileState?.profileImage ||
-            user?.profile_picture ||
-            null,
-        );
+  // Show business profile picture only when the user is logged in as a business profile (matches ProfileSection logic).
+  const isBusinessProfile = businessUserLogin === true && Boolean(business?.business_profile_picture);
+  const avatarSrc = isBusinessProfile
+    ? getBusinessProfileImageUrl(business.business_profile_picture)
+    : getProfileImageUrl(
+        profileUser?.profile_picture ||
+          profileState?.profileImage ||
+          user?.profile_picture ||
+          null,
+      );
   const [brokenAvatarSrc, setBrokenAvatarSrc] = useState(null);
   const showAvatarImg = Boolean(avatarSrc) && brokenAvatarSrc !== avatarSrc;
 

@@ -721,10 +721,11 @@ const CertificatesofAuthenticity = ({
                 certificate.order ??
                 certificate.order_id ??
                 null;
-              const displayDate =
-                certificate.date ??
-                certificate.certificate?.date ??
-                certificate.created_at ??
+              const displayModel =
+                certificate.authenticate_query?.model ??
+                certificate.query_detail?.model ??
+                certificate.certificate?.model ??
+                certificate.model ??
                 null;
               const showPendingStyle = isPendingLike;
               const cardClassName = showPendingStyle
@@ -908,14 +909,8 @@ const CertificatesofAuthenticity = ({
                         </p>
                       )}
                       <p>
-                        <span className="font-bold">Date:</span>
-                        <span className="ml-3">
-                          {displayDate
-                            ? typeof displayDate === "string"
-                              ? new Date(displayDate).toLocaleDateString()
-                              : displayDate
-                            : "N/A"}
-                        </span>
+                        <span className="font-bold">Model:</span>
+                        <span className="ml-3">{displayModel ?? "N/A"}</span>
                       </p>
                       <p>
                         <span className="font-bold">Order:</span>
