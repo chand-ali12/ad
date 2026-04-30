@@ -241,7 +241,13 @@ const CertificatesofAuthenticity = ({
   const [imgZoom, setImgZoom] = useState(1);
   const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
   const [imgLoading, setImgLoading] = useState(false);
-  const panRef = useRef({ dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 });
+  const panRef = useRef({
+    dragging: false,
+    startX: 0,
+    startY: 0,
+    originX: 0,
+    originY: 0,
+  });
   const viewerRef = useRef(null);
   const imgRef = useRef(null);
 
@@ -905,7 +911,14 @@ const CertificatesofAuthenticity = ({
                     <h3 className="text-sm sm:text-base font-bold text-primary mb-0.5">
                       {displayBrand || "Unknown Brand"}
                     </h3>
-                    <div className="text-xs sm:text-sm text-primary leading-tight" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <div
+                      className="text-xs sm:text-sm text-primary leading-tight"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1,
+                      }}
+                    >
                       <p>
                         <span className="font-bold">Model:</span>
                         <span className="ml-3">{displayModel ?? "N/A"}</span>
@@ -914,7 +927,9 @@ const CertificatesofAuthenticity = ({
                         <span className="font-bold">Date:</span>
                         <span className="ml-3">
                           {certificate.created_at
-                            ? new Date(certificate.created_at).toLocaleDateString("en-US", {
+                            ? new Date(
+                                certificate.created_at,
+                              ).toLocaleDateString("en-US", {
                                 year: "numeric",
                                 month: "long",
                                 day: "numeric",
@@ -1024,7 +1039,12 @@ const CertificatesofAuthenticity = ({
                   ref={viewerRef}
                   className="sm:hidden flex-1 min-h-0 bg-gray-100 flex items-center justify-center overflow-hidden"
                   style={{
-                    cursor: imgZoom > 1 ? (panRef.current.dragging ? "grabbing" : "grab") : "default",
+                    cursor:
+                      imgZoom > 1
+                        ? panRef.current.dragging
+                          ? "grabbing"
+                          : "grab"
+                        : "default",
                     position: "relative",
                   }}
                   onMouseDown={(e) => {
@@ -1042,8 +1062,12 @@ const CertificatesofAuthenticity = ({
                     const img = imgRef.current;
                     if (!container || !img) {
                       setImgPan({
-                        x: panRef.current.originX + (e.clientX - panRef.current.startX),
-                        y: panRef.current.originY + (e.clientY - panRef.current.startY),
+                        x:
+                          panRef.current.originX +
+                          (e.clientX - panRef.current.startX),
+                        y:
+                          panRef.current.originY +
+                          (e.clientY - panRef.current.startY),
                       });
                       return;
                     }
@@ -1056,21 +1080,31 @@ const CertificatesofAuthenticity = ({
                     const renderedH = ih * scaleToFit;
                     const maxX = Math.max(0, (renderedW * imgZoom - cw) / 2);
                     const maxY = Math.max(0, (renderedH * imgZoom - ch) / 2);
-                    const rawX = panRef.current.originX + (e.clientX - panRef.current.startX);
-                    const rawY = panRef.current.originY + (e.clientY - panRef.current.startY);
+                    const rawX =
+                      panRef.current.originX +
+                      (e.clientX - panRef.current.startX);
+                    const rawY =
+                      panRef.current.originY +
+                      (e.clientY - panRef.current.startY);
                     setImgPan({
                       x: Math.max(-maxX, Math.min(maxX, rawX)),
                       y: Math.max(-maxY, Math.min(maxY, rawY)),
                     });
                   }}
-                  onMouseUp={() => { panRef.current.dragging = false; }}
-                  onMouseLeave={() => { panRef.current.dragging = false; }}
+                  onMouseUp={() => {
+                    panRef.current.dragging = false;
+                  }}
+                  onMouseLeave={() => {
+                    panRef.current.dragging = false;
+                  }}
                 >
                   {imgLoading && modalPngUrl && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-10 h-10 rounded-full border-4 border-gray-300 border-t-primary animate-spin" />
-                        <p className="text-xs text-gray-500">Loading certificate…</p>
+                        <p className="text-xs text-gray-500">
+                          Loading certificate…
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1084,7 +1118,9 @@ const CertificatesofAuthenticity = ({
                       style={{
                         transform: `translate(${imgPan.x}px, ${imgPan.y}px) scale(${imgZoom})`,
                         transformOrigin: "center center",
-                        transition: panRef.current.dragging ? "none" : "transform 0.2s ease",
+                        transition: panRef.current.dragging
+                          ? "none"
+                          : "transform 0.2s ease",
                         maxWidth: "100%",
                         maxHeight: "100%",
                         objectFit: "contain",
@@ -1116,7 +1152,12 @@ const CertificatesofAuthenticity = ({
                       }}
                       className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all"
                       aria-label="Zoom out"
-                      style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: "#3C1F1B" }}
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: "#3C1F1B",
+                      }}
                     >
                       −
                     </button>
@@ -1131,7 +1172,12 @@ const CertificatesofAuthenticity = ({
                       }}
                       className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all"
                       aria-label="Zoom in"
-                      style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: "#3C1F1B" }}
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: "#3C1F1B",
+                      }}
                     >
                       +
                     </button>
@@ -1142,7 +1188,7 @@ const CertificatesofAuthenticity = ({
                 <div className="hidden sm:flex flex-1 min-h-0 bg-white flex-col overflow-hidden">
                   {modalPdfUrl ? (
                     <iframe
-                      src={`${modalPdfUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&view=FitH`}
+                      src={`${modalPdfUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&zoom=90`}
                       title="Certificate of Authenticity"
                       className="w-full h-full border-0 block"
                       style={{ background: "#fff", overflow: "hidden" }}
