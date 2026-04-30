@@ -453,7 +453,7 @@ const CertificatesofAuthenticity = ({
 
   // Top-level tabs: Completed | Pending | Sold items | Available items (single row, like old website)
   const mainTabs = [
-    { label: "Expedited", count: expeditedCount, value: "Expedited" },
+    // { label: "Expedited", count: expeditedCount, value: "Expedited" },
     { label: "Completed", count: completedCount, value: "Completed" },
     { label: "Pending", count: pendingCount, value: "Pending" },
     { label: "Sold items", count: soldCount, value: "Sold" },
@@ -537,7 +537,11 @@ const CertificatesofAuthenticity = ({
   const handleDownload = async (url, filename) => {
     if (!url || downloadBusyType) return;
     const lower = filename.toLowerCase();
-    const busyKey = lower.endsWith(".png") ? "png" : lower.endsWith(".pdf") ? "pdf" : "other";
+    const busyKey = lower.endsWith(".png")
+      ? "png"
+      : lower.endsWith(".pdf")
+        ? "pdf"
+        : "other";
     setDownloadBusyType(busyKey);
     const isPng = busyKey === "png";
     try {
