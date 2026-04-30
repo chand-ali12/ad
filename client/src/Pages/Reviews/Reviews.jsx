@@ -81,10 +81,13 @@ const ReviewsPage = () => {
   const { user, status } = useAppSelector((state) => state.profile);
   const {
     business,
-    businessUserLogin,
     reviews: businessReviews,
   } = useAppSelector((state) => state.business);
   const { status: reviewStatus } = useAppSelector((state) => state.reviews);
+
+  const hasBusinessAccount = Boolean(user?.user_business?.length > 0);
+  const showBusinessBranding =
+    hasBusinessAccount && Boolean(business?.id);
 
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -115,34 +118,34 @@ const ReviewsPage = () => {
 
   const hasBusiness = !!business;
   const displayName =
-    businessUserLogin && business?.business_name
+    showBusinessBranding && business?.business_name
       ? business.business_name
       : user?.name || "Anonymous";
   const displaySubtitle =
-    businessUserLogin && business?.about_business
+    showBusinessBranding && business?.about_business
       ? business.about_business
       : user?.about_us || "";
   const displayBanner =
-    businessUserLogin && business?.business_cover_picture
+    showBusinessBranding && business?.business_cover_picture
       ? business.business_cover_picture
       : user?.cover_picture;
   const displayProfileImage =
-    businessUserLogin && business?.business_profile_picture
+    showBusinessBranding && business?.business_profile_picture
       ? business.business_profile_picture
       : user?.profile_picture;
   const displayReviewsCount =
-    businessUserLogin && business?.reviews_count != null
+    showBusinessBranding && business?.reviews_count != null
       ? business.reviews_count
       : 0;
   const displayRating =
-    businessUserLogin && business?.business_rating != null
+    showBusinessBranding && business?.business_rating != null
       ? business.business_rating
       : null;
 
-  const bannerImageUrl = businessUserLogin
+  const bannerImageUrl = showBusinessBranding
     ? getBusinessCoverImageUrl(displayBanner)
     : getProfileCoverUrl(displayBanner);
-  const profileImageUrl = businessUserLogin
+  const profileImageUrl = showBusinessBranding
     ? getBusinessProfileImageUrl(displayProfileImage)
     : getProfileImageUrl(displayProfileImage);
 

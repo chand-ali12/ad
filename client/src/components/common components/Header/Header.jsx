@@ -50,19 +50,17 @@ const Header = ({
   const profileMenuRef = useRef(null);
   const mobileProfileMenuRef = useRef(null);
   const mobileDrawerScrollRef = useRef(null);
-  const [mobileScrollThumb, setMobileScrollThumb] = useState({
-    visible: false,
-    height: 0,
-    top: 0,
-  });
+  const mobileScrollThumbRef = useRef(null);
   const dispatch = useAppDispatch();
   const { token, user } = useAppSelector((state) => state.auth);
   const { profile: profileState, user: profileUser } = useAppSelector(
     (state) => state.profile,
   );
-  const { business, businessUserLogin } = useAppSelector((state) => state.business);
+  const { business } = useAppSelector((state) => state.business);
   const isAuthenticated = Boolean(token || user?.id);
   const hasBusinessAccount = Boolean(user?.user_business?.length > 0);
+  // Business branding when linked business exists and profile is loaded (no API mode toggle).
+  const showBusinessBranding = hasBusinessAccount && Boolean(business?.id);
   const authCtaText = signUpText === "Sign Up" ? "Sign In" : signUpText;
 
   // Resolve commonly used navigation items for predictable mobile ordering.
@@ -86,10 +84,10 @@ const Header = ({
   );
   const pricingLink = featureLinks.find((l) => l.path === "/prices");
 
-  // Show business profile picture only when the user is logged in as a business profile (matches ProfileSection logic).
-  const isBusinessProfile = businessUserLogin === true && Boolean(business?.business_profile_picture);
+  // Business avatar when account has a linked business and profile payload is loaded (no API mode toggle).
+  const isBusinessProfile = showBusinessBranding;
   const avatarSrc = isBusinessProfile
-    ? getBusinessProfileImageUrl(business.business_profile_picture)
+    ? getBusinessProfileImageUrl(business?.business_profile_picture)
     : getProfileImageUrl(
         profileUser?.profile_picture ||
           profileState?.profileImage ||
@@ -147,47 +145,38 @@ const Header = ({
   useEffect(() => {
     const updateMobileDrawerThumb = () => {
       const el = mobileDrawerScrollRef.current;
-      if (!el) return;
+      const thumb = mobileScrollThumbRef.current;
+      if (!el || !thumb) return;
 
       const { scrollTop, scrollHeight, clientHeight } = el;
       const canScroll = scrollHeight > clientHeight + 1;
 
       if (!canScroll) {
-        setMobileScrollThumb((prev) =>
-          prev.visible
-            ? { visible: false, height: 0, top: 0 }
-            : prev,
-        );
+        thumb.style.opacity = "0";
         return;
       }
 
       const trackPadding = 8;
       const trackHeight = Math.max(clientHeight - trackPadding * 2, 0);
-      const thumbHeight = Math.max(
-        28,
-        (clientHeight / scrollHeight) * trackHeight,
-      );
+      const thumbHeight = Math.max(28, (clientHeight / scrollHeight) * trackHeight);
       const maxThumbOffset = Math.max(trackHeight - thumbHeight, 0);
       const maxScroll = Math.max(scrollHeight - clientHeight, 1);
       const scrollRatio = scrollTop / maxScroll;
       const thumbTop = trackPadding + scrollRatio * maxThumbOffset;
 
-      setMobileScrollThumb({
-        visible: true,
-        height: thumbHeight,
-        top: thumbTop,
-      });
+      thumb.style.height = `${thumbHeight}px`;
+      thumb.style.transform = `translateY(${thumbTop}px)`;
+      thumb.style.opacity = "1";
     };
 
     if (!isMobileMenuOpen) return;
 
-    updateMobileDrawerThumb();
     const el = mobileDrawerScrollRef.current;
     if (!el) return;
 
+    const raf = window.requestAnimationFrame(updateMobileDrawerThumb);
     el.addEventListener("scroll", updateMobileDrawerThumb, { passive: true });
     window.addEventListener("resize", updateMobileDrawerThumb);
-    const raf = window.requestAnimationFrame(updateMobileDrawerThumb);
 
     return () => {
       window.cancelAnimationFrame(raf);
@@ -1258,15 +1247,11 @@ const Header = ({
               className="pointer-events-none absolute right-1 top-2 bottom-2 w-[6px]"
             >
               <div className="absolute inset-0 rounded-full bg-primary/10" />
-              {mobileScrollThumb.visible && (
-                <div
-                  className="absolute left-0 right-0 rounded-full bg-primary/45 transition-all duration-150"
-                  style={{
-                    height: `${mobileScrollThumb.height}px`,
-                    transform: `translateY(${mobileScrollThumb.top}px)`,
-                  }}
-                />
-              )}
+              <div
+                ref={mobileScrollThumbRef}
+                className="absolute left-0 right-0 rounded-full bg-primary/45"
+                style={{ height: 0, transform: "translateY(0px)", opacity: 0 }}
+              />
             </div>
           </div>
         )}

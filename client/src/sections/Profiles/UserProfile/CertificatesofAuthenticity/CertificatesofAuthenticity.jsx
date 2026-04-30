@@ -241,6 +241,8 @@ const CertificatesofAuthenticity = ({
   const [imgZoom, setImgZoom] = useState(1);
   const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
   const [imgLoading, setImgLoading] = useState(false);
+  const [downloadToast, setDownloadToast] = useState("");
+  const [downloadBusyType, setDownloadBusyType] = useState(null); // "png" | "pdf" | null
   const panRef = useRef({
     dragging: false,
     startX: 0,
@@ -527,17 +529,44 @@ const CertificatesofAuthenticity = ({
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const handleDownload = (url, filename) => {
-    if (!url) return;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  const showDownloadToast = (msg) => {
+    setDownloadToast(msg);
+    setTimeout(() => setDownloadToast(""), 3000);
+  };
+
+  const handleDownload = async (url, filename) => {
+    if (!url || downloadBusyType) return;
+    const lower = filename.toLowerCase();
+    const busyKey = lower.endsWith(".png") ? "png" : lower.endsWith(".pdf") ? "pdf" : "other";
+    setDownloadBusyType(busyKey);
+    const isPng = busyKey === "png";
+    try {
+      // 1st attempt: fetch as blob (works when S3 CORS is configured for this path)
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (!response.ok) throw new Error("Fetch failed");
+      const blob = await response.blob();
+      const forcedBlob = new Blob([blob], { type: "application/octet-stream" });
+      const blobUrl = URL.createObjectURL(forcedBlob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      showDownloadToast("Downloaded!");
+    } catch {
+      if (isPng) {
+        // PNG CORS not yet configured on S3 — open in new tab so user can long-press / right-click save
+        window.open(url, "_blank", "noopener,noreferrer");
+        showDownloadToast("Opened in new tab — right-click to save");
+      } else {
+        showDownloadToast("Download failed. Try again.");
+      }
+    } finally {
+      setDownloadBusyType(null);
+    }
   };
 
   const resolveAuthenticatorInfo = async (card) => {
@@ -817,8 +846,8 @@ const CertificatesofAuthenticity = ({
                         )}
                       </>
                     )}
-                    {/* Authentic / Not Authentic / Inconclusive badge from API (like old website) */}
-                    {activeTab === "Completed" && result && (
+                    {/* Authentic / Not Authentic / Inconclusive badge from API */}
+                    {result && !isPendingLike && (
                       <span
                         className="absolute bottom-2 right-2 px-2.5 py-1 rounded-full text-white text-xs font-semibold shadow-sm"
                         style={{ backgroundColor: resultColor }}
@@ -960,6 +989,50 @@ const CertificatesofAuthenticity = ({
           </div>
         )}
       </div>
+
+      {/* Download toast notification */}
+      {downloadToast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-4 py-2.5 rounded-full text-white text-xs font-semibold shadow-xl pointer-events-none whitespace-nowrap"
+          style={{
+            backgroundColor: downloadToast.includes("failed")
+              ? "#dc2626"
+              : "#16a34a",
+          }}
+          role="alert"
+        >
+          {downloadToast.includes("failed") ? (
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-3.5 h-3.5 flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          )}
+          {downloadToast}
+        </div>
+      )}
 
       {/* PDF Viewer Modal */}
       {pdfModalCert &&
@@ -1113,6 +1186,7 @@ const CertificatesofAuthenticity = ({
                       ref={imgRef}
                       src={modalPngUrl}
                       alt="Certificate of Authenticity"
+                      crossOrigin="anonymous"
                       onLoad={() => setImgLoading(false)}
                       onError={() => setImgLoading(false)}
                       style={{
@@ -1366,24 +1440,34 @@ const CertificatesofAuthenticity = ({
                     {modalPngUrl && (
                       <button
                         type="button"
+                        disabled={downloadBusyType !== null}
                         onClick={() =>
                           handleDownload(modalPngUrl, "certificate.png")
                         }
-                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <FiDownload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        {downloadBusyType === "png" ? (
+                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+                        ) : (
+                          <FiDownload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        )}
                         PNG
                       </button>
                     )}
                     {modalPdfUrl && (
                       <button
                         type="button"
+                        disabled={downloadBusyType !== null}
                         onClick={() =>
                           handleDownload(modalPdfUrl, "certificate.pdf")
                         }
-                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <FiDownload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        {downloadBusyType === "pdf" ? (
+                          <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-primary border-t-transparent rounded-full animate-spin inline-block" />
+                        ) : (
+                          <FiDownload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        )}
                         PDF
                       </button>
                     )}

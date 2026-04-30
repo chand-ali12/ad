@@ -71,8 +71,6 @@ const UserProfile = () => {
 
   const {
     business,
-    businessUserLogin,
-    reviews: businessReviews,
     status: businessStatus,
   } = useAppSelector((state) => state.business);
 
@@ -735,6 +733,9 @@ const UserProfile = () => {
     : hasBusinessAccount
       ? user?.user_business?.[0]
       : null;
+  // Use business visuals only after full business profile is loaded (no login-mode toggle).
+  const showBusinessBranding =
+    hasBusinessAccount && hasBusinessData && Boolean(business?.id);
   const showProfileLoading =
     isInitialProfileLoading ||
     (status === "succeeded" && hasBusinessAccount && !businessResolved);
@@ -793,7 +794,7 @@ const UserProfile = () => {
             <ProfileSection
               user={user}
               business={effectiveBusiness}
-              businessUserLogin={hasBusinessAccount || businessUserLogin}
+              businessUserLogin={showBusinessBranding}
               businessReviewCount={businessReviewCount}
               onEditProfileClick={handleEditProfileClick}
               onReviewsClick={() => navigate("/reviews")}

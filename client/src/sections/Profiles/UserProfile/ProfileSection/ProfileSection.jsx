@@ -20,24 +20,21 @@ const ProfileSection = ({
         );
     }
 
-    // Check if user has business (either by user_business array or business prop)
-    const hasBusinessProfile = business || (user.user_business && user.user_business.length > 0);
-    // Use businessUserLogin flag to determine if user is logged in as business user
-    // If false, show user profile edit button even if they have a business
+    // Parent passes true when linked business exists and full business profile is loaded (no separate API toggle).
     const isBusinessUser = businessUserLogin === true;
 
-    // Use business data only if user is logged in as business user, otherwise use user data
+    // Business vs personal fields for the card
     const displayName = isBusinessUser && business?.business_name 
         ? business.business_name 
         : user.name || 'Anonymous User';
     const displaySubtitle = isBusinessUser && business?.about_business 
         ? business.about_business 
         : user.about_us || '';
-    const displayBannerImage = isBusinessUser && business?.business_cover_picture 
-        ? business.business_cover_picture 
+    const displayBannerImage = isBusinessUser
+        ? (business?.business_cover_picture ?? null)
         : user.cover_picture;
-    const displayProfileImage = isBusinessUser && business?.business_profile_picture 
-        ? business.business_profile_picture 
+    const displayProfileImage = isBusinessUser
+        ? (business?.business_profile_picture ?? null)
         : user.profile_picture;
     const displayReviewsCount = isBusinessUser && business?.reviews_count 
         ? business.reviews_count 
@@ -49,10 +46,10 @@ const ProfileSection = ({
         ? business.website
         : (user?.website || user?.website_url || '');
 
-    const bannerImageUrl = isBusinessUser && business?.business_cover_picture
+    const bannerImageUrl = isBusinessUser
         ? getBusinessCoverImageUrl(displayBannerImage)
         : getProfileCoverUrl(displayBannerImage);
-    const profileImageUrl = isBusinessUser && business?.business_profile_picture
+    const profileImageUrl = isBusinessUser
         ? getBusinessProfileImageUrl(displayProfileImage)
         : getProfileImageUrl(displayProfileImage);
 
