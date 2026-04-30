@@ -240,7 +240,10 @@ const CertificatesofAuthenticity = ({
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [imgZoom, setImgZoom] = useState(1);
   const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
+  const [imgLoading, setImgLoading] = useState(false);
   const panRef = useRef({ dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 });
+  const viewerRef = useRef(null);
+  const imgRef = useRef(null);
 
   // Lock background scroll when PDF modal is open
   useEffect(() => {
@@ -772,6 +775,7 @@ const CertificatesofAuthenticity = ({
                                 setPdfModalCert(certificate);
                                 setImgZoom(1);
                                 setImgPan({ x: 0, y: 0 });
+                                setImgLoading(true);
                               }}
                             >
                               <span className="opacity-0 group-hover:opacity-100 bg-black/60 text-white text-xs sm:text-sm px-3 py-1.5 rounded-full transition-opacity select-none pointer-events-none">
@@ -896,12 +900,12 @@ const CertificatesofAuthenticity = ({
                   </div>
                   {/* Certificate Details — brand and order from API. For Pending do not show Status. */}
                   <div
-                    className={`p-3 sm:p-4 border-t border-gray-100 ${showPendingStyle ? "bg-red-50/20" : "bg-white"}`}
+                    className={`px-3 py-2 border-t border-gray-100 ${showPendingStyle ? "bg-red-50/20" : "bg-white"}`}
                   >
-                    <h3 className="text-base sm:text-lg font-bold text-primary mb-1 sm:mb-1.5">
+                    <h3 className="text-sm sm:text-base font-bold text-primary mb-0.5">
                       {displayBrand || "Unknown Brand"}
                     </h3>
-                    <div className="text-sm sm:text-base text-primary space-y-0.5">
+                    <div className="text-xs sm:text-sm text-primary leading-tight" style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                       <p>
                         <span className="font-bold">Model:</span>
                         <span className="ml-3">{displayModel ?? "N/A"}</span>
@@ -992,7 +996,7 @@ const CertificatesofAuthenticity = ({
               }}
             >
               <div
-                className="relative bg-white w-full sm:rounded-2xl sm:shadow-2xl sm:max-w-5xl flex flex-col sm:max-h-[92dvh]"
+                className="relative bg-white w-full sm:rounded-2xl sm:shadow-2xl sm:max-w-7xl flex flex-col sm:max-h-[92dvh]"
                 style={{
                   height: "100dvh",
                   maxHeight: "100dvh",
@@ -1000,19 +1004,8 @@ const CertificatesofAuthenticity = ({
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200 flex-shrink-0 bg-white">
-                  <div className="min-w-0 flex-1 pr-3 hidden sm:block">
-                    <h3 className="text-lg font-bold text-primary leading-tight truncate">
-                      {modalBrand}
-                    </h3>
-                    {modalOrder && (
-                      <p className="text-sm text-gray-500 mt-0.5 truncate">
-                        Order: {modalOrder}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex-1 sm:hidden" />
+                {/* Header — close button only on all screens */}
+                <div className="flex items-center justify-end px-4 sm:px-5 py-2.5 border-b border-gray-200 flex-shrink-0 bg-white">
                   <button
                     type="button"
                     onClick={() => {
@@ -1026,10 +1019,14 @@ const CertificatesofAuthenticity = ({
                   </button>
                 </div>
 
-                {/* Image Viewer — drag to pan on desktop when zoomed */}
+                {/* ── MOBILE: PNG image with zoom + pan ── */}
                 <div
-                  className="flex-1 min-h-0 bg-gray-100 flex items-center justify-center overflow-hidden"
-                  style={{ cursor: imgZoom > 1 ? (panRef.current.dragging ? "grabbing" : "grab") : "default" }}
+                  ref={viewerRef}
+                  className="sm:hidden flex-1 min-h-0 bg-gray-100 flex items-center justify-center overflow-hidden"
+                  style={{
+                    cursor: imgZoom > 1 ? (panRef.current.dragging ? "grabbing" : "grab") : "default",
+                    position: "relative",
+                  }}
                   onMouseDown={(e) => {
                     if (imgZoom <= 1) return;
                     panRef.current.dragging = true;
@@ -1041,18 +1038,49 @@ const CertificatesofAuthenticity = ({
                   }}
                   onMouseMove={(e) => {
                     if (!panRef.current.dragging) return;
+                    const container = viewerRef.current;
+                    const img = imgRef.current;
+                    if (!container || !img) {
+                      setImgPan({
+                        x: panRef.current.originX + (e.clientX - panRef.current.startX),
+                        y: panRef.current.originY + (e.clientY - panRef.current.startY),
+                      });
+                      return;
+                    }
+                    const cw = container.clientWidth;
+                    const ch = container.clientHeight;
+                    const iw = img.naturalWidth || img.clientWidth;
+                    const ih = img.naturalHeight || img.clientHeight;
+                    const scaleToFit = Math.min(cw / iw, ch / ih, 1);
+                    const renderedW = iw * scaleToFit;
+                    const renderedH = ih * scaleToFit;
+                    const maxX = Math.max(0, (renderedW * imgZoom - cw) / 2);
+                    const maxY = Math.max(0, (renderedH * imgZoom - ch) / 2);
+                    const rawX = panRef.current.originX + (e.clientX - panRef.current.startX);
+                    const rawY = panRef.current.originY + (e.clientY - panRef.current.startY);
                     setImgPan({
-                      x: panRef.current.originX + (e.clientX - panRef.current.startX),
-                      y: panRef.current.originY + (e.clientY - panRef.current.startY),
+                      x: Math.max(-maxX, Math.min(maxX, rawX)),
+                      y: Math.max(-maxY, Math.min(maxY, rawY)),
                     });
                   }}
                   onMouseUp={() => { panRef.current.dragging = false; }}
                   onMouseLeave={() => { panRef.current.dragging = false; }}
                 >
+                  {imgLoading && modalPngUrl && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 rounded-full border-4 border-gray-300 border-t-primary animate-spin" />
+                        <p className="text-xs text-gray-500">Loading certificate…</p>
+                      </div>
+                    </div>
+                  )}
                   {modalPngUrl ? (
                     <img
+                      ref={imgRef}
                       src={modalPngUrl}
                       alt="Certificate of Authenticity"
+                      onLoad={() => setImgLoading(false)}
+                      onError={() => setImgLoading(false)}
                       style={{
                         transform: `translate(${imgPan.x}px, ${imgPan.y}px) scale(${imgZoom})`,
                         transformOrigin: "center center",
@@ -1060,7 +1088,7 @@ const CertificatesofAuthenticity = ({
                         maxWidth: "100%",
                         maxHeight: "100%",
                         objectFit: "contain",
-                        display: "block",
+                        display: imgLoading ? "none" : "block",
                         userSelect: "none",
                         pointerEvents: "none",
                       }}
@@ -1073,9 +1101,9 @@ const CertificatesofAuthenticity = ({
                   )}
                 </div>
 
-                {/* Zoom controls */}
+                {/* Mobile zoom controls — only shown on small screens */}
                 {modalPngUrl && (
-                  <div className="flex-shrink-0 bg-white border-t border-gray-200 flex items-center justify-center gap-5 px-4 py-3">
+                  <div className="sm:hidden flex-shrink-0 bg-white border-t border-gray-200 flex items-center justify-center gap-5 px-4 py-3">
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1109,6 +1137,32 @@ const CertificatesofAuthenticity = ({
                     </button>
                   </div>
                 )}
+
+                {/* ── DESKTOP: PDF iframe ── */}
+                <div className="hidden sm:flex flex-1 min-h-0 bg-white flex-col overflow-hidden">
+                  {modalPdfUrl ? (
+                    <iframe
+                      src={`${modalPdfUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&view=FitH`}
+                      title="Certificate of Authenticity"
+                      className="w-full h-full border-0 block"
+                      style={{ background: "#fff", overflow: "hidden" }}
+                      scrolling="no"
+                    />
+                  ) : modalPngUrl ? (
+                    /* Fallback to image if no PDF */
+                    <div className="flex-1 flex items-center justify-center overflow-hidden bg-gray-100">
+                      <img
+                        src={modalPngUrl}
+                        alt="Certificate of Authenticity"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                      Certificate not available
+                    </div>
+                  )}
+                </div>
 
                 {/* Details panel — mobile: below image; desktop: part of unified footer */}
                 <div className="px-4 sm:px-5 pt-3 pb-1 bg-white border-t border-gray-200 flex-shrink-0">
