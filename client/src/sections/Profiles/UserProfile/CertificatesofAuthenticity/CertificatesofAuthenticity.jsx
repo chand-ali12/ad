@@ -239,6 +239,8 @@ const CertificatesofAuthenticity = ({
   const [pdfModalCert, setPdfModalCert] = useState(null);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [imgZoom, setImgZoom] = useState(1);
+  const [imgPan, setImgPan] = useState({ x: 0, y: 0 });
+  const panRef = useRef({ dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 });
 
   // Lock background scroll when PDF modal is open
   useEffect(() => {
@@ -292,18 +294,6 @@ const CertificatesofAuthenticity = ({
   useEffect(() => {
     if (!isFilterOpen && !isClosing) setPanelEntered(false);
   }, [isFilterOpen, isClosing]);
-
-  // Close the certificate modal when the user scrolls the background page
-  useEffect(() => {
-    if (!pdfModalCert) return;
-    const handleScroll = () => {
-      setPdfModalCert(null);
-      setShowShareOptions(false);
-      setImgZoom(1);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [pdfModalCert]);
 
   // Prevent background/body scroll while filter panel is open (fixes "moveable" panel on mobile).
   useEffect(() => {
@@ -781,6 +771,7 @@ const CertificatesofAuthenticity = ({
                               onClick={() => {
                                 setPdfModalCert(certificate);
                                 setImgZoom(1);
+                                setImgPan({ x: 0, y: 0 });
                               }}
                             >
                               <span className="opacity-0 group-hover:opacity-100 bg-black/60 text-white text-xs sm:text-sm px-3 py-1.5 rounded-full transition-opacity select-none pointer-events-none">
@@ -910,30 +901,23 @@ const CertificatesofAuthenticity = ({
                     <h3 className="text-base sm:text-lg font-bold text-primary mb-1 sm:mb-1.5">
                       {displayBrand || "Unknown Brand"}
                     </h3>
-                    <div
-                      className={`text-sm sm:text-base text-primary ${showPendingStyle ? "space-y-1.5 sm:space-y-2" : "space-y-2 sm:space-y-2.5"}`}
-                    >
+                    <div className="text-sm sm:text-base text-primary space-y-0.5">
                       <p>
                         <span className="font-bold">Model:</span>
                         <span className="ml-3">{displayModel ?? "N/A"}</span>
                       </p>
-                      {!isPendingLike && (
-                        <p>
-                          <span className="font-bold">Date:</span>
-                          <span className="ml-3">
-                            {certificate.created_at
-                              ? new Date(
-                                  certificate.created_at,
-                                ).toLocaleDateString("en-US", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                })
-                              : "N/A"}
-                          </span>
-                        </p>
-                      )}
-
+                      <p>
+                        <span className="font-bold">Date:</span>
+                        <span className="ml-3">
+                          {certificate.created_at
+                            ? new Date(certificate.created_at).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })
+                            : "N/A"}
+                        </span>
+                      </p>
                       <p>
                         <span className="font-bold">Order:</span>
                         <span className="ml-3">{displayOrder ?? "N/A"}</span>
@@ -1042,21 +1026,43 @@ const CertificatesofAuthenticity = ({
                   </button>
                 </div>
 
-                {/* Image Viewer */}
-                <div className="flex-1 min-h-0 bg-gray-100 flex items-center justify-center overflow-hidden">
+                {/* Image Viewer — drag to pan on desktop when zoomed */}
+                <div
+                  className="flex-1 min-h-0 bg-gray-100 flex items-center justify-center overflow-hidden"
+                  style={{ cursor: imgZoom > 1 ? (panRef.current.dragging ? "grabbing" : "grab") : "default" }}
+                  onMouseDown={(e) => {
+                    if (imgZoom <= 1) return;
+                    panRef.current.dragging = true;
+                    panRef.current.startX = e.clientX;
+                    panRef.current.startY = e.clientY;
+                    panRef.current.originX = imgPan.x;
+                    panRef.current.originY = imgPan.y;
+                    e.preventDefault();
+                  }}
+                  onMouseMove={(e) => {
+                    if (!panRef.current.dragging) return;
+                    setImgPan({
+                      x: panRef.current.originX + (e.clientX - panRef.current.startX),
+                      y: panRef.current.originY + (e.clientY - panRef.current.startY),
+                    });
+                  }}
+                  onMouseUp={() => { panRef.current.dragging = false; }}
+                  onMouseLeave={() => { panRef.current.dragging = false; }}
+                >
                   {modalPngUrl ? (
                     <img
                       src={modalPngUrl}
                       alt="Certificate of Authenticity"
                       style={{
-                        transform: `scale(${imgZoom})`,
+                        transform: `translate(${imgPan.x}px, ${imgPan.y}px) scale(${imgZoom})`,
                         transformOrigin: "center center",
-                        transition: "transform 0.2s ease",
+                        transition: panRef.current.dragging ? "none" : "transform 0.2s ease",
                         maxWidth: "100%",
                         maxHeight: "100%",
                         objectFit: "contain",
                         display: "block",
                         userSelect: "none",
+                        pointerEvents: "none",
                       }}
                       draggable={false}
                     />
@@ -1067,31 +1073,39 @@ const CertificatesofAuthenticity = ({
                   )}
                 </div>
 
-                {/* Zoom controls — outside the image container so they are never clipped */}
+                {/* Zoom controls */}
                 {modalPngUrl && (
-                  <div className="flex-shrink-0 bg-gray-100 flex items-center justify-end px-3 py-2 gap-2 border-t border-gray-200">
+                  <div className="flex-shrink-0 bg-white border-t border-gray-200 flex items-center justify-center gap-5 px-4 py-3">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setImgZoom((z) => Math.max(z - 0.25, 0.25));
+                        setImgZoom((z) => {
+                          const next = Math.max(z - 0.25, 0.25);
+                          if (next <= 1) setImgPan({ x: 0, y: 0 });
+                          return next;
+                        });
                       }}
-                      className="w-8 h-8 rounded-full bg-white border border-gray-300 shadow flex items-center justify-center text-primary hover:bg-gray-50 active:scale-95 transition-all"
+                      className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all"
                       aria-label="Zoom out"
+                      style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: "#3C1F1B" }}
                     >
-                      <span className="text-2xl">-</span>
+                      −
                     </button>
-
+                    <span className="text-base font-semibold text-gray-600 w-14 text-center select-none">
+                      {Math.round(imgZoom * 100)}%
+                    </span>
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setImgZoom((z) => Math.min(z + 0.25, 4));
                       }}
-                      className="w-8 h-8 rounded-full bg-white border border-gray-300 shadow flex items-center justify-center text-primary hover:bg-gray-50 active:scale-95 transition-all"
+                      className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center hover:bg-gray-200 active:scale-95 transition-all"
                       aria-label="Zoom in"
+                      style={{ fontSize: 28, fontWeight: 700, lineHeight: 1, color: "#3C1F1B" }}
                     >
-                      <span className="text-2xl">+</span>
+                      +
                     </button>
                   </div>
                 )}
@@ -1270,7 +1284,7 @@ const CertificatesofAuthenticity = ({
                         onClick={() =>
                           handleDownload(modalPdfUrl, "certificate.pdf")
                         }
-                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-primary rounded-lg hover:opacity-90 transition-colors"
+                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <FiDownload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         PDF
