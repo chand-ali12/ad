@@ -1362,10 +1362,7 @@ const CertificatesofAuthenticity = ({
 
                 {/* Download / Action Buttons */}
                 <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t-0 sm:border-t border-gray-200 bg-white flex-shrink-0">
-                  <div className="flex items-center gap-2 sm:gap-3 justify-end">
-                    <span className="text-xs sm:text-sm text-gray-500 mr-auto hidden xs:block">
-                      Download as:
-                    </span>
+                  <div className="flex items-center gap-2 sm:gap-3 justify-start">
                     {modalPngUrl && (
                       <button
                         type="button"
