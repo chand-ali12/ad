@@ -1450,7 +1450,7 @@ const CertificatesofAuthenticity = ({
                     {modalDescription && (
                       <p className="text-xs text-gray-700">
                         <span className="font-semibold text-primary">
-                          Description:
+                          Note:
                         </span>{" "}
                         <span className="text-gray-800 whitespace-pre-wrap break-words">
                           {modalDescription}

@@ -1257,26 +1257,23 @@ const Header = ({
                   </Link>
                 )}
 
-                {/* Bottom CTA (mobile) */}
-                <button
-                  onClick={() => {
-                    if (isAuthenticated) {
+                {/* Bottom CTA (mobile drawer): Sign Out only — guests use header Sign In / Sign Up */}
+                {isAuthenticated && (
+                  <button
+                    type="button"
+                    onClick={() => {
                       handleLogout();
-                    } else if (onSignUpClick) {
-                      onSignUpClick();
-                    } else {
-                      navigate("/authentication");
-                    }
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="w-full mt-2 py-3.5 text-sm sm:text-base font-semibold text-center rounded-lg bg-[#3C1F1B] text-white hover:opacity-95 transition-colors"
-                  style={{
-                    fontFamily: "Montserrat, sans-serif",
-                    fontWeight: 600,
-                  }}
-                >
-                  {isAuthenticated ? "Sign Out" : combinedAuthCtaLabel}
-                </button>
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full mt-2 py-3.5 text-sm sm:text-base font-semibold text-center rounded-lg bg-[#3C1F1B] text-white hover:opacity-95 transition-colors"
+                    style={{
+                      fontFamily: "Montserrat, sans-serif",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                )}
               </div>
             </div>
             <div
