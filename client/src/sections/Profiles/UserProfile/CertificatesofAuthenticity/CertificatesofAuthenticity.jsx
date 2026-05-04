@@ -98,6 +98,58 @@ const getCompletedThumbnailUrl = (cert) => {
   return `${base}/${folder}/${thumbnailFile}`;
 };
 
+const sanitizeCertificateDownloadSegment = (value) => {
+  if (value == null) return "";
+  let s = String(value).trim();
+  if (!s) return "";
+  s = s.replace(/[/\\:*?"<>|\u0000-\u001F]+/g, "_");
+  s = s.replace(/\s+/g, "_");
+  s = s.replace(/_+/g, "_").replace(/^_|_$/g, "");
+  return s.slice(0, 80);
+};
+
+/** Download filename stem: COA + brand + model (item name) + order when available. */
+const getCertificateDownloadBasename = (cert) => {
+  if (!cert) return "COA-certificate";
+  const aq = cert.authenticate_query;
+  const brand =
+    aq?.brand ??
+    cert.brands?.brand ??
+    cert.brands?.[0]?.brand ??
+    cert.brands?.[0]?.name ??
+    cert.brand ??
+    cert.brand_name ??
+    "";
+  const model =
+    aq?.model ??
+    cert.query_detail?.model ??
+    cert.certificate?.model ??
+    cert.model ??
+    "";
+  const order =
+    aq?.order_number ??
+    cert.certificate_id ??
+    cert.coa_number ??
+    cert.order_number ??
+    cert.order ??
+    cert.order_id ??
+    "";
+
+  const parts = [
+    sanitizeCertificateDownloadSegment(brand),
+    sanitizeCertificateDownloadSegment(model),
+    sanitizeCertificateDownloadSegment(order),
+  ].filter(Boolean);
+
+  let base =
+    parts.length > 0 ? ["COA", ...parts].join("-") : "COA-certificate";
+  const maxLen = 150;
+  if (base.length > maxLen) {
+    base = base.slice(0, maxLen).replace(/-+$/u, "") || "COA-certificate";
+  }
+  return base;
+};
+
 // First image from request_images, attribute_images, or images (like old site getPendingThumbnailUrl). Uses MEDIA_BASE_URL so you can set VITE_MEDIA_BASE_URL to S3 (e.g. https://auth-detect.s3.amazonaws.com) if images 404 from IMAGE_BASE_URL.
 const getPendingImageUrl = (cert) => {
   const req =
@@ -544,6 +596,36 @@ const CertificatesofAuthenticity = ({
         : "other";
     setDownloadBusyType(busyKey);
     const isPng = busyKey === "png";
+
+    const ua =
+      typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isIos =
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod/i.test(navigator.userAgent ?? "") ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+    // iOS Safari usually allows blob downloads after fetch; WKWebView-wrapped browsers
+    // (Chrome, Firefox, Edge, Opera on iOS) often block programmatic <a download> on
+    // blob URLs once the gesture is interrupted by async. Open the HTTPS PDF directly instead.
+    const isIosThirdPartyBrowser =
+      isIos && /(?:CriOS|FxiOS|EdgiOS|OPiOS)\//.test(ua);
+
+    if (busyKey === "pdf" && isIosThirdPartyBrowser && /^https?:\/\//i.test(url)) {
+      try {
+        const opener = document.createElement("a");
+        opener.href = url;
+        opener.target = "_blank";
+        opener.rel = "noopener noreferrer";
+        opener.style.display = "none";
+        document.body.appendChild(opener);
+        opener.click();
+        document.body.removeChild(opener);
+        showDownloadToast("Opened PDF — Share (⊕), then Save to Files");
+      } finally {
+        setDownloadBusyType(null);
+      }
+      return;
+    }
+
     try {
       // 1st attempt: fetch as blob (works when S3 CORS is configured for this path)
       const response = await fetch(url, { mode: "cors", credentials: "omit" });
@@ -737,6 +819,9 @@ const CertificatesofAuthenticity = ({
               const pdfUrl = !isPendingLike
                 ? getCertificatePdfUrl(certificate)
                 : null;
+              // Same PNG as modal mobile view; avoids <embed PDF> which iOS/Android replace with URL + "Open"
+              const pdfThumbnailPreview =
+                pdfUrl != null ? getCompletedThumbnailUrl(certificate) : null;
               const thumbnailUrl =
                 activeTab === "Completed" &&
                 getCompletedThumbnailUrl(certificate)
@@ -806,8 +891,29 @@ const CertificatesofAuthenticity = ({
                       <>
                         {pdfUrl ? (
                           <div className="relative w-full h-full">
-                            <PDFViewer_ProfileSection pdfUrl={pdfUrl} />
-                            {/* Transparent overlay sits on top of the <embed> to capture pointer events */}
+                            {pdfThumbnailPreview ? (
+                              <img
+                                src={pdfThumbnailPreview}
+                                alt="Certificate of Authenticity"
+                                className="sm:hidden w-full max-h-full object-contain mx-auto select-none pointer-events-none"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="sm:hidden absolute inset-0 flex flex-col items-center justify-center bg-white px-3">
+                                <img
+                                  src={certificateImage}
+                                  alt=""
+                                  className="w-24 object-contain opacity-80 mb-2"
+                                />
+                                <p className="text-xs text-center text-gray-500">
+                                  Tap to view certificate
+                                </p>
+                              </div>
+                            )}
+                            <div className="hidden sm:block absolute inset-0 w-full h-full">
+                              <PDFViewer_ProfileSection pdfUrl={pdfUrl} />
+                            </div>
+                            {/* Transparent overlay sits on top of the preview to capture pointer events */}
                             <div
                               className="absolute inset-0 cursor-pointer group flex items-end justify-center pb-4 hover:bg-black/10 transition-colors"
                               onClick={() => {
@@ -1079,6 +1185,8 @@ const CertificatesofAuthenticity = ({
             : null;
           const modalResult = getCertificateResult(pdfModalCert);
           const modalResultColor = getResultBadgeColor(modalResult);
+          const modalDownloadBasename =
+            getCertificateDownloadBasename(pdfModalCert);
           return (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center sm:bg-black/70 sm:p-5"
@@ -1446,7 +1554,10 @@ const CertificatesofAuthenticity = ({
                         type="button"
                         disabled={downloadBusyType !== null}
                         onClick={() =>
-                          handleDownload(modalPngUrl, "certificate.png")
+                          handleDownload(
+                            modalPngUrl,
+                            `${modalDownloadBasename}.png`,
+                          )
                         }
                         className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
@@ -1463,7 +1574,10 @@ const CertificatesofAuthenticity = ({
                         type="button"
                         disabled={downloadBusyType !== null}
                         onClick={() =>
-                          handleDownload(modalPdfUrl, "certificate.pdf")
+                          handleDownload(
+                            modalPdfUrl,
+                            `${modalDownloadBasename}.pdf`,
+                          )
                         }
                         className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
