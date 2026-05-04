@@ -1177,6 +1177,16 @@ const CertificatesofAuthenticity = ({
             rawModalDescription.trim()
               ? rawModalDescription.trim()
               : null;
+          const rawModalNote =
+            pdfModalCert.certificate?.note ??
+            pdfModalCert.note ??
+            aqModal?.note ??
+            pdfModalCert.query_detail?.note ??
+            null;
+          const modalNote =
+            typeof rawModalNote === "string" && rawModalNote.trim()
+              ? rawModalNote.trim()
+              : null;
           const modalModel =
             aqModal?.model ??
             pdfModalCert.query_detail?.model ??
@@ -1450,10 +1460,20 @@ const CertificatesofAuthenticity = ({
                     {modalDescription && (
                       <p className="text-xs text-gray-700">
                         <span className="font-semibold text-primary">
-                          Note:
+                          Description:
                         </span>{" "}
                         <span className="text-gray-800 whitespace-pre-wrap break-words">
                           {modalDescription}
+                        </span>
+                      </p>
+                    )}
+                    {modalNote && (
+                      <p className="text-xs text-gray-700">
+                        <span className="font-semibold text-primary">
+                          Note:
+                        </span>{" "}
+                        <span className="text-gray-800 whitespace-pre-wrap break-words">
+                          {modalNote}
                         </span>
                       </p>
                     )}
