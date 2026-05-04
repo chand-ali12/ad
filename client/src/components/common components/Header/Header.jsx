@@ -59,9 +59,22 @@ const Header = ({
   const { business } = useAppSelector((state) => state.business);
   const isAuthenticated = Boolean(token || user?.id);
   const hasBusinessAccount = Boolean(user?.user_business?.length > 0);
-  // Business branding when linked business exists and profile is loaded (no API mode toggle).
-  const showBusinessBranding = hasBusinessAccount && Boolean(business?.id);
-  const authCtaText = signUpText === "Sign Up" ? "Sign In" : signUpText;
+  const primaryBusiness = user?.user_business?.[0] ?? null;
+  /** Business photo filename: prefer Redux slice after getBusinessProfile when IDs match login payload. */
+  const businessProfilePictureKey = (() => {
+    if (!hasBusinessAccount || !primaryBusiness) return null;
+    const fromReduxSameBusiness =
+      business?.id != null &&
+      primaryBusiness?.id != null &&
+      String(business.id) === String(primaryBusiness.id)
+        ? business.business_profile_picture
+        : null;
+    return (
+      fromReduxSameBusiness ?? primaryBusiness.business_profile_picture ?? null
+    );
+  })();
+  /** Single control for guests — always show both options in one button (parent may pass legacy signUpText; label is fixed). */
+  const combinedAuthCtaLabel = "Sign In / Sign Up";
 
   // Resolve commonly used navigation items for predictable mobile ordering.
   const homeLink = navLinks.find((l) => l.path === "/");
@@ -84,18 +97,23 @@ const Header = ({
   );
   const pricingLink = featureLinks.find((l) => l.path === "/prices");
 
-  // Business avatar when account has a linked business and profile payload is loaded (no API mode toggle).
-  const isBusinessProfile = showBusinessBranding;
-  const avatarSrc = isBusinessProfile
-    ? getBusinessProfileImageUrl(business?.business_profile_picture)
-    : getProfileImageUrl(
-        profileUser?.profile_picture ||
-          profileState?.profileImage ||
-          user?.profile_picture ||
-          null,
-      );
+  const userAvatarSrc = getProfileImageUrl(
+    profileUser?.profile_picture ||
+      profileState?.profileImage ||
+      user?.profile_picture ||
+      null,
+  );
+  const businessAvatarSrc =
+    getBusinessProfileImageUrl(businessProfilePictureKey);
+  const avatarSrc = hasBusinessAccount
+    ? businessAvatarSrc || userAvatarSrc
+    : userAvatarSrc;
   const [brokenAvatarSrc, setBrokenAvatarSrc] = useState(null);
   const showAvatarImg = Boolean(avatarSrc) && brokenAvatarSrc !== avatarSrc;
+
+  useEffect(() => {
+    setBrokenAvatarSrc(null);
+  }, [avatarSrc]);
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -545,23 +563,23 @@ const Header = ({
               return null;
             })}
 
-            {/* Desktop Sign In CTA (placed after Blog button in right actions) */}
+            {/* Desktop: Sign In / Sign Up — one control */}
             {!isAuthenticated && (
               <button
+                type="button"
                 onClick={() =>
                   onSignUpClick ? onSignUpClick() : navigate("/authentication")
                 }
-                className={`hidden xl:flex items-center justify-center border border-[#3C1F1B] bg-[#3C1F1B] text-white hover:opacity-95 transition-colors whitespace-nowrap min-w-[70px] xl:min-w-0 xl:w-[90px] min-[1500px]:w-[100px] min-[1500px]:px-3 xl:px-2 text-sm min-[1500px]:text-lg ${buttonClassName}`}
+                className={`hidden xl:flex items-center justify-center border border-[#3C1F1B] bg-[#3C1F1B] text-white hover:opacity-95 transition-colors whitespace-nowrap px-3 min-[1500px]:px-4 xl:min-w-[168px] min-[1500px]:min-w-[184px] text-xs xl:text-sm min-[1500px]:text-base ${buttonClassName}`}
                 style={{
                   height: "36px",
                   borderRadius: "6px",
-                  paddingLeft: "8px",
-                  paddingRight: "8px",
                   fontFamily: "Montserrat, sans-serif",
-                  fontWeight: 400,
+                  fontWeight: 500,
                 }}
+                aria-label="Sign in or sign up"
               >
-                {authCtaText}
+                {combinedAuthCtaLabel}
               </button>
             )}
 
@@ -951,6 +969,25 @@ const Header = ({
               </div>
             )}
 
+            {/* Tablet/mobile: Sign In / Sign Up — visible in header bar next to menu */}
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={() =>
+                  onSignUpClick ? onSignUpClick() : navigate("/authentication")
+                }
+                className="xl:hidden flex items-center justify-center shrink-0 border border-[#3C1F1B] bg-[#3C1F1B] text-white hover:opacity-95 transition-colors text-[10px] sm:text-xs md:text-sm px-2 sm:px-2.5 whitespace-nowrap rounded-md"
+                style={{
+                  minHeight: "34px",
+                  fontFamily: "Montserrat, sans-serif",
+                  fontWeight: 500,
+                }}
+                aria-label="Sign in or sign up"
+              >
+                {combinedAuthCtaLabel}
+              </button>
+            )}
+
             {/* Menu Toggle (drawer) - shown below xl so 1024 uses drawer like mobile */}
             <button
               onClick={toggleMobileMenu}
@@ -1238,7 +1275,7 @@ const Header = ({
                     fontWeight: 600,
                   }}
                 >
-                  {isAuthenticated ? "Sign Out" : authCtaText}
+                  {isAuthenticated ? "Sign Out" : combinedAuthCtaLabel}
                 </button>
               </div>
             </div>

@@ -7,7 +7,7 @@ import {
   verifyCoupon,
   clearCoupon,
   getAuthCheckoutBraintreeToken,
-  setError,
+  setError as setCheckoutError,
   getAuthenticityCardPricing,
   submitBraintreeAuthCards,
   submitBraintreeCheckout,
@@ -125,7 +125,7 @@ const Checkout = () => {
     reset,
     getValues,
     setValue,
-    setError,
+    setError: setFormError,
     clearErrors,
   } = useForm({
     shouldFocusError: true,
@@ -188,6 +188,32 @@ const Checkout = () => {
     window.setTimeout(() => {
       setToastMessage("");
     }, duration);
+  };
+
+  /** Required for paid (Braintree) and $0 coupon checkout; sets field errors + toast if missing. */
+  const validateCheckoutCustomerNames = () => {
+    clearErrors(["firstName", "lastName"]);
+    const first = (getValues("firstName") || "").trim();
+    const last = (getValues("lastName") || "").trim();
+    let valid = true;
+    if (!first) {
+      setFormError("firstName", {
+        type: "required",
+        message: "First name is required",
+      });
+      valid = false;
+    }
+    if (!last) {
+      setFormError("lastName", {
+        type: "required",
+        message: "Last name is required",
+      });
+      valid = false;
+    }
+    if (!valid) {
+      window.scrollTo?.({ top: 0, behavior: "smooth" });
+    }
+    return valid;
   };
 
   const rawIds =
@@ -322,7 +348,7 @@ const Checkout = () => {
     if (checkoutType === "valuation") return;
     if (!certificateIds?.length) {
       dispatch(
-        setError(
+        setCheckoutError(
           "No certificates to checkout. Please add items from the Authentication page.",
         ),
       );
@@ -383,7 +409,7 @@ const Checkout = () => {
         ? 'Payment could not be prepared. Please start from the Authentication page, submit your item(s), and use "Proceed to checkout" from there.'
         : msg;
       console.error("Checkout failed:", msg);
-      dispatch(setError(friendlyMsg));
+      dispatch(setCheckoutError(friendlyMsg));
     }
   };
 
@@ -461,7 +487,7 @@ const Checkout = () => {
             if (err) {
               console.error("Braintree error:", err);
               dispatch(
-                setError(err?.message || "Payment form could not load."),
+                setCheckoutError(err?.message || "Payment form could not load."),
               );
               return;
             }
@@ -514,7 +540,7 @@ const Checkout = () => {
       })
       .catch((err) => {
         console.error("Braintree script failed:", err);
-        dispatch(setError("Payment form could not load."));
+        dispatch(setCheckoutError("Payment form could not load."));
       });
     return () => {
       if (instance && instance.clearSelectedPaymentMethod) {
@@ -527,31 +553,8 @@ const Checkout = () => {
 
   const onBraintreeSubmit = async (e) => {
     e.preventDefault();
-    clearErrors(["firstName", "lastName"]);
     setSafePaymentMethodError("");
-
-    // Validate name fields
-    const first = (getValues("firstName") || "").trim();
-    const last = (getValues("lastName") || "").trim();
-    let hasNameError = false;
-    if (!first) {
-      setError("firstName", {
-        type: "required",
-        message: "First name is required",
-      });
-      hasNameError = true;
-    }
-    if (!last) {
-      setError("lastName", {
-        type: "required",
-        message: "Last name is required",
-      });
-      hasNameError = true;
-    }
-    if (hasNameError) {
-      window.scrollTo?.({ top: 0, behavior: "smooth" });
-      return;
-    }
+    if (!validateCheckoutCustomerNames()) return;
 
     if (!braintreeInstance || !braintreePayload) return;
 
@@ -601,7 +604,7 @@ const Checkout = () => {
       (encryptValue == null || encryptValue === "")
     ) {
       dispatch(
-        setError(
+        setCheckoutError(
           "Payment session expired. Please fill the form and click Complete Order again.",
         ),
       );
@@ -729,7 +732,7 @@ const Checkout = () => {
         return;
       }
 
-      dispatch(setError(message));
+      dispatch(setCheckoutError(message));
     }
   };
 
@@ -754,6 +757,7 @@ const Checkout = () => {
   // or /ad/free-submit (bulk) instead of going through Braintree.
   const handleFreeCheckout = async () => {
     if (!cartItems.length) return;
+    if (!validateCheckoutCustomerNames()) return;
     const couponCode = getValues("promoCode")?.trim() || undefined;
 
     try {
@@ -765,6 +769,8 @@ const Checkout = () => {
           user?.user_email?.trim() ||
           "";
         const brandIdNum = Number(item.brand_id) || item.brand_id;
+        const firstNameVal = (getValues("firstName") || "").trim();
+        const lastNameVal = (getValues("lastName") || "").trim();
         const payload = {
           brand_name: brandIdNum,
           category_id: item.category_id,
@@ -774,6 +780,8 @@ const Checkout = () => {
           email: itemEmail,
           emailc: itemEmail,
           user_email: itemEmail,
+          first_name: firstNameVal,
+          last_name: lastNameVal,
           valuation: item.valuation ?? 0,
           uploadedImages: Array.isArray(item.imagePaths)
             ? item.imagePaths.join(",")
@@ -851,7 +859,7 @@ const Checkout = () => {
         err?.response?.data?.msg ||
         err?.response?.data?.message ||
         "Order submission failed. Please try again.";
-      dispatch(setError(message));
+      dispatch(setCheckoutError(message));
     }
   };
 
