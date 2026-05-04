@@ -1166,6 +1166,17 @@ const CertificatesofAuthenticity = ({
             pdfModalCert.order ??
             pdfModalCert.order_id ??
             null;
+          const rawModalDescription =
+            pdfModalCert.certificate?.description ??
+            pdfModalCert.description ??
+            aqModal?.description ??
+            pdfModalCert.query_detail?.description ??
+            null;
+          const modalDescription =
+            typeof rawModalDescription === "string" &&
+            rawModalDescription.trim()
+              ? rawModalDescription.trim()
+              : null;
           const modalModel =
             aqModal?.model ??
             pdfModalCert.query_detail?.model ??
@@ -1434,6 +1445,16 @@ const CertificatesofAuthenticity = ({
                           Order:
                         </span>{" "}
                         {modalOrder}
+                      </p>
+                    )}
+                    {modalDescription && (
+                      <p className="text-xs text-gray-700">
+                        <span className="font-semibold text-primary">
+                          Description:
+                        </span>{" "}
+                        <span className="text-gray-800 whitespace-pre-wrap break-words">
+                          {modalDescription}
+                        </span>
                       </p>
                     )}
                   </div>
