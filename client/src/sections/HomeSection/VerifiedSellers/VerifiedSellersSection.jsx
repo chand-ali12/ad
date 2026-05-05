@@ -99,12 +99,12 @@ const VerifiedSellersSection = ({
                   onClick={() => swiperRef.current?.slidePrev()}
                   disabled={atStart}
                   aria-label="Previous sellers"
-                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
+                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full border shadow-md inline-flex items-center justify-center shrink-0 p-0 touch-manipulation focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
                     atStart ? "carousel-nav-disabled" : "carousel-nav-active"
                   }`}
                 >
                   <FiChevronLeft
-                    className="w-8 h-8 md:w-10 md:h-10"
+                    className="w-8 h-8 md:w-10 md:h-10 shrink-0"
                     aria-hidden
                   />
                 </button>
@@ -114,12 +114,12 @@ const VerifiedSellersSection = ({
                   onClick={() => swiperRef.current?.slideNext()}
                   disabled={atEnd}
                   aria-label="Next sellers"
-                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full border shadow-md inline-flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
+                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full border shadow-md inline-flex items-center justify-center shrink-0 p-0 touch-manipulation focus:outline-none focus:ring-2 focus:ring-secondary/50 transition-colors ${
                     atEnd ? "carousel-nav-disabled" : "carousel-nav-active"
                   }`}
                 >
                   <FiChevronRight
-                    className="w-8 h-8 md:w-10 md:h-10"
+                    className="w-8 h-8 md:w-10 md:h-10 shrink-0"
                     aria-hidden
                   />
                 </button>

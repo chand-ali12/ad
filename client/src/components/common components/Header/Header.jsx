@@ -119,8 +119,15 @@ const Header = ({
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  /** Close the hamburger drawer when opening the profile menu (common mobile UX). */
+  const handleMobileProfileButtonClick = () => {
+    setIsMobileMenuOpen(false);
+    setIsProfileMenuOpen((prev) => !prev);
+  };
+
   const handleMenuClick = (path) => {
     setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
     if (path) {
       if (path === "/profile" && typeof onProfileClick === "function") {
         onProfileClick();
@@ -131,6 +138,7 @@ const Header = ({
 
   const handleLogout = () => {
     setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
     dispatch(logout());
     dispatch(logoutUser());
     window.location.href = "/";
@@ -803,7 +811,7 @@ const Header = ({
                   }}
                   aria-label="User Profile"
                   aria-expanded={isProfileMenuOpen}
-                  onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                  onClick={handleMobileProfileButtonClick}
                 >
                   {showAvatarImg ? (
                     <img

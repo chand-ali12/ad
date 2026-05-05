@@ -21,6 +21,9 @@ import {
   roomExistsForOrder,
   getRoomInfo,
   updateRoomStatus,
+  syncExpeditedParticipantRecents,
+  reconcileExpeditedThreadParticipants,
+  provisionExpeditedRoomBeforeFirstMessage,
 } from "../../services/expeditedChatService";
 
 function initials(name) {
@@ -36,51 +39,61 @@ function initials(name) {
 function formatTime(date) {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
   const now = new Date();
   const diff = now - d;
   if (diff < 60000) return "Just now";
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (
-    d.getDate() === now.getDate() &&
-    d.getMonth() === now.getMonth() &&
-    d.getFullYear() === now.getFullYear()
-  ) {
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  });
 }
 
+/** Time-of-day only (UTC clock), next to each message — no date. */
 function formatFullTime(date) {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleTimeString("en-US", {
-    hour: "numeric",
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false,
+    timeZone: "UTC",
   });
 }
 
 function formatDayLabel(date) {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  if (target.getTime() === today.getTime()) return "Today";
-  if (target.getTime() === yesterday.getTime()) return "Yesterday";
+  const todayUtc = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+  const yestUtc = todayUtc - 86400000;
+  const targetUtc = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+  );
+  if (targetUtc === todayUtc) return "Today";
+  if (targetUtc === yestUtc) return "Yesterday";
   return d.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+    weekday: "long",
+    timeZone: "UTC",
   });
 }
 
 function dayKey(date) {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
 }
 
 // --------------- Create Room Modal ---------------
@@ -236,6 +249,9 @@ export default function ExpeditedChat() {
     user?.role === "authenticator" || user?.user_type === "authenticator";
 
   const roomFromUrl = searchParams.get("room");
+  const orderIdFromUrl = searchParams.get("orderId") || "";
+  const deferProvision = searchParams.get("deferProvision") === "1";
+  const deferProvisionActive = deferProvision && !isAuthenticator;
 
   const [rooms, setRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
@@ -299,19 +315,20 @@ export default function ExpeditedChat() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Subscribe to recents
+  // Subscribe to recents (Firestore path uses user email under ExpeditedRecent_Dev/Users)
   useEffect(() => {
-    if (!currentUserId) {
+    if (!currentUserEmail?.trim()) {
+      setRooms([]);
       setLoadingRooms(false);
       return;
     }
     setLoadingRooms(true);
-    const unsub = subscribeToRecents(currentUserId, (data) => {
+    const unsub = subscribeToRecents(currentUserEmail.trim(), (data) => {
       setRooms(data);
       setLoadingRooms(false);
     });
     return unsub;
-  }, [currentUserId]);
+  }, [currentUserEmail]);
 
   // Subscribe to messages when a room is selected
   useEffect(() => {
@@ -327,19 +344,84 @@ export default function ExpeditedChat() {
       setLoadingMessages(false);
     });
 
-    getRoomInfo(selectedRoomId).then((info) => setRoomInfo(info));
+    getRoomInfo(selectedRoomId, currentUserEmail.trim()).then((info) =>
+      setRoomInfo(info),
+    );
 
-    if (currentUserId) {
-      markAsSeen(currentUserId, selectedRoomId).catch(() => {});
+    if (currentUserEmail?.trim()) {
+      markAsSeen(currentUserEmail.trim(), selectedRoomId).catch(() => {});
     }
     return unsub;
-  }, [selectedRoomId, currentUserId]);
+  }, [selectedRoomId, currentUserEmail]);
+
+  useEffect(() => {
+    const email = currentUserEmail?.trim();
+    if (!selectedRoomId || !email) return;
+    syncExpeditedParticipantRecents({
+      firebaseChatId: selectedRoomId,
+      viewerEmail: email,
+      viewerRole: isAuthenticator ? "authenticator" : "client",
+      selfProfile: {
+        id: currentUserId,
+        name: currentUserName,
+        email,
+        image: currentUserImage || "",
+      },
+    }).catch((err) => {
+      console.warn("Expedited participant sync:", err);
+    });
+  }, [
+    selectedRoomId,
+    currentUserEmail,
+    currentUserId,
+    currentUserName,
+    currentUserImage,
+    isAuthenticator,
+  ]);
+
+  useEffect(() => {
+    if (!selectedRoomId || !currentUserEmail?.trim() || !messages.length)
+      return;
+    const t = setTimeout(() => {
+      reconcileExpeditedThreadParticipants({
+        firebaseChatId: selectedRoomId,
+        viewerEmail: currentUserEmail.trim(),
+        viewerRole: isAuthenticator ? "authenticator" : "client",
+        selfProfile: {
+          id: currentUserId,
+          name: currentUserName,
+          email: currentUserEmail.trim(),
+          image: currentUserImage || "",
+        },
+        recentMessages: messages,
+      }).catch((err) => {
+        console.warn("Expedited thread reconcile:", err);
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [
+    messages,
+    selectedRoomId,
+    currentUserEmail,
+    currentUserId,
+    currentUserName,
+    currentUserImage,
+    isAuthenticator,
+  ]);
 
   const selectRoom = useCallback(
     (roomId) => {
       setSelectedRoomId(roomId);
       if (roomId) {
-        setSearchParams({ room: roomId }, { replace: true });
+        setSearchParams(
+          (prev) => {
+            const p = new URLSearchParams(prev);
+            p.set("room", roomId);
+            p.delete("deferProvision");
+            return p;
+          },
+          { replace: true },
+        );
       } else {
         setSearchParams({}, { replace: true });
       }
@@ -399,7 +481,8 @@ export default function ExpeditedChat() {
     if (!search.trim()) return rooms;
     const q = search.toLowerCase();
     return rooms.filter((room) => {
-      const clientName = room.client_info?.name?.toLowerCase() || "";
+      const ci = room.clientInfo ?? room.client_info;
+      const clientName = ci?.name?.toLowerCase() || "";
       const orderId = room.orderId?.toLowerCase() || "";
       const authNames = (room.authenticators || [])
         .map((a) => a.name?.toLowerCase() || "")
@@ -410,59 +493,200 @@ export default function ExpeditedChat() {
     });
   }, [rooms, search]);
 
-  const selectedRoom = useMemo(
-    () => rooms.find((r) => r.roomId === selectedRoomId),
-    [rooms, selectedRoomId],
-  );
+  const selectedRoom = useMemo(() => {
+    const fromList = rooms.find((r) => r.roomId === selectedRoomId);
+    if (fromList) return fromList;
+    if (deferProvisionActive && (selectedRoomId || orderIdFromUrl)) {
+      const email = (currentUserEmail || "").trim();
+      return {
+        roomId: selectedRoomId || "",
+        firebaseChatId: selectedRoomId || "",
+        orderId: orderIdFromUrl || "",
+        authenticators: [],
+        clientInfo: {
+          id: currentUserId,
+          name: currentUserName,
+          image: currentUserImage || "",
+          email,
+        },
+        client_info: {
+          id: currentUserId,
+          name: currentUserName,
+          image: currentUserImage || "",
+          email,
+        },
+        status: "active",
+        last_message: "",
+        last_message_time: null,
+      };
+    }
+    return undefined;
+  }, [
+    rooms,
+    selectedRoomId,
+    deferProvisionActive,
+    orderIdFromUrl,
+    currentUserId,
+    currentUserName,
+    currentUserImage,
+    currentUserEmail,
+  ]);
+
+  const roomStatusDisplay = useMemo(() => {
+    return roomInfo?.status || selectedRoom?.status || "active";
+  }, [roomInfo?.status, selectedRoom?.status]);
 
   const otherParticipantName = useMemo(() => {
     if (!selectedRoom) return "";
-    if (isAuthenticator) return selectedRoom.client_info?.name || "Client";
+    const ci = selectedRoom.clientInfo ?? selectedRoom.client_info;
+    if (isAuthenticator) return ci?.name || "Client";
     return selectedRoom.authenticators?.[0]?.name || "Authenticator";
   }, [selectedRoom, isAuthenticator]);
 
   const otherParticipantImage = useMemo(() => {
     if (!selectedRoom) return "";
-    if (isAuthenticator) return selectedRoom.client_info?.image || "";
+    const ci = selectedRoom.clientInfo ?? selectedRoom.client_info;
+    if (isAuthenticator) return ci?.image || "";
     return selectedRoom.authenticators?.[0]?.image || "";
   }, [selectedRoom, isAuthenticator]);
 
-  // Get all participant IDs for the current room
-  const getParticipantIds = useCallback(() => {
+  /** Recents documents are keyed by participant email */
+  const getParticipantEmails = useCallback(() => {
     if (!selectedRoom) return [];
-    const ids = new Set();
-    if (selectedRoom.client_info?.id) ids.add(selectedRoom.client_info.id);
+    const seen = new Set();
+    const list = [];
+    const ci = selectedRoom.clientInfo ?? selectedRoom.client_info;
+    const ce = ci?.email?.trim();
+    if (ce) {
+      seen.add(ce.toLowerCase());
+      list.push({ email: ce });
+    }
     (selectedRoom.authenticators || []).forEach((a) => {
-      if (a.id) ids.add(a.id);
+      const e = a.email?.trim();
+      if (e && !seen.has(e.toLowerCase())) {
+        seen.add(e.toLowerCase());
+        list.push({ email: e });
+      }
     });
-    return [...ids];
+    return list;
   }, [selectedRoom]);
 
   const handleSend = async () => {
     const text = draft.trim();
     if (!text && !attachedFile) return;
-    if (!selectedRoomId || !currentUserId) return;
+    if (!currentUserId || !currentUserEmail?.trim()) {
+      console.error("Cannot send: user must be signed in with email.");
+      return;
+    }
+
+    const canSend =
+      selectedRoomId ||
+      (deferProvisionActive && orderIdFromUrl && !isAuthenticator);
+    if (!canSend) return;
 
     setSending(true);
     try {
+      let roomIdForSend = selectedRoomId;
+
+      if (deferProvisionActive) {
+        const clientInfo = {
+          id: currentUserId,
+          name: currentUserName,
+          image: currentUserImage || "",
+          email: currentUserEmail.trim(),
+        };
+        const oid =
+          orderIdFromUrl ||
+          selectedRoom?.orderId ||
+          "";
+        if (!oid) {
+          alert("Missing order for this chat.");
+          return;
+        }
+        roomIdForSend = await provisionExpeditedRoomBeforeFirstMessage({
+          firebaseChatId: selectedRoomId || "",
+          orderId: oid,
+          clientInfo,
+          authenticatorInfo: null,
+        });
+        setSelectedRoomId(roomIdForSend);
+        setSearchParams(
+          (prev) => {
+            const p = new URLSearchParams(prev);
+            p.set("room", roomIdForSend);
+            p.set("orderId", oid);
+            p.delete("deferProvision");
+            return p;
+          },
+          { replace: true },
+        );
+      }
+
+      if (!roomIdForSend) return;
+
       let mediaUrl = null;
       let isMedia = false;
 
       if (attachedFile) {
-        mediaUrl = await uploadChatMedia(selectedRoomId, attachedFile);
+        mediaUrl = await uploadChatMedia(roomIdForSend, attachedFile);
         isMedia = true;
       }
 
+      const participantEmailsList = (() => {
+        const out = [...getParticipantEmails()];
+        const seen = new Set(
+          out
+            .map((x) => (x.email || "").trim().toLowerCase())
+            .filter(Boolean),
+        );
+        const pushEmail = (raw) => {
+          const e = (raw || "").trim();
+          if (!e) return;
+          const k = e.toLowerCase();
+          if (seen.has(k)) return;
+          seen.add(k);
+          out.push({ email: e });
+        };
+        for (const a of selectedRoom?.authenticators || []) {
+          pushEmail(a?.email);
+        }
+        const ci = selectedRoom?.clientInfo ?? selectedRoom?.client_info;
+        pushEmail(ci?.email);
+        pushEmail(currentUserEmail);
+        for (const m of messages) {
+          if (m.type === "system" || String(m.senderId) === "system") continue;
+          pushEmail(m.senderEmail);
+        }
+        return out;
+      })();
+
       await sendMessage(
-        selectedRoomId,
+        roomIdForSend,
         {
           message: text || (isMedia ? "" : ""),
           senderId: currentUserId,
           senderEmail: currentUserEmail,
           is_media: isMedia,
           media_url: mediaUrl,
+          ...(isAuthenticator
+            ? {
+                authenticatorSelf: {
+                  id: currentUserId,
+                  name: currentUserName,
+                  image: currentUserImage || "",
+                  email: currentUserEmail.trim(),
+                },
+              }
+            : {
+                clientInfo: {
+                  id: currentUserId,
+                  name: currentUserName,
+                  image: currentUserImage || "",
+                  email: currentUserEmail.trim(),
+                },
+              }),
         },
-        getParticipantIds(),
+        participantEmailsList,
       );
 
       setDraft("");
@@ -485,18 +709,29 @@ export default function ExpeditedChat() {
   const handleCreateRoom = async ({ orderId, clientInfo }) => {
     setCreatingRoom(true);
     try {
-      const exists = await roomExistsForOrder(orderId);
+      const clientEmail = clientInfo.email?.trim();
+      if (!clientEmail) {
+        alert("Client email is required to create a chat.");
+        setCreatingRoom(false);
+        return;
+      }
+      const exists = await roomExistsForOrder(orderId, clientEmail);
       if (exists) {
         alert(`A chat room already exists for order #${orderId}`);
         setCreatingRoom(false);
         return;
       }
 
+      if (!currentUserEmail?.trim()) {
+        alert("Your account must have an email to create expedited chat.");
+        setCreatingRoom(false);
+        return;
+      }
       const authenticatorInfo = {
         id: currentUserId,
         name: currentUserName,
         image: currentUserImage,
-        email: currentUserEmail,
+        email: currentUserEmail.trim(),
       };
       const roomId = await createRoom(orderId, clientInfo, authenticatorInfo);
       setShowCreateModal(false);
@@ -515,8 +750,12 @@ export default function ExpeditedChat() {
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
   };
 
-  const showSidebar = isDesktop || !selectedRoomId;
-  const showConversation = isDesktop || !!selectedRoomId;
+  const conversationActive =
+    !!selectedRoomId ||
+    (!!deferProvisionActive && !!orderIdFromUrl);
+
+  const showSidebar = isDesktop || !conversationActive;
+  const showConversation = isDesktop || conversationActive;
 
   // --------------- RENDER ---------------
 
@@ -590,11 +829,12 @@ export default function ExpeditedChat() {
               )}
               {filteredRooms.map((room) => {
                 const isActive = room.roomId === selectedRoomId;
+                const ci = room.clientInfo ?? room.client_info;
                 const displayName = isAuthenticator
-                  ? room.client_info?.name || "Client"
+                  ? ci?.name || "Client"
                   : room.authenticators?.[0]?.name || "Authenticator";
                 const displayImage = isAuthenticator
-                  ? room.client_info?.image
+                  ? ci?.image
                   : room.authenticators?.[0]?.image;
 
                 return (
@@ -641,13 +881,12 @@ export default function ExpeditedChat() {
                         <p className="text-xs text-gray-500 truncate">
                           {room.last_message || "No messages yet"}
                         </p>
-                        {!room.is_seen && room.unreadCount > 0 && (
+                        {!room.is_seen && (
                           <span
-                            className="ml-2 flex-shrink-0 text-[10px] font-bold text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                            className="ml-2 flex-shrink-0 w-2 h-2 rounded-full flex-shrink-0"
                             style={{ background: "#3C1F1B" }}
-                          >
-                            {room.unreadCount > 99 ? "99+" : room.unreadCount}
-                          </span>
+                            title="Unread"
+                          />
                         )}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-0.5">
@@ -669,7 +908,7 @@ export default function ExpeditedChat() {
         {/* ---- Conversation Area ---- */}
         {showConversation && (
           <main className="flex flex-col flex-1 bg-[#F5F5F0] min-w-0 min-h-0 relative">
-            {!selectedRoomId ? (
+            {!conversationActive ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400">
                 <svg
                   className="w-16 h-16 mb-4 text-gray-300"
@@ -725,31 +964,31 @@ export default function ExpeditedChat() {
                     </p>
                     <p className="text-xs text-gray-500">
                       Order #{selectedRoom?.orderId}
-                      {roomInfo?.status && (
+                      {roomStatusDisplay && (
                         <span
                           className={`ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
-                            roomInfo.status === "active"
+                            roomStatusDisplay === "active"
                               ? "bg-green-100 text-green-700"
-                              : roomInfo.status === "resolved"
+                              : roomStatusDisplay === "resolved"
                                 ? "bg-blue-100 text-blue-700"
                                 : "bg-gray-200 text-gray-600"
                           }`}
                         >
-                          {roomInfo.status}
+                          {roomStatusDisplay}
                         </span>
                       )}
                     </p>
                   </div>
 
                   {/* Status controls for authenticator */}
-                  {isAuthenticator && roomInfo?.status === "active" && (
+                  {isAuthenticator && roomStatusDisplay === "active" && (
                     <button
                       onClick={async () => {
                         try {
                           await updateRoomStatus(
                             selectedRoomId,
                             "resolved",
-                            getParticipantIds(),
+                            getParticipantEmails(),
                           );
                           setRoomInfo((prev) =>
                             prev ? { ...prev, status: "resolved" } : prev,

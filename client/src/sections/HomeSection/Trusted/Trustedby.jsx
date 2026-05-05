@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Swiper, SwiperSlide } from "swiper/react";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import "swiper/css";
 import { SectionHeader, TestimonialCard } from "../../../components";
 
@@ -116,32 +117,28 @@ const TrustedBy = ({
             onClick={() => swiperRef.current?.slidePrev()}
             disabled={atStart}
             aria-label="Previous reviews"
-            className={`w-10 h-10 md:w-12 md:h-12 rounded-full border shadow-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors relative ${
+            className={`w-12 h-12 md:w-14 md:h-14 rounded-full border shadow-md inline-flex items-center justify-center shrink-0 p-0 touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors ${
               atStart ? "carousel-nav-disabled" : "carousel-nav-active"
             }`}
           >
-            <span
-              className="text-xl md:text-2xl leading-none text-center w-full h-full flex justify-center items-center"
+            <FiChevronLeft
+              className="w-8 h-8 md:w-10 md:h-10 shrink-0"
               aria-hidden
-            >
-              ‹
-            </span>
+            />
           </button>
           <button
             type="button"
             onClick={() => swiperRef.current?.slideNext()}
             disabled={atEnd}
             aria-label="Next reviews"
-            className={`w-10 h-10 md:w-12 md:h-12 rounded-full border shadow-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors relative ${
+            className={`w-12 h-12 md:w-14 md:h-14 rounded-full border shadow-md inline-flex items-center justify-center shrink-0 p-0 touch-manipulation focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors ${
               atEnd ? "carousel-nav-disabled" : "carousel-nav-active"
             }`}
           >
-            <span
-              className="text-xl md:text-2xl leading-none text-center w-full h-full flex justify-center items-center"
+            <FiChevronRight
+              className="w-8 h-8 md:w-10 md:h-10 shrink-0"
               aria-hidden
-            >
-              ›
-            </span>
+            />
           </button>
         </div>
       </div>

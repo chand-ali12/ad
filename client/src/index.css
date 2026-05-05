@@ -99,6 +99,10 @@ button.password-toggle:hover {
 .trusted-by-carousel-nav button,
 .verified-sellers-carousel-nav button {
   position: relative;
+  /* Global `button` uses em padding + 8px radius after Tailwind; that breaks circles and sizes vary by parent font-size (mobile vs section). */
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  -webkit-tap-highlight-color: transparent;
 }
 .trusted-by-carousel-nav,
 .verified-sellers-carousel-nav {
@@ -111,6 +115,11 @@ button.password-toggle:hover {
 .verified-sellers-carousel-nav button > span {
   display: block;
   line-height: 1;
+}
+.trusted-by-carousel-nav button svg,
+.verified-sellers-carousel-nav button svg {
+  display: block;
+  flex-shrink: 0;
 }
 .trusted-by-carousel-nav button {
   background-color: var(--color-secondary) !important;

@@ -25,7 +25,11 @@ export const MEDIA_BASE_URL =
 export const AUTHENTIC_DETECTIVE = env.VITE_AUTHENTIC_DETECTIVE || "";
 export const FORUM = env.VITE_FORUM || "";
 
-export const PROFILE_IMAGE_BASE_URL = 'https://auth-detect.s3.amazonaws.com/usersProfile/';
+export const PROFILE_IMAGE_BASE_URL =
+  "https://auth-detect.s3.amazonaws.com/usersProfile/";
+
+const databaseURL = (env.VITE_FIREBASE_DATABASE_URL || "").trim();
+const measurementId = (env.VITE_FIREBASE_MEASUREMENT_ID || "").trim();
 
 export const FIREBASE_CONFIG = {
   apiKey: env.VITE_FIREBASE_API_KEY,
@@ -34,4 +38,6 @@ export const FIREBASE_CONFIG = {
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: env.VITE_FIREBASE_APP_ID,
+  ...(databaseURL ? { databaseURL } : {}),
+  ...(measurementId ? { measurementId } : {}),
 };

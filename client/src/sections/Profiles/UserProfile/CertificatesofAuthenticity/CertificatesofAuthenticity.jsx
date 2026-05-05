@@ -141,8 +141,7 @@ const getCertificateDownloadBasename = (cert) => {
     sanitizeCertificateDownloadSegment(order),
   ].filter(Boolean);
 
-  let base =
-    parts.length > 0 ? ["COA", ...parts].join("-") : "COA-certificate";
+  let base = parts.length > 0 ? ["COA", ...parts].join("-") : "COA-certificate";
   const maxLen = 150;
   if (base.length > maxLen) {
     base = base.slice(0, maxLen).replace(/-+$/u, "") || "COA-certificate";
@@ -320,6 +319,16 @@ const CertificatesofAuthenticity = ({
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPaddingRight;
     };
+  }, [pdfModalCert]);
+
+  // Mobile modal: clear stuck "loading" if onLoad never runs; reset when modal closes.
+  useEffect(() => {
+    if (!pdfModalCert) {
+      setImgLoading(false);
+      return;
+    }
+    const failSafe = window.setTimeout(() => setImgLoading(false), 12000);
+    return () => window.clearTimeout(failSafe);
   }, [pdfModalCert]);
 
   // Filter & Sort panel (like old website)
@@ -595,59 +604,60 @@ const CertificatesofAuthenticity = ({
         ? "pdf"
         : "other";
     setDownloadBusyType(busyKey);
-    const isPng = busyKey === "png";
 
-    const ua =
-      typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    const isIos =
-      typeof navigator !== "undefined" &&
-      (/iPad|iPhone|iPod/i.test(navigator.userAgent ?? "") ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
-    // iOS Safari usually allows blob downloads after fetch; WKWebView-wrapped browsers
-    // (Chrome, Firefox, Edge, Opera on iOS) often block programmatic <a download> on
-    // blob URLs once the gesture is interrupted by async. Open the HTTPS PDF directly instead.
-    const isIosThirdPartyBrowser =
-      isIos && /(?:CriOS|FxiOS|EdgiOS|OPiOS)\//.test(ua);
-
-    if (busyKey === "pdf" && isIosThirdPartyBrowser && /^https?:\/\//i.test(url)) {
-      try {
-        const opener = document.createElement("a");
-        opener.href = url;
-        opener.target = "_blank";
-        opener.rel = "noopener noreferrer";
-        opener.style.display = "none";
-        document.body.appendChild(opener);
-        opener.click();
-        document.body.removeChild(opener);
-        showDownloadToast("Opened PDF — Share (⊕), then Save to Files");
-      } finally {
-        setDownloadBusyType(null);
-      }
-      return;
-    }
-
-    try {
-      // 1st attempt: fetch as blob (works when S3 CORS is configured for this path)
-      const response = await fetch(url, { mode: "cors", credentials: "omit" });
-      if (!response.ok) throw new Error("Fetch failed");
-      const blob = await response.blob();
-      const forcedBlob = new Blob([blob], { type: "application/octet-stream" });
+    const triggerBlobDownload = (blob) => {
+      const forcedBlob = new Blob([blob], {
+        type: "application/octet-stream",
+      });
       const blobUrl = URL.createObjectURL(forcedBlob);
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = filename;
-      a.style.display = "none";
+      a.setAttribute("download", filename);
+      a.rel = "noopener";
+      /* display:none breaks programmatic save in some browsers (e.g. Safari) */
+      a.style.position = "fixed";
+      a.style.left = "-10000px";
+      a.style.top = "0";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
       showDownloadToast("Downloaded!");
+    };
+
+    const loadBlobViaFetch = async () => {
+      const response = await fetch(url, {
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-cache",
+        redirect: "follow",
+      });
+      if (!response.ok) throw new Error("Fetch failed");
+      return response.blob();
+    };
+
+    const loadBlobViaXhr = () =>
+      new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.responseType = "blob";
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+          else reject(new Error("XHR failed"));
+        };
+        xhr.onerror = () => reject(new Error("XHR network error"));
+        xhr.send();
+      });
+
+    try {
+      const blob = await loadBlobViaFetch();
+      triggerBlobDownload(blob);
     } catch {
-      if (isPng) {
-        // PNG CORS not yet configured on S3 — open in new tab so user can long-press / right-click save
-        window.open(url, "_blank", "noopener,noreferrer");
-        showDownloadToast("Opened in new tab — right-click to save");
-      } else {
+      try {
+        const blob = await loadBlobViaXhr();
+        triggerBlobDownload(blob);
+      } catch {
         showDownloadToast("Download failed. Try again.");
       }
     } finally {
@@ -897,6 +907,10 @@ const CertificatesofAuthenticity = ({
                                 alt="Certificate of Authenticity"
                                 className="sm:hidden w-full max-h-full object-contain mx-auto select-none pointer-events-none"
                                 draggable={false}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = certificateImage;
+                                }}
                               />
                             ) : (
                               <div className="sm:hidden absolute inset-0 flex flex-col items-center justify-center bg-white px-3">
@@ -1319,7 +1333,6 @@ const CertificatesofAuthenticity = ({
                       ref={imgRef}
                       src={modalPngUrl}
                       alt="Certificate of Authenticity"
-                      crossOrigin="anonymous"
                       onLoad={() => setImgLoading(false)}
                       onError={() => setImgLoading(false)}
                       style={{
@@ -1330,8 +1343,9 @@ const CertificatesofAuthenticity = ({
                           : "transform 0.2s ease",
                         maxWidth: "100%",
                         maxHeight: "100%",
+                        width: "auto",
+                        height: "auto",
                         objectFit: "contain",
-                        display: imgLoading ? "none" : "block",
                         userSelect: "none",
                         pointerEvents: "none",
                       }}
