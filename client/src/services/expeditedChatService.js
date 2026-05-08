@@ -89,12 +89,12 @@ async function getOrderIdFromExistingRecents(chatId, emails) {
   return "";
 }
 
-/** UTC ISO-8601 for `time` fields — always `…Z` (true UTC, not local wall clock). */
+/**
+ * Authenticator-compatible `time`: UTC instant formatted like ISO 8601 with no timezone suffix.
+ * (`toISOString()` is always UTC — avoids mismatches vs manual getUTC* in some environments.)
+ */
 function messageTimeString() {
-  const d = new Date();
-  const p = (n, len = 2) => String(n).padStart(len, "0");
-  const ms = String(d.getUTCMilliseconds()).padStart(3, "0");
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}.${ms}Z`;
+  return new Date().toISOString().replace(/Z$/u, "");
 }
 
 /** Normalize Firestore timestamp or ISO string to Date */
@@ -102,11 +102,13 @@ function parseMessageTime(value) {
   if (value == null) return null;
   if (typeof value === "string") {
     let s = value.trim();
-    if (
-      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s) &&
-      /\bUTC$/i.test(s)
-    ) {
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s) && /\bUTC$/i.test(s)) {
       s = s.replace(/\s+UTC$/i, "Z").replace(" ", "T");
+    }
+    // Chat stores UTC wall clock without Z; browsers parse bare ISO as *local*,
+    // which skews sorting/display. Treat no-offset datetime as UTC.
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?$/u.test(s)) {
+      s = `${s}Z`;
     }
     const d = new Date(s);
     return Number.isNaN(d.getTime()) ? null : d;
@@ -278,14 +280,34 @@ export async function ensureExpeditedChatRoom(
   if (!clientEmail)
     throw new Error("Client email is required for chat recents.");
 
-  const auth =
+  let auth =
     authenticatorInfo && normalizeInboxEmail(authenticatorInfo.email)
       ? authenticatorInfo
       : null;
-  const authEmail = auth ? normalizeInboxEmail(auth.email) : "";
+  let authEmail = auth ? normalizeInboxEmail(auth.email) : "";
 
   const clientRecentRef = recentDocRef(clientEmail, id);
   const clientRecentSnap = await getDoc(clientRecentRef);
+
+  if (!authEmail && clientRecentSnap.exists()) {
+    const existingAuths = clientRecentSnap.data().authenticators || [];
+    const firstAuth = existingAuths[0];
+    if (firstAuth && normalizeInboxEmail(firstAuth.email)) {
+      auth = firstAuth;
+      authEmail = normalizeInboxEmail(firstAuth.email);
+    }
+  }
+
+  if (!authEmail) {
+    const threadEmails = await fetchThreadSenderEmails(id, 50);
+    for (const se of threadEmails) {
+      if (se !== clientEmail) {
+        authEmail = se;
+        auth = { id: "", name: "Authenticator", email: authEmail, image: "" };
+        break;
+      }
+    }
+  }
 
   let authRecentRef = null;
   let authRecentSnap = null;
@@ -303,46 +325,58 @@ export async function ensureExpeditedChatRoom(
   const authenticatorsList = auth ? [{ ...auth, email: authEmail }] : [];
 
   if (!clientRecentSnap.exists()) {
+    const lastMessage = authRecentSnap?.exists()
+      ? authRecentSnap.data().lastMessage || emptyLast
+      : emptyLast;
     batch.set(clientRecentRef, {
       authenticators: authenticatorsList,
       clientInfo: clientPayload,
       firebaseChatId: id,
       isSeen: false,
-      lastMessage: emptyLast,
+      lastMessage,
       orderId,
       status: "active",
     });
+    hasWrites = true;
+  } else {
+    const updatePayload = { clientInfo: clientPayload, orderId };
+    if (authenticatorsList.length > 0) {
+      updatePayload.authenticators = authenticatorsList;
+    }
+    batch.set(clientRecentRef, updatePayload, { merge: true });
     hasWrites = true;
   }
 
-  if (
-    authEmail &&
-    authRecentRef &&
-    authRecentSnap &&
-    !authRecentSnap.exists()
-  ) {
-    batch.set(authRecentRef, {
-      authenticators: authenticatorsList,
-      clientInfo: clientPayload,
-      firebaseChatId: id,
-      isSeen: true,
-      lastMessage: emptyLast,
-      orderId,
-      status: "active",
-    });
-    hasWrites = true;
+  if (authEmail && authRecentRef) {
+    if (!authRecentSnap || !authRecentSnap.exists()) {
+      batch.set(authRecentRef, {
+        authenticators: authenticatorsList,
+        clientInfo: clientPayload,
+        firebaseChatId: id,
+        isSeen: true,
+        lastMessage: emptyLast,
+        orderId,
+        status: "active",
+      });
+      hasWrites = true;
+    } else {
+      batch.set(
+        authRecentRef,
+        {
+          clientInfo: clientPayload,
+          authenticators: authenticatorsList,
+          orderId,
+        },
+        { merge: true },
+      );
+      hasWrites = true;
+    }
   }
 
   if (hasWrites) await batch.commit();
   return id;
 }
 
-/**
- * Provision Firestore inbox docs on first send (certificate “open chat” no longer creates rows).
- * Uses API/backend chat id with {@link ensureExpeditedChatRoom}, or {@link createRoom} when no id yet.
- *
- * @returns {Promise<string>} firebaseChatId
- */
 export async function provisionExpeditedRoomBeforeFirstMessage({
   firebaseChatId,
   orderId,
@@ -484,7 +518,9 @@ export async function syncExpeditedParticipantRecents({
   } else {
     const authEmail = otherEmail;
     const authRecentRef = recentDocRef(authEmail, chatId);
-    let authR = await getDoc(authRecentRef);
+    const authR = await getDoc(authRecentRef);
+
+    let ad;
     if (!authR.exists()) {
       const myData = mySnap.exists() ? mySnap.data() : {};
       const clientInfo = myData.clientInfo || {};
@@ -497,7 +533,7 @@ export async function syncExpeditedParticipantRecents({
         email: authEmail,
         image: "",
       };
-      batch.set(authRecentRef, {
+      ad = {
         authenticators: [placeholderAuth],
         clientInfo,
         firebaseChatId: chatId,
@@ -505,12 +541,13 @@ export async function syncExpeditedParticipantRecents({
         lastMessage,
         orderId,
         status,
-      });
+      };
+      batch.set(authRecentRef, ad);
       ops++;
-      authR = await getDoc(authRecentRef);
+    } else {
+      ad = authR.data() || {};
     }
 
-    const ad = authR.data() || {};
     let auths = ad.authenticators || [];
     if (!auths.length && authEmail) {
       auths = [
@@ -612,7 +649,9 @@ export async function sendMessage(
 
   /* 1:1 expedited: merge counterparty inbox from sender's own recent row (always, not only when size ≤ 1). */
   if (senderEmailNorm && (clientInfoParam || authenticatorSelf)) {
-    const myRecent = await getDoc(recentDocRef(senderEmailNorm, firebaseChatId));
+    const myRecent = await getDoc(
+      recentDocRef(senderEmailNorm, firebaseChatId),
+    );
     if (myRecent.exists()) {
       const data = myRecent.data();
       if (clientInfoParam) {

@@ -36,8 +36,7 @@ import RequestMoreImagesModal from "./RequestMoreImagesModal";
 import { MEDIA_BASE_URL } from "../../../../config/env";
 import PDFViewer_ProfileSection from "../../../../utils/PDFViewer_ProfileSection";
 import {
-  createRoom,
-  roomExistsForOrder,
+  findRoomIdByOrder,
 } from "../../../../services/expeditedChatService";
 import { getUserProfile as getUserProfileApi } from "../../../../services/profileServices";
 
@@ -514,7 +513,7 @@ const CertificatesofAuthenticity = ({
 
   // Top-level tabs: Completed | Pending | Sold items | Available items (single row, like old website)
   const mainTabs = [
-    // { label: "Expedited", count: expeditedCount, value: "Expedited" },
+    { label: "Expedited", count: expeditedCount, value: "Expedited" },
     { label: "Completed", count: completedCount, value: "Completed" },
     { label: "Pending", count: pendingCount, value: "Pending" },
     { label: "Sold items", count: soldCount, value: "Sold" },
@@ -713,39 +712,29 @@ const CertificatesofAuthenticity = ({
     setStartingChatId(cardId);
 
     try {
-      let exists = false;
-      try {
-        exists = await roomExistsForOrder(orderId);
-      } catch (checkErr) {
-        console.warn(
-          "Room existence check failed, will try creating:",
-          checkErr,
-        );
+      const userEmail = authUser?.email || "";
+
+      if (userEmail) {
+        const existingRoomId = await findRoomIdByOrder(orderId, userEmail);
+        if (existingRoomId) {
+          navigate(`/expedited-chat?room=${existingRoomId}`);
+          return;
+        }
       }
 
-      if (exists) {
-        navigate(`/expedited-chat?room=exp_${orderId}`);
-        return;
+      const backendChatId = (
+        aq.firebase_chat_id ??
+        card.firebase_chat_id ??
+        ""
+      ).toString().trim();
+
+      const params = new URLSearchParams();
+      params.set("orderId", orderId);
+      params.set("deferProvision", "1");
+      if (backendChatId) {
+        params.set("room", backendChatId);
       }
-
-      const authenticatorInfo = await resolveAuthenticatorInfo(card);
-      if (!authenticatorInfo) {
-        alert(
-          "This expedited query hasn't been claimed by an authenticator yet. " +
-            "Chat will be available once an authenticator is assigned.",
-        );
-        return;
-      }
-
-      const clientInfo = {
-        id: String(authUser.id),
-        name: authUser.name || authUser.first_name || "Client",
-        image: authUser.profile_picture || authUser.image || "",
-        email: authUser.email || "",
-      };
-
-      await createRoom(orderId, clientInfo, authenticatorInfo);
-      navigate(`/expedited-chat?room=exp_${orderId}`);
+      navigate(`/expedited-chat?${params.toString()}`);
     } catch (err) {
       console.error("Failed to start chat:", err);
       alert("Failed to start chat: " + (err?.message || "Unknown error"));

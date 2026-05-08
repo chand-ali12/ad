@@ -457,8 +457,7 @@ export default function ExpeditedChat() {
     const el = messagesContainerRef.current;
     if (!el) return;
     const onScroll = () => {
-      const distFromBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight;
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
       setShowScrollToBottom(distFromBottom > 160);
     };
     el.addEventListener("scroll", onScroll);
@@ -585,6 +584,11 @@ export default function ExpeditedChat() {
     if (!canSend) return;
 
     setSending(true);
+    const fileToSend = attachedFile;
+    // Clear input immediately to prevent accidental double-send taps.
+    setDraft("");
+    setAttachedFile(null);
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
     try {
       let roomIdForSend = selectedRoomId;
 
@@ -595,10 +599,7 @@ export default function ExpeditedChat() {
           image: currentUserImage || "",
           email: currentUserEmail.trim(),
         };
-        const oid =
-          orderIdFromUrl ||
-          selectedRoom?.orderId ||
-          "";
+        const oid = orderIdFromUrl || selectedRoom?.orderId || "";
         if (!oid) {
           alert("Missing order for this chat.");
           return;
@@ -627,17 +628,15 @@ export default function ExpeditedChat() {
       let mediaUrl = null;
       let isMedia = false;
 
-      if (attachedFile) {
-        mediaUrl = await uploadChatMedia(roomIdForSend, attachedFile);
+      if (fileToSend) {
+        mediaUrl = await uploadChatMedia(roomIdForSend, fileToSend);
         isMedia = true;
       }
 
       const participantEmailsList = (() => {
         const out = [...getParticipantEmails()];
         const seen = new Set(
-          out
-            .map((x) => (x.email || "").trim().toLowerCase())
-            .filter(Boolean),
+          out.map((x) => (x.email || "").trim().toLowerCase()).filter(Boolean),
         );
         const pushEmail = (raw) => {
           const e = (raw || "").trim();
@@ -689,11 +688,11 @@ export default function ExpeditedChat() {
         participantEmailsList,
       );
 
-      setDraft("");
-      setAttachedFile(null);
-      if (textareaRef.current) textareaRef.current.style.height = "auto";
     } catch (err) {
       console.error("Failed to send message:", err);
+      // Restore draft on failure so user can retry quickly.
+      setDraft(text);
+      setAttachedFile(fileToSend);
     } finally {
       setSending(false);
     }
@@ -751,8 +750,7 @@ export default function ExpeditedChat() {
   };
 
   const conversationActive =
-    !!selectedRoomId ||
-    (!!deferProvisionActive && !!orderIdFromUrl);
+    !!selectedRoomId || (!!deferProvisionActive && !!orderIdFromUrl);
 
   const showSidebar = isDesktop || !conversationActive;
   const showConversation = isDesktop || conversationActive;
