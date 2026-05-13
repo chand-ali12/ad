@@ -1,16 +1,55 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FiArrowRight } from 'react-icons/fi';
 import brandPageImage from '../../assets/images/brand_page.png';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { getBrands } from '../../store/slices/brandsSlice';
 import { fetchAuthenticateNowView } from '../../store/slices/authenticationRequestSlice';
 
-// Dedicated brand pages exist, but this screen should be list-only (no navigation).
 const BRAND_LINKS = [
   { label: 'Chanel' },
   { label: 'Hermès' },
   { label: 'Gucci' },
   { label: 'Louis Vuitton' },
   { label: 'Balenciaga' },
+];
+
+// Map from label (as it appears in the list) to its dedicated route
+const DEDICATED_BRAND_ROUTES = {
+  'chanel': '/brand/chanel',
+  'hermès': '/brand/hermes',
+  'hermes': '/brand/hermes',
+  'gucci': '/brand/gucci',
+  'louis vuitton': '/brand/louis-vuitton',
+  'balenciaga': '/brand/balenciaga',
+};
+
+// 4 featured brands to show as visual cards
+const FEATURED_BRANDS = [
+  {
+    label: 'Chanel',
+    route: '/brand/chanel',
+    tagline: 'Chanel Authentication',
+    description: 'Founded in 1910 by Coco Chanel in Paris. Known for timeless elegance, the iconic Classic Flap Bag, tweed suits, and Chanel No. 5 perfume.',
+  },
+  {
+    label: 'Hermès',
+    route: '/brand/hermes',
+    tagline: 'Hermès Authentication',
+    description: 'Founded in 1837 by Thierry Hermès. Renowned for handcrafted luxury and iconic pieces like the Birkin and Kelly bags, produced by single master artisans.',
+  },
+  {
+    label: 'Gucci',
+    route: '/brand/gucci',
+    tagline: 'Gucci Authentication',
+    description: 'Founded in 1921 by Guccio Gucci in Florence. Known for Italian craftsmanship, the GG monogram, and iconic designs like the Dionysus and Marmont bags.',
+  },
+  {
+    label: 'Louis Vuitton',
+    route: '/brand/louis-vuitton',
+    tagline: 'Louis Vuitton Authentication',
+    description: 'Founded in 1854 in Paris. Renowned for the iconic LV monogram, exceptional leather goods, and over a century of precision craftsmanship.',
+  },
 ];
 
 const Brands = () => {
@@ -224,8 +263,95 @@ const Brands = () => {
           </div>
         </section>
 
-        {/* Brands list section - brand and brand name location, mobile responsive */}
-        <section className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-12 lg:py-14 text-left" style={{ backgroundColor: '#F5F5F0' }}>
+        {/* Featured Brands Section */}
+        <section className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-10 sm:py-14 md:py-16 lg:py-20" style={{ backgroundColor: '#F5F5F0' }}>
+          <div className="max-w-7xl mx-auto">
+            {/* Section heading */}
+            <div className="mb-8 sm:mb-10 md:mb-12">
+              <h2
+                className="text-primary inline-block mb-1"
+                style={{
+                  fontFamily: 'Montserrat, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 'clamp(1.5rem, 4vw, 40px)',
+                  lineHeight: '1.2',
+                  letterSpacing: '0.34px',
+                }}
+              >
+                Featured Brands
+              </h2>
+              <div
+                className="rounded-full bg-[#E5C84B] w-full max-w-[502px]"
+                style={{ height: 4, marginTop: '0.75em' }}
+                aria-hidden
+              />
+              <p
+                className="mt-4 text-primary/70 text-sm sm:text-base max-w-2xl"
+                style={{ fontFamily: 'Montserrat, sans-serif' }}
+              >
+                Expert authentication services for the world's most coveted luxury brands.
+              </p>
+            </div>
+
+            {/* Brand cards grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+              {FEATURED_BRANDS.map((brand) => (
+                <div
+                  key={brand.label}
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col"
+                  style={{ border: '1px solid rgba(60,31,27,0.1)' }}
+                >
+                  {/* Card header */}
+                  <div className="px-6 pt-6 pb-4 flex-grow">
+                    <div
+                      className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-4"
+                      style={{
+                        backgroundColor: '#DEDBD6',
+                        color: '#3C1F1B',
+                        fontFamily: 'Montserrat, sans-serif',
+                      }}
+                    >
+                      Professional
+                    </div>
+                    <h3
+                      className="text-primary font-bold text-xl sm:text-2xl mb-3"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      {brand.label}
+                    </h3>
+                    <p
+                      className="text-primary/70 text-sm leading-relaxed"
+                      style={{ fontFamily: 'Montserrat, sans-serif' }}
+                    >
+                      {brand.description}
+                    </p>
+                  </div>
+
+                  {/* Card footer */}
+                  <div className="px-6 pb-6 pt-2">
+                    <Link
+                      to={brand.route}
+                      className="inline-flex items-center gap-2 w-full justify-center py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors"
+                      style={{
+                        backgroundColor: '#3C1F1B',
+                        color: '#FFFFFF',
+                        fontFamily: 'Montserrat, sans-serif',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a2f28'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#3C1F1B'; }}
+                    >
+                      View Details
+                      <FiArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* All Brands list section */}
+        <section className="w-full px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-10 md:py-12 lg:py-14 text-left bg-white">
           <div
             className="flex flex-col w-full max-w-7xl mx-auto gap-10 sm:gap-12 lg:gap-16"
           >
@@ -242,7 +368,7 @@ const Brands = () => {
                   textAlign: 'left',
                 }}
               >
-                Brands
+                All Brands
               </h2>
               <div
                 className="rounded-full bg-[#E5C84B] w-full max-w-[502px]"
@@ -261,21 +387,39 @@ const Brands = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-y-2 sm:gap-y-3 gap-x-10 lg:gap-x-14 justify-start">
-                {allBrands.map((brand) => (
-                  <span
-                    key={brand.label}
-                    className="text-primary/90 text-sm sm:text-base"
-                    style={{
-                      fontFamily: 'Montserrat, sans-serif',
-                      fontWeight: 400,
-                      fontStyle: 'normal',
-                      lineHeight: '26px',
-                      letterSpacing: 0,
-                    }}
-                  >
-                    {brand.label}
-                  </span>
-                ))}
+                {allBrands.map((brand) => {
+                  const route = DEDICATED_BRAND_ROUTES[brand.label?.toLowerCase()];
+                  return route ? (
+                    <Link
+                      key={brand.label}
+                      to={route}
+                      className="text-primary/90 hover:text-primary hover:underline text-sm sm:text-base transition-colors"
+                      style={{
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontWeight: 400,
+                        fontStyle: 'normal',
+                        lineHeight: '26px',
+                        letterSpacing: 0,
+                      }}
+                    >
+                      {brand.label}
+                    </Link>
+                  ) : (
+                    <span
+                      key={brand.label}
+                      className="text-primary/90 text-sm sm:text-base"
+                      style={{
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontWeight: 400,
+                        fontStyle: 'normal',
+                        lineHeight: '26px',
+                        letterSpacing: 0,
+                      }}
+                    >
+                      {brand.label}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
