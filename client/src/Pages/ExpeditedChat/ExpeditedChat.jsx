@@ -268,7 +268,7 @@ export default function ExpeditedChat() {
   const currentUserId = user?.id?.toString() || "";
   const currentUserEmail = user?.email || "";
   const currentUserName = user?.name || user?.first_name || "User";
-  const currentUserImage = user?.image || user?.profile_image || "";
+  const currentUserImage = user?.profile_picture || user?.image || user?.profile_image || "";
   
   console.log("User profile is :- ", user);
   const isAuthenticator =
@@ -883,7 +883,7 @@ export default function ExpeditedChat() {
                 const ci = room.clientInfo ?? room.client_info;
                 const displayName = isAuthenticator
                   ? ci?.name || "Client"
-                  : room.authenticators?.[0]?.name || "Authenticator";
+                  : `Order #${room.orderId || "—"}`;
                 const displayImage = isAuthenticator
                   ? resolveImageUrl(ci?.image || "")
                   : resolveImageUrl(room.image || "") || resolveImageUrl(room.authenticators?.[0]?.image || "");
@@ -941,9 +941,9 @@ export default function ExpeditedChat() {
                         )}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-0.5">
-                        Order #{room.orderId}
+                        {isAuthenticator && `Order #${room.orderId}`}
                         {room.status && room.status !== "active" && (
-                          <span className="ml-1.5 uppercase tracking-wide font-semibold text-amber-600">
+                          <span className={`${isAuthenticator ? "ml-1.5" : ""} uppercase tracking-wide font-semibold text-amber-600`}>
                             {room.status}
                           </span>
                         )}

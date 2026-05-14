@@ -89,12 +89,9 @@ async function getOrderIdFromExistingRecents(chatId, emails) {
   return "";
 }
 
-/**
- * Authenticator-compatible `time`: UTC instant formatted like ISO 8601 with no timezone suffix.
- * (`toISOString()` is always UTC — avoids mismatches vs manual getUTC* in some environments.)
- */
+/** Store time as a native Firestore Timestamp so the console shows local time (e.g. "May 14, 2026 at 9:15:46 PM UTC+5"). */
 function messageTimeString() {
-  return new Date().toISOString().replace(/Z$/u, "");
+  return Timestamp.now();
 }
 
 /** Normalize Firestore timestamp or ISO string to Date */
