@@ -149,7 +149,8 @@ function mapRecentDoc(d) {
     is_seen: data.isSeen ?? true,
     last_message: last.message ?? "",
     last_message_time: lastTime,
-    status: data.status ?? "",
+    status: data.status || "active",
+    image: data.image ?? "",
   };
 }
 
@@ -212,7 +213,7 @@ function initialEmptyLastMessage() {
  * @param {{ id: string, name: string, image: string, email: string }|null|undefined} [authenticatorInfo] — optional; omitted or null when no claim yet
  * @returns {Promise<string>} firebaseChatId
  */
-export async function createRoom(orderId, clientInfo, authenticatorInfo) {
+export async function createRoom(orderId, clientInfo, authenticatorInfo, image = "") {
   const clientEmail = normalizeInboxEmail(clientInfo.email);
   if (!clientEmail) {
     throw new Error("Client email is required for chat recents.");
@@ -240,6 +241,7 @@ export async function createRoom(orderId, clientInfo, authenticatorInfo) {
     lastMessage: emptyLast,
     orderId,
     status: "active",
+    ...(image ? { image } : {}),
   };
 
   batch.set(recentDocRef(clientEmail, firebaseChatId), clientRecent);
@@ -253,6 +255,7 @@ export async function createRoom(orderId, clientInfo, authenticatorInfo) {
       lastMessage: emptyLast,
       orderId,
       status: "active",
+      ...(image ? { image } : {}),
     };
     batch.set(recentDocRef(authEmail, firebaseChatId), authRecent);
   }
@@ -272,6 +275,7 @@ export async function ensureExpeditedChatRoom(
   orderId,
   clientInfo,
   authenticatorInfo,
+  image = "",
 ) {
   const id = String(firebaseChatId || "").trim();
   if (!id) throw new Error("firebaseChatId is required");
@@ -336,6 +340,7 @@ export async function ensureExpeditedChatRoom(
       lastMessage,
       orderId,
       status: "active",
+      ...(image ? { image } : {}),
     });
     hasWrites = true;
   } else {
@@ -343,6 +348,7 @@ export async function ensureExpeditedChatRoom(
     if (authenticatorsList.length > 0) {
       updatePayload.authenticators = authenticatorsList;
     }
+    if (image) updatePayload.image = image;
     batch.set(clientRecentRef, updatePayload, { merge: true });
     hasWrites = true;
   }
@@ -357,6 +363,7 @@ export async function ensureExpeditedChatRoom(
         lastMessage: emptyLast,
         orderId,
         status: "active",
+        ...(image ? { image } : {}),
       });
       hasWrites = true;
     } else {
@@ -366,6 +373,7 @@ export async function ensureExpeditedChatRoom(
           clientInfo: clientPayload,
           authenticators: authenticatorsList,
           orderId,
+          ...(image ? { image } : {}),
         },
         { merge: true },
       );
@@ -382,6 +390,7 @@ export async function provisionExpeditedRoomBeforeFirstMessage({
   orderId,
   clientInfo,
   authenticatorInfo,
+  image = "",
 }) {
   const id = firebaseChatId ? String(firebaseChatId).trim() : "";
   if (id) {
@@ -390,13 +399,14 @@ export async function provisionExpeditedRoomBeforeFirstMessage({
       orderId,
       clientInfo,
       authenticatorInfo ?? null,
+      image,
     );
     return id;
   }
   if (!orderId) {
     throw new Error("orderId is required to start a new expedited chat.");
   }
-  return createRoom(orderId, clientInfo, authenticatorInfo ?? null);
+  return createRoom(orderId, clientInfo, authenticatorInfo ?? null, image);
 }
 
 /**
@@ -845,6 +855,26 @@ export function subscribeToRecents(userEmail, callback) {
   );
 }
 
+/**
+ * Subscribes to another participant's isSeen flag for a given chat room.
+ * Used by clients to know whether the authenticator has seen their messages.
+ */
+export function subscribeToOtherPartySeenStatus(otherEmail, firebaseChatId, callback) {
+  const email = normalizeInboxEmail(otherEmail);
+  if (!email || !firebaseChatId) {
+    callback(false);
+    return () => {};
+  }
+  const ref = recentDocRef(email, firebaseChatId);
+  return onSnapshot(
+    ref,
+    (snap) => {
+      callback(snap.exists() ? snap.data().isSeen === true : false);
+    },
+    () => callback(false),
+  );
+}
+
 export async function markAsSeen(userEmail, firebaseChatId) {
   const email = normalizeInboxEmail(userEmail);
   if (!email || !firebaseChatId) return;
@@ -864,7 +894,7 @@ export async function getRoomInfo(firebaseChatId, viewerEmail) {
   return {
     id: firebaseChatId,
     firebaseChatId,
-    status: d.status ?? "active",
+    status: d.status || "active",
     orderId: d.orderId ?? "",
   };
 }
@@ -905,14 +935,17 @@ export async function uploadChatMedia(firebaseChatId, file) {
   const token = localStorage.getItem("authToken");
   const res = await uploadImageApi({
     image: file,
-    storage_type: "chatMedia",
+    storage_type: "authenticateImage",
     token,
   });
   const path = res?.data;
   if (!path) throw new Error("Upload failed: no path returned");
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  const base = (MEDIA_BASE_URL || "").replace(/\/+$/, "");
-  return `${base}/chatMedia/${path.replace(/^\/+/, "")}`;
+  // Store only the UUID/filename so Firestore stays URL-agnostic.
+  // The display layer prepends AUTHENTICATE_IMAGE_BASE_URL via resolveImageUrl().
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path.split("/").pop();
+  }
+  return path.replace(/^.*\//, "").replace(/^\/+/, "");
 }
 
 /**

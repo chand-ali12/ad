@@ -8,6 +8,9 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
     <title>Authentic Detective</title>
+    <style>
+      body.hide-chatbot [class*="aisw"] { display: none !important; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
@@ -137,6 +140,27 @@
 
         attachQuickPromptClick();
         ensureDefaultUi();
+      })();
+    </script>
+    <script>
+      (function () {
+        function updateChatbotVisibility() {
+          var hide = window.location.pathname.startsWith("/expedited-chat");
+          document.body.classList.toggle("hide-chatbot", hide);
+        }
+        // Patch pushState/replaceState so React Router navigations are caught
+        var origPush = history.pushState.bind(history);
+        history.pushState = function () {
+          origPush.apply(history, arguments);
+          updateChatbotVisibility();
+        };
+        var origReplace = history.replaceState.bind(history);
+        history.replaceState = function () {
+          origReplace.apply(history, arguments);
+          updateChatbotVisibility();
+        };
+        window.addEventListener("popstate", updateChatbotVisibility);
+        updateChatbotVisibility();
       })();
     </script>
   </body>

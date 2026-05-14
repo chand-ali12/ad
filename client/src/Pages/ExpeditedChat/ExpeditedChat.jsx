@@ -24,6 +24,7 @@ import {
   syncExpeditedParticipantRecents,
   reconcileExpeditedThreadParticipants,
   provisionExpeditedRoomBeforeFirstMessage,
+  subscribeToOtherPartySeenStatus,
 } from "../../services/expeditedChatService";
 
 function initials(name) {
@@ -96,6 +97,15 @@ function dayKey(date) {
   return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
 }
 
+const AUTHENTICATE_IMAGE_BASE_URL = "https://auth-detect.s3.amazonaws.com/authenticateImage/";
+
+/** Constructs a displayable URL from a stored image path or returns the value as-is if already a URL. */
+function resolveImageUrl(image) {
+  if (!image) return "";
+  if (image.startsWith("http://") || image.startsWith("https://")) return image;
+  return `${AUTHENTICATE_IMAGE_BASE_URL}${image}`;
+}
+
 // --------------- Create Room Modal ---------------
 
 function CreateRoomModal({ onClose, onSubmit, loading }) {
@@ -103,6 +113,7 @@ function CreateRoomModal({ onClose, onSubmit, loading }) {
   const [clientId, setClientId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [queryImage, setQueryImage] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = (e) => {
@@ -119,6 +130,7 @@ function CreateRoomModal({ onClose, onSubmit, loading }) {
     setError("");
     onSubmit({
       orderId: orderId.trim(),
+      queryImage: queryImage.trim(),
       clientInfo: {
         id: clientId.trim(),
         name: clientName.trim(),
@@ -198,6 +210,18 @@ function CreateRoomModal({ onClose, onSubmit, loading }) {
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3C1F1B]/30 focus:border-[#3C1F1B] outline-none transition-all"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Query Image UUID <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={queryImage}
+              onChange={(e) => setQueryImage(e.target.value)}
+              placeholder="e.g. a1b30458-d066-480d-960f..."
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3C1F1B]/30 focus:border-[#3C1F1B] outline-none transition-all"
+            />
+          </div>
           <button
             type="submit"
             disabled={loading}
@@ -245,11 +269,14 @@ export default function ExpeditedChat() {
   const currentUserEmail = user?.email || "";
   const currentUserName = user?.name || user?.first_name || "User";
   const currentUserImage = user?.image || user?.profile_image || "";
+  
+  console.log("User profile is :- ", user);
   const isAuthenticator =
     user?.role === "authenticator" || user?.user_type === "authenticator";
 
   const roomFromUrl = searchParams.get("room");
   const orderIdFromUrl = searchParams.get("orderId") || "";
+  const imageFromUrl = searchParams.get("image") || "";
   const deferProvision = searchParams.get("deferProvision") === "1";
   const deferProvisionActive = deferProvision && !isAuthenticator;
 
@@ -270,6 +297,8 @@ export default function ExpeditedChat() {
     typeof window !== "undefined" &&
       window.matchMedia("(min-width: 1024px)").matches,
   );
+  const [authenticatorSeen, setAuthenticatorSeen] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -353,6 +382,22 @@ export default function ExpeditedChat() {
     }
     return unsub;
   }, [selectedRoomId, currentUserEmail]);
+
+  // Subscribe to the authenticator's isSeen flag so the client can show a "Seen" receipt
+  useEffect(() => {
+    if (isAuthenticator || !selectedRoomId) {
+      setAuthenticatorSeen(false);
+      return;
+    }
+    const room = rooms.find((r) => r.roomId === selectedRoomId);
+    const authEmail = room?.authenticators?.[0]?.email;
+    if (!authEmail) {
+      setAuthenticatorSeen(false);
+      return;
+    }
+    const unsub = subscribeToOtherPartySeenStatus(authEmail, selectedRoomId, setAuthenticatorSeen);
+    return unsub;
+  }, [selectedRoomId, rooms, isAuthenticator]);
 
   useEffect(() => {
     const email = currentUserEmail?.trim();
@@ -545,8 +590,10 @@ export default function ExpeditedChat() {
   const otherParticipantImage = useMemo(() => {
     if (!selectedRoom) return "";
     const ci = selectedRoom.clientInfo ?? selectedRoom.client_info;
-    if (isAuthenticator) return ci?.image || "";
-    return selectedRoom.authenticators?.[0]?.image || "";
+    if (isAuthenticator) return resolveImageUrl(ci?.image || "");
+    // For clients: prefer the root-level image (query photo set by authenticator), fall back to authenticator profile pic
+    const rootImage = resolveImageUrl(selectedRoom.image || "");
+    return rootImage || resolveImageUrl(selectedRoom.authenticators?.[0]?.image || "");
   }, [selectedRoom, isAuthenticator]);
 
   /** Recents documents are keyed by participant email */
@@ -609,6 +656,7 @@ export default function ExpeditedChat() {
           orderId: oid,
           clientInfo,
           authenticatorInfo: null,
+          image: imageFromUrl || "",
         });
         setSelectedRoomId(roomIdForSend);
         setSearchParams(
@@ -629,7 +677,12 @@ export default function ExpeditedChat() {
       let isMedia = false;
 
       if (fileToSend) {
-        mediaUrl = await uploadChatMedia(roomIdForSend, fileToSend);
+        setUploadingMedia(true);
+        try {
+          mediaUrl = await uploadChatMedia(roomIdForSend, fileToSend);
+        } finally {
+          setUploadingMedia(false);
+        }
         isMedia = true;
       }
 
@@ -705,7 +758,7 @@ export default function ExpeditedChat() {
     }
   };
 
-  const handleCreateRoom = async ({ orderId, clientInfo }) => {
+  const handleCreateRoom = async ({ orderId, clientInfo, queryImage }) => {
     setCreatingRoom(true);
     try {
       const clientEmail = clientInfo.email?.trim();
@@ -732,7 +785,7 @@ export default function ExpeditedChat() {
         image: currentUserImage,
         email: currentUserEmail.trim(),
       };
-      const roomId = await createRoom(orderId, clientInfo, authenticatorInfo);
+      const roomId = await createRoom(orderId, clientInfo, authenticatorInfo, queryImage || "");
       setShowCreateModal(false);
       selectRoom(roomId);
     } catch (err) {
@@ -832,8 +885,8 @@ export default function ExpeditedChat() {
                   ? ci?.name || "Client"
                   : room.authenticators?.[0]?.name || "Authenticator";
                 const displayImage = isAuthenticator
-                  ? ci?.image
-                  : room.authenticators?.[0]?.image;
+                  ? resolveImageUrl(ci?.image || "")
+                  : resolveImageUrl(room.image || "") || resolveImageUrl(room.authenticators?.[0]?.image || "");
 
                 return (
                   <button
@@ -957,10 +1010,12 @@ export default function ExpeditedChat() {
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {otherParticipantName}
-                    </p>
-                    <p className="text-xs text-gray-500">
+                    {isAuthenticator && (
+                      <p className="text-sm font-semibold text-gray-900 truncate">
+                        {otherParticipantName}
+                      </p>
+                    )}
+                    <p className={`truncate ${isAuthenticator ? "text-xs text-gray-500" : "text-sm font-semibold text-gray-900"}`}>
                       Order #{selectedRoom?.orderId}
                       {roomStatusDisplay && (
                         <span
@@ -1022,72 +1077,87 @@ export default function ExpeditedChat() {
                       </p>
                     </div>
                   )}
-                  {messages.map((msg, idx) => {
-                    const isMe =
-                      !!currentUserId &&
-                      String(msg.senderId) === String(currentUserId);
-                    const isSystem =
-                      msg.type === "system" || msg.senderId === "system";
-                    const prev = messages[idx - 1];
-                    const showDayDivider =
-                      !prev || dayKey(prev.time) !== dayKey(msg.time);
+                  {(() => {
+                    const lastMyMsgIdx = !isAuthenticator
+                      ? messages.reduce((last, m, i) => {
+                          const sys = m.type === "system" || String(m.senderId) === "system";
+                          return !sys && String(m.senderId) === String(currentUserId) ? i : last;
+                        }, -1)
+                      : -1;
+                    return messages.map((msg, idx) => {
+                      const isMe =
+                        !!currentUserId &&
+                        String(msg.senderId) === String(currentUserId);
+                      const isSystem =
+                        msg.type === "system" || msg.senderId === "system";
+                      const prev = messages[idx - 1];
+                      const showDayDivider =
+                        !prev || dayKey(prev.time) !== dayKey(msg.time);
+                      const showSeenBadge =
+                        idx === lastMyMsgIdx && authenticatorSeen;
 
-                    return (
-                      <div key={msg.id}>
-                        {showDayDivider && (
-                          <div className="flex justify-center my-3">
-                            <span className="text-[11px] font-medium text-gray-500 bg-white/90 border border-gray-200 px-3 py-1 rounded-full shadow-sm">
-                              {formatDayLabel(msg.time)}
-                            </span>
-                          </div>
-                        )}
+                      return (
+                        <div key={msg.id}>
+                          {showDayDivider && (
+                            <div className="flex justify-center my-3">
+                              <span className="text-[11px] font-medium text-gray-500 bg-white/90 border border-gray-200 px-3 py-1 rounded-full shadow-sm">
+                                {formatDayLabel(msg.time)}
+                              </span>
+                            </div>
+                          )}
 
-                        {isSystem ? (
-                          <div className="flex justify-center">
-                            <span className="text-[11px] text-gray-500 bg-white/80 px-3 py-1 rounded-full">
-                              {msg.message}
-                            </span>
-                          </div>
-                        ) : (
-                          <div
-                            className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
-                          >
-                            <span className="text-[11px] font-medium text-gray-600 flex-shrink-0 pb-1 whitespace-nowrap">
-                              {formatFullTime(msg.time)}
-                            </span>
+                          {isSystem ? (
+                            <div className="flex justify-center">
+                              <span className="text-[11px] text-gray-500 bg-white/80 px-3 py-1 rounded-full">
+                                {msg.message}
+                              </span>
+                            </div>
+                          ) : (
                             <div
-                              className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                                isMe
-                                  ? "rounded-br-md text-white"
-                                  : "bg-white rounded-bl-md text-gray-900 shadow-sm"
-                              }`}
-                              style={
-                                isMe ? { background: "#3C1F1B" } : undefined
-                              }
+                              className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
                             >
-                              {msg.is_media && msg.media_url && (
-                                <button
-                                  onClick={() => setLightboxSrc(msg.media_url)}
-                                  className="block mb-1.5"
-                                >
-                                  <img
-                                    src={msg.media_url}
-                                    alt="Shared media"
-                                    className="max-w-full max-h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                  />
-                                </button>
-                              )}
-                              {msg.message && (
-                                <p className="text-sm whitespace-pre-wrap break-words">
-                                  {msg.message}
-                                </p>
+                              <span className="text-[11px] font-medium text-gray-600 flex-shrink-0 pb-1 whitespace-nowrap">
+                                {formatFullTime(msg.time)}
+                              </span>
+                              <div
+                                className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                                  isMe
+                                    ? "rounded-br-md text-white"
+                                    : "bg-white rounded-bl-md text-gray-900 shadow-sm"
+                                }`}
+                                style={
+                                  isMe ? { background: "#3C1F1B" } : undefined
+                                }
+                              >
+                                {msg.is_media && msg.media_url && (
+                                  <button
+                                    onClick={() => setLightboxSrc(resolveImageUrl(msg.media_url))}
+                                    className="block mb-1.5"
+                                  >
+                                    <img
+                                      src={resolveImageUrl(msg.media_url)}
+                                      alt="Shared media"
+                                      className="max-w-full max-h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                    />
+                                  </button>
+                                )}
+                                {msg.message && (
+                                  <p className="text-sm whitespace-pre-wrap break-words">
+                                    {msg.message}
+                                  </p>
+                                )}
+                              </div>
+                              {showSeenBadge && (
+                                <span className="text-[11px] font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full flex-shrink-0 self-end mb-0.5">
+                                  Seen
+                                </span>
                               )}
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -1102,8 +1172,26 @@ export default function ExpeditedChat() {
                   </button>
                 )}
 
+                {/* Closed / resolved status banner */}
+                {roomStatusDisplay && roomStatusDisplay !== "active" && (
+                  <div className="bg-gray-50 border-t border-gray-200 px-4 py-3 text-center">
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
+                        roomStatusDisplay === "resolved"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {roomStatusDisplay}
+                    </span>
+                    <p className="text-xs text-gray-400 mt-1">
+                      This conversation is {roomStatusDisplay} and no longer accepts new messages.
+                    </p>
+                  </div>
+                )}
+
                 {/* Input Bar */}
-                {roomInfo?.status !== "closed" && (
+                {roomStatusDisplay === "active" && (
                   <div className="bg-white border-t border-gray-200 px-4 py-3">
                     {attachedFile && (
                       <div className="flex items-center gap-2 mb-2 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-600">
@@ -1119,8 +1207,14 @@ export default function ExpeditedChat() {
                         </button>
                       </div>
                     )}
+                    {uploadingMedia && (
+                      <div className="flex items-center gap-2 mb-2 bg-blue-50 rounded-lg px-3 py-2 text-sm text-blue-600">
+                        <span className="block w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin flex-shrink-0" />
+                        <span>Uploading media...</span>
+                      </div>
+                    )}
 
-                    <div className="flex items-end gap-2">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         className="text-gray-400 hover:text-gray-600 p-2 transition-colors flex-shrink-0"
@@ -1152,7 +1246,7 @@ export default function ExpeditedChat() {
                       <button
                         onClick={handleSend}
                         disabled={sending || (!draft.trim() && !attachedFile)}
-                        className="p-2.5 rounded-xl text-white transition-all disabled:opacity-40 flex-shrink-0"
+                        className="p-2.5 rounded-xl text-white transition-all disabled:opacity-40 flex-shrink-0 mr-1"
                         style={{ background: "#3C1F1B" }}
                       >
                         <FiSend size={18} />

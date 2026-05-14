@@ -728,11 +728,29 @@ const CertificatesofAuthenticity = ({
         ""
       ).toString().trim();
 
+      // Extract first query image UUID to pre-set the room's image field
+      const rawImages =
+        aq.request_images ??
+        card.request_images ??
+        aq.attribute_images ??
+        card.attribute_images ??
+        null;
+      const firstImageRaw =
+        typeof rawImages === "string"
+          ? rawImages.split(",")[0]?.trim()
+          : Array.isArray(rawImages)
+            ? rawImages[0]?.trim()
+            : "";
+      const firstImageUuid = (firstImageRaw || "").replace(/^authenticateImage\//, "").replace(/^\/+/, "");
+
       const params = new URLSearchParams();
       params.set("orderId", orderId);
       params.set("deferProvision", "1");
       if (backendChatId) {
         params.set("room", backendChatId);
+      }
+      if (firstImageUuid) {
+        params.set("image", firstImageUuid);
       }
       navigate(`/expedited-chat?${params.toString()}`);
     } catch (err) {
