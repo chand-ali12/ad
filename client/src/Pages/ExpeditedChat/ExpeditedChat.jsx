@@ -113,6 +113,7 @@ function CreateRoomModal({ onClose, onSubmit, loading }) {
   const [clientId, setClientId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [clientImage, setClientImage] = useState("");
   const [queryImage, setQueryImage] = useState("");
   const [error, setError] = useState("");
 
@@ -134,7 +135,7 @@ function CreateRoomModal({ onClose, onSubmit, loading }) {
       clientInfo: {
         id: clientId.trim(),
         name: clientName.trim(),
-        image: "",
+        image: clientImage.trim(),
         email: clientEmail.trim(),
       },
     });
@@ -212,6 +213,18 @@ function CreateRoomModal({ onClose, onSubmit, loading }) {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Client Profile Image UUID <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={clientImage}
+              onChange={(e) => setClientImage(e.target.value)}
+              placeholder="e.g. a1b30458-d066-480d-960f..."
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#3C1F1B]/30 focus:border-[#3C1F1B] outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Query Image UUID <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <input
@@ -262,15 +275,32 @@ function ImageLightbox({ src, onClose }) {
 
 // --------------- Main Component ---------------
 
+
+function getStoredProfilePicture() {
+  try {
+    const raw = localStorage.getItem("authUser");
+    return raw ? JSON.parse(raw)?.profile_picture || "" : "";
+  } catch {
+    return "";
+  }
+}
+
 export default function ExpeditedChat() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAppSelector((state) => state.auth);
+  const { user: profileUser } = useAppSelector((state) => state.profile);
+
   const currentUserId = user?.id?.toString() || "";
   const currentUserEmail = user?.email || "";
   const currentUserName = user?.name || user?.first_name || "User";
-  const currentUserImage = user?.profile_picture || user?.image || user?.profile_image || "";
+  const currentUserImage =
+    getStoredProfilePicture() ||
+    profileUser?.profile_picture ||
+    user?.profile_picture ||
+    user?.image ||
+    user?.profile_image ||
+    "";
   
-  console.log("User profile is :- ", user);
   const isAuthenticator =
     user?.role === "authenticator" || user?.user_type === "authenticator";
 
