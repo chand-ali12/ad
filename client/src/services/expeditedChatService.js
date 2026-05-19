@@ -981,13 +981,6 @@ export async function sendMessageNotification({
   formData.append("chat_room_id", String(roomId));
   formData.append("notification_type", "expedited_message");
 
-  console.log("[sendMessageNotification] Sending:", {
-    user_id: userIdStr,
-    chat_room_id: String(roomId),
-    notification_type: "expedited_message",
-    hasToken: !!token,
-  });
-
   try {
     const res = await request("forum/send-message-notification", {
       method: "POST",
@@ -995,7 +988,6 @@ export async function sendMessageNotification({
       isFormData: true,
       headers: token ? { sessiontoken: token } : undefined,
     });
-    console.log("[sendMessageNotification] Response:", res);
     return res;
   } catch (err) {
     console.error("[sendMessageNotification] Error:", err?.data ?? err?.message ?? err);

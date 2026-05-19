@@ -775,9 +775,6 @@ export default function ExpeditedChat() {
       const authenticatorIds = (selectedRoom?.authenticators || [])
         .map((a) => a.id)
         .filter(Boolean);
-      console.log("[handleSend] full selectedRoom:", JSON.stringify(selectedRoom, null, 2));
-      console.log("[handleSend] selectedRoom.authenticators:", selectedRoom?.authenticators);
-      console.log("[handleSend] authenticatorIds:", authenticatorIds);
       sendMessageNotification({
         roomId: roomIdForSend,
         authenticatorIds,
@@ -1141,6 +1138,22 @@ export default function ExpeditedChat() {
                       const showSeenBadge =
                         idx === lastMyMsgIdx && authenticatorSeen;
 
+                      const senderId = String(msg.senderId || "");
+                      const senderName = (() => {
+                        if (!senderId || senderId === "system") return "";
+                        const auth = (selectedRoom?.authenticators || []).find(
+                          (a) => String(a.id) === senderId,
+                        );
+                        if (auth?.name) return auth.name;
+                        const ci =
+                          selectedRoom?.clientInfo ?? selectedRoom?.client_info;
+                        if (ci && String(ci.id) === senderId)
+                          return ci.name || "";
+                        if (senderId === String(currentUserId))
+                          return currentUserName;
+                        return "";
+                      })();
+
                       return (
                         <div key={msg.id}>
                           {showDayDivider && (
@@ -1161,42 +1174,59 @@ export default function ExpeditedChat() {
                             <div
                               className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
                             >
-                              <span className="text-[11px] font-medium text-gray-600 flex-shrink-0 pb-1 whitespace-nowrap">
-                                {formatFullTime(msg.time)}
-                              </span>
-                              <div
-                                className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                                  isMe
-                                    ? "rounded-br-md text-white"
-                                    : "bg-white rounded-bl-md text-gray-900 shadow-sm"
-                                }`}
-                                style={
-                                  isMe ? { background: "#3C1F1B" } : undefined
-                                }
-                              >
-                                {msg.is_media && msg.media_url && (
-                                  <button
-                                    onClick={() => setLightboxSrc(resolveImageUrl(msg.media_url))}
-                                    className="block mb-1.5"
+                              <div className={`flex flex-col max-w-[75%]`}>
+                                <div
+                                  className={`rounded-lg px-3 py-2 w-full ${
+                                    isMe
+                                      ? "text-white"
+                                      : "bg-white text-gray-900 shadow-sm border border-gray-100"
+                                  }`}
+                                  style={
+                                    isMe ? { background: "#3C1F1B" } : undefined
+                                  }
+                                >
+                                  {senderName && (
+                                    <p
+                                      className={`text-[11px] font-bold tracking-wide mb-1 ${
+                                        isMe
+                                          ? "text-white/70"
+                                          : "text-[#3C1F1B]"
+                                      }`}
+                                    >
+                                      {senderName}
+                                    </p>
+                                  )}
+                                  {msg.is_media && msg.media_url && (
+                                    <button
+                                      onClick={() => setLightboxSrc(resolveImageUrl(msg.media_url))}
+                                      className="block mb-1.5"
+                                    >
+                                      <img
+                                        src={resolveImageUrl(msg.media_url)}
+                                        alt="Shared media"
+                                        className="max-w-full max-h-48 rounded object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                      />
+                                    </button>
+                                  )}
+                                  {msg.message && (
+                                    <p className="text-sm whitespace-pre-wrap break-words">
+                                      {msg.message}
+                                    </p>
+                                  )}
+                                  <p
+                                    className={`text-[10px] mt-1 text-right ${
+                                      isMe ? "text-white/50" : "text-gray-400"
+                                    }`}
                                   >
-                                    <img
-                                      src={resolveImageUrl(msg.media_url)}
-                                      alt="Shared media"
-                                      className="max-w-full max-h-48 rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                    />
-                                  </button>
-                                )}
-                                {msg.message && (
-                                  <p className="text-sm whitespace-pre-wrap break-words">
-                                    {msg.message}
+                                    {formatFullTime(msg.time)}
                                   </p>
+                                </div>
+                                {showSeenBadge && (
+                                  <span className="text-[11px] font-semibold text-green-600 bg-green-50 border border-green-300 px-2 py-0.5 rounded mt-0.5 self-end">
+                                    Seen
+                                  </span>
                                 )}
                               </div>
-                              {showSeenBadge && (
-                                <span className="text-[11px] font-semibold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full flex-shrink-0 self-end mb-0.5">
-                                  Seen
-                                </span>
-                              )}
                             </div>
                           )}
                         </div>
