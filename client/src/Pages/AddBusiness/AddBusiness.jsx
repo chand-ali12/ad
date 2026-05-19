@@ -3,8 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { CustomSelect } from '../../components';
-import { getBusinessCountries } from '../../store/slices/homeSlice';
 import { getBrands } from '../../store/slices/brandsSlice';
+import countriesNames from '../../constants/countriesNames';
 import { updateUserAfterAddBusiness } from '../../store/slices/authSlice';
 import { registerBusiness } from '../../services/businessServices';
 import bgAddBusinessImage from '../../assets/images/bg-addbusiness.png';
@@ -13,16 +13,11 @@ const AddBusiness = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
-    const { businessCountries } = useAppSelector((state) => state.home);
     const { brands: apiBrands = [] } = useAppSelector((state) => state.brands);
     const token = useAppSelector((state) => state.auth?.token);
     const authUser = useAppSelector((state) => state.auth?.user);
     const [submitError, setSubmitError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    useEffect(() => {
-        dispatch(getBusinessCountries());
-    }, [dispatch]);
 
     useEffect(() => {
         dispatch(getBrands());
@@ -192,10 +187,12 @@ const AddBusiness = () => {
                                         ref={field.ref}
                                         name={field.name}
                                         onBlur={field.onBlur}
-                                        options={[...(businessCountries || []).map((c) => ({ value: c.business_country, label: c.business_country }))]}
+                                        options={countriesNames.map((c) => ({ value: c.name, label: c.name }))}
                                         value={field.value}
                                         onChange={field.onChange}
                                         placeholder="Country"
+                                        searchable
+                                        searchPlaceholder="Search countries..."
                                         triggerClassName={`bg-gray-100 ${errors.country ? 'border-red-500' : ''}`}
                                     />
                                 )}
