@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../config/firebase";
 import { uploadImage as uploadImageApi } from "./uploadService";
+import { request } from "./apiClient";
 import { MEDIA_BASE_URL } from "../config/env";
 
 /** Matches Firestore dev collection for message threads */
@@ -966,4 +967,38 @@ export async function findRoomIdByOrder(orderId, userEmail) {
   if (snap.empty) return null;
   const d = snap.docs[0];
   return d.data().firebaseChatId || d.id;
+}
+
+export async function sendMessageNotification({
+  roomId,
+  authenticatorIds = [],
+  token,
+} = {}) {
+  if (!roomId) return;
+  const userIdStr = authenticatorIds.filter(Boolean).join(",");
+  const formData = new FormData();
+  formData.append("user_id", userIdStr);
+  formData.append("chat_room_id", String(roomId));
+  formData.append("notification_type", "expedited_message");
+
+  console.log("[sendMessageNotification] Sending:", {
+    user_id: userIdStr,
+    chat_room_id: String(roomId),
+    notification_type: "expedited_message",
+    hasToken: !!token,
+  });
+
+  try {
+    const res = await request("forum/send-message-notification", {
+      method: "POST",
+      body: formData,
+      isFormData: true,
+      headers: token ? { sessiontoken: token } : undefined,
+    });
+    console.log("[sendMessageNotification] Response:", res);
+    return res;
+  } catch (err) {
+    console.error("[sendMessageNotification] Error:", err?.data ?? err?.message ?? err);
+    throw err;
+  }
 }

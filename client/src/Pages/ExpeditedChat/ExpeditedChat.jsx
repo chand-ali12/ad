@@ -25,6 +25,7 @@ import {
   reconcileExpeditedThreadParticipants,
   provisionExpeditedRoomBeforeFirstMessage,
   subscribeToOtherPartySeenStatus,
+  sendMessageNotification,
 } from "../../services/expeditedChatService";
 
 function initials(name) {
@@ -770,6 +771,20 @@ export default function ExpeditedChat() {
         },
         participantEmailsList,
       );
+
+      const authenticatorIds = (selectedRoom?.authenticators || [])
+        .map((a) => a.id)
+        .filter(Boolean);
+      console.log("[handleSend] full selectedRoom:", JSON.stringify(selectedRoom, null, 2));
+      console.log("[handleSend] selectedRoom.authenticators:", selectedRoom?.authenticators);
+      console.log("[handleSend] authenticatorIds:", authenticatorIds);
+      sendMessageNotification({
+        roomId: roomIdForSend,
+        authenticatorIds,
+        token: localStorage.getItem("authToken"),
+      }).catch((err) => {
+        console.warn("Message notification failed:", err);
+      });
 
     } catch (err) {
       console.error("Failed to send message:", err);
