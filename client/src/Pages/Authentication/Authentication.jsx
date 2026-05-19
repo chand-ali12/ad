@@ -135,7 +135,9 @@ const Authentication = () => {
     const valuationSurcharge =
       entry.marketValuation === true ? toSafeNumber(valuationValue) : 0;
     const eligibleForSubscription =
-      !isCategorySpecial(selectedCategory) && availableSubscriptionCredits > 0;
+      speedType !== "expedited" &&
+      !isCategorySpecial(selectedCategory) &&
+      availableSubscriptionCredits > 0;
     const payableBase = eligibleForSubscription ? 0 : basePrice;
     const payablePrice = toSafeNumber(payableBase + valuationSurcharge);
     const firstPath = Array.isArray(imagePaths) ? imagePaths[0] : imagePaths;
@@ -694,6 +696,7 @@ const Authentication = () => {
           setSelectedCategoryId={setSelectedCategoryId}
           valuationValue={valuationValue}
           remainingRequests={remainingCertificates}
+          speedType={speedType}
         />
       </section>
       {/* {showStickyButtons && (

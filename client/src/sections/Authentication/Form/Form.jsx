@@ -35,6 +35,7 @@ const Form = ({
   setSelectedCategoryId,
   valuationValue,
   remainingRequests = 0,
+  speedType = "standard",
 }) => {
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -944,7 +945,7 @@ const Form = ({
                   />
                 </div>
               )}
-            {remainingRequests > 0 && (
+            {remainingRequests > 0 && speedType !== "expedited" && (
               <div className="rounded-xl border-2 border-amber-500 bg-amber-100 px-4 py-3 shadow-sm">
                 <p className="text-sm font-semibold text-primary">
                   You have {remainingRequests} requests remaining in your
