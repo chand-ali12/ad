@@ -659,6 +659,7 @@ const Authentication = () => {
           setIsBulkMode={setIsBulkMode}
           bulkQuantity={bulkQuantity}
           setBulkQuantity={setBulkQuantity}
+          isLoggedIn={!!authUser}
           onQuantityChange={(isBulk) => {
             const bulk = !!isBulk;
             setIsBulkMode(bulk);

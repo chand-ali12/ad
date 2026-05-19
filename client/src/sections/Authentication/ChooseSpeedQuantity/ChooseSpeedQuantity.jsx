@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { FiHelpCircle } from "react-icons/fi";
 
@@ -56,8 +57,11 @@ const ChooseSpeedQuantity = ({
   setBulkQuantity,
   speedType,
   setSpeedType,
+  isLoggedIn = true,
 }) => {
+  const navigate = useNavigate();
   const [showBulkAuthInfoAlert, setShowBulkAuthInfoAlert] = useState(false);
+  const [showLoginRequiredModal, setShowLoginRequiredModal] = useState(false);
   const isExpedited = speedType === "expedited";
 
   const handleQuantitySelect = (value) => {
@@ -73,6 +77,10 @@ const ChooseSpeedQuantity = ({
   };
 
   const handleSpeedChange = (type) => {
+    if (type === "expedited" && !isLoggedIn) {
+      setShowLoginRequiredModal(true);
+      return;
+    }
     setSpeedType(type);
     if (type === "expedited" && quantity === "bulk") {
       handleSingleAuthClick();
@@ -233,6 +241,44 @@ const ChooseSpeedQuantity = ({
           </div>
         </div>
       </div>
+
+      {/* Login required popup for Expedited */}
+      {showLoginRequiredModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          aria-modal="true"
+          role="dialog"
+        >
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl overflow-hidden p-6 sm:p-8 text-center">
+            <h3 className="text-primary font-bold text-xl sm:text-2xl mb-4">
+              Login Required
+            </h3>
+            <p className="text-primary text-sm sm:text-base font-normal leading-relaxed mb-6 px-1">
+              You need to be logged in to select the Expedited speed option.
+              Please sign in to your account to submit an expedited query.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLoginRequiredModal(false)}
+                className="bg-secondary text-primary border border-gray-300 px-6 py-3 rounded-xl font-semibold text-sm sm:text-base hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLoginRequiredModal(false);
+                  navigate("/signin");
+                }}
+                className="bg-primary text-secondary font-semibold text-sm sm:text-base px-6 py-3 rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bulk Authentication info alert popup */}
       {showBulkAuthInfoAlert && (
