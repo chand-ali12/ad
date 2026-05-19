@@ -19,6 +19,7 @@ import {
   freeSubmitBulk,
 } from "../../store/slices/authenticationRequestSlice";
 import { valuationCoaChangeStatus } from "../../services/forumService";
+import { getUserQueries } from "../../services/profileServices";
 
 const BRAINTREE_SCRIPT =
   "https://js.braintreegateway.com/web/dropin/1.36.0/js/dropin.min.js";
@@ -190,7 +191,7 @@ const Checkout = () => {
     }, duration);
   };
 
-  const navigateToQueryChat = (result, savedCartItems) => {
+  const navigateToQueryChat = async (result, savedCartItems) => {
     const expedited =
       isExpedited || savedCartItems?.some((item) => item.is_expedited);
     if (!expedited) {
@@ -199,19 +200,38 @@ const Checkout = () => {
     }
 
     const responseData = result?.data ?? result ?? {};
+    const numericId = responseData?.id ?? braintreePayload?.id;
+
+    // Fetch the freshly-created query so we get the backend-assigned
+    // order_number and firebase_chat_id (same approach as profile page).
+    let queryData = null;
+    if (numericId) {
+      try {
+        const token = authToken || localStorage.getItem("authToken");
+        const queriesRes = await getUserQueries({ token, type: 0, all: 1 });
+        const queries = queriesRes?.data ?? [];
+        queryData = queries.find((q) => Number(q.id) === Number(numericId));
+      } catch (err) {
+        console.warn("[navigateToQueryChat] get-user-queries failed:", err);
+      }
+    }
+
     const orderId = String(
-      responseData?.id ??
-      responseData?.order_id ??
+      queryData?.order_number ??
       responseData?.order_number ??
-      braintreePayload?.id ??
       braintreePayload?.order_number ??
+      responseData?.order_id ??
+      responseData?.id ??
+      braintreePayload?.id ??
       "",
     );
     const chatId = String(
+      queryData?.firebase_chat_id ??
       responseData?.firebase_chat_id ??
       braintreePayload?.firebase_chat_id ??
       "",
     ).trim();
+
     const firstPath = savedCartItems?.[0]?.imagePaths;
     const rawImage = Array.isArray(firstPath)
       ? firstPath[0]
