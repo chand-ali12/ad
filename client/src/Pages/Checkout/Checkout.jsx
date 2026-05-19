@@ -190,6 +190,46 @@ const Checkout = () => {
     }, duration);
   };
 
+  const navigateToQueryChat = (result, savedCartItems) => {
+    const expedited =
+      isExpedited || savedCartItems?.some((item) => item.is_expedited);
+    if (!expedited) {
+      navigate("/", { replace: true });
+      return;
+    }
+
+    const responseData = result?.data ?? result ?? {};
+    const orderId = String(
+      responseData?.id ??
+      responseData?.order_id ??
+      responseData?.order_number ??
+      braintreePayload?.id ??
+      braintreePayload?.order_number ??
+      "",
+    );
+    const chatId = String(
+      responseData?.firebase_chat_id ??
+      braintreePayload?.firebase_chat_id ??
+      "",
+    ).trim();
+    const firstPath = savedCartItems?.[0]?.imagePaths;
+    const rawImage = Array.isArray(firstPath)
+      ? firstPath[0]
+      : typeof firstPath === "string"
+        ? firstPath
+        : "";
+    const imageUuid = (rawImage || "")
+      .replace(/^authenticateImage\//, "")
+      .replace(/^\/+/, "");
+
+    const params = new URLSearchParams();
+    if (orderId) params.set("orderId", orderId);
+    params.set("deferProvision", "1");
+    if (chatId) params.set("room", chatId);
+    if (imageUuid) params.set("image", imageUuid);
+    navigate(`/expedited-chat?${params.toString()}`, { replace: true });
+  };
+
   /** Required for paid (Braintree) and $0 coupon checkout; sets field errors + toast if missing. */
   const validateCheckoutCustomerNames = () => {
     clearErrors(["firstName", "lastName"]);
@@ -700,10 +740,11 @@ const Checkout = () => {
         ).unwrap();
         const successMsg =
           result?.msg || "Your order has been submitted successfully!";
+        const savedCartItems = [...cartItems];
         dispatch(clearCart());
         showToastMsg(successMsg, "success", 3000);
         successRedirectTimeoutRef.current = setTimeout(() => {
-          navigate("/", { replace: true });
+          navigateToQueryChat(result, savedCartItems);
         }, 1200);
       } else {
         const result = await dispatch(
@@ -759,8 +800,10 @@ const Checkout = () => {
     if (!cartItems.length) return;
     if (!validateCheckoutCustomerNames()) return;
     const couponCode = getValues("promoCode")?.trim() || undefined;
+    const savedCartItems = [...cartItems];
 
     try {
+      let freeResult = null;
       if (cartItems.length === 1) {
         const item = cartItems[0];
         const itemEmail =
@@ -795,7 +838,7 @@ const Checkout = () => {
           ...(couponCode && { coupon_code: couponCode }),
           is_expedited: item.is_expedited || isExpedited || false,
         };
-        await dispatch(
+        freeResult = await dispatch(
           freeProcessPaypalOrder({
             singleFormData: payload,
             is_expedited: item.is_expedited || isExpedited || false,
@@ -835,7 +878,7 @@ const Checkout = () => {
             add_on: item.add_on ?? 0,
           };
         });
-        await dispatch(
+        freeResult = await dispatch(
           freeSubmitBulk({
             user_email: bulkEmail,
             total_price: 0,
@@ -850,7 +893,7 @@ const Checkout = () => {
       dispatch(clearCart());
       showToastMsg("Your order has been submitted successfully!", "success", 3000);
       successRedirectTimeoutRef.current = setTimeout(() => {
-        navigate("/", { replace: true });
+        navigateToQueryChat(freeResult, savedCartItems);
       }, 1200);
     } catch (err) {
       console.error("Free checkout failed:", err);
