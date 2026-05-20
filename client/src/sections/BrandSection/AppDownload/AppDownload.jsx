@@ -52,16 +52,16 @@ const AppDownload = ({
                 {/* QR Code and App Store Buttons */}
                 <div className="flex flex-row items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6 xl:gap-8 w-full sm:w-auto">
                   {/* QR Code */}
-                  <div className="flex-shrink-0">
+                  {/* <div className="flex-shrink-0">
                     <img
                       src={qrCodeToUse}
                       alt="QR Code"
                       className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48"
                     />
-                  </div>
+                  </div> */}
 
                   {/* App Store Buttons */}
-                  <div className="flex flex-col gap-2 sm:gap-3 md:gap-4">
+                  <div className="flex flex-row gap-2 sm:gap-3 md:gap-4">
                     {/* Google Play Button */}
                     <div className="flex-shrink-0">
                       <a

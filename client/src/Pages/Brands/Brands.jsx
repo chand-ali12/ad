@@ -33,16 +33,16 @@ const FEATURED_BRANDS = [
     description: 'Founded in 1910 by Coco Chanel in Paris. Known for timeless elegance, the iconic Classic Flap Bag, tweed suits, and Chanel No. 5 perfume.',
   },
   {
-    label: 'Hermès',
-    route: '/brand/hermes',
-    tagline: 'Hermès Authentication',
-    description: 'Founded in 1837 by Thierry Hermès. Renowned for handcrafted luxury and iconic pieces like the Birkin and Kelly bags, produced by single master artisans.',
-  },
-  {
     label: 'Gucci',
     route: '/brand/gucci',
     tagline: 'Gucci Authentication',
     description: 'Founded in 1921 by Guccio Gucci in Florence. Known for Italian craftsmanship, the GG monogram, and iconic designs like the Dionysus and Marmont bags.',
+  },
+  {
+    label: 'Hermès',
+    route: '/brand/hermes',
+    tagline: 'Hermès Authentication',
+    description: 'Founded in 1837 by Thierry Hermès. Renowned for handcrafted luxury and iconic pieces like the Birkin and Kelly bags, produced by single master artisans.',
   },
   {
     label: 'Louis Vuitton',
