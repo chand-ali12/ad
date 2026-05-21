@@ -54,17 +54,24 @@ function formatTime(date) {
   });
 }
 
-/** Time-of-day only (UTC clock), next to each message — no date. */
+/** Relative time next to each message (computed once at render, no sync). */
 function formatFullTime(date) {
   if (!date) return "";
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "UTC",
-  });
+  const diff = Date.now() - d.getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return sec <= 1 ? "1 sec ago" : `${sec} secs ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min === 1 ? "1 min ago" : `${min} mins ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr === 1 ? "1 hr ago" : `${hr} hrs ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return day === 1 ? "1 day ago" : `${day} days ago`;
+  const month = Math.floor(day / 30);
+  if (month < 12) return month === 1 ? "1 month ago" : `${month} months ago`;
+  const year = Math.floor(month / 12);
+  return year === 1 ? "1 year ago" : `${year} years ago`;
 }
 
 function formatDayLabel(date) {
@@ -99,12 +106,20 @@ function dayKey(date) {
 }
 
 const AUTHENTICATE_IMAGE_BASE_URL = "https://auth-detect.s3.amazonaws.com/authenticateImage/";
+const PROFILE_IMAGE_BASE_URL = "https://auth-detect.s3.amazonaws.com/usersProfile/";
 
 /** Constructs a displayable URL from a stored image path or returns the value as-is if already a URL. */
 function resolveImageUrl(image) {
   if (!image) return "";
   if (image.startsWith("http://") || image.startsWith("https://")) return image;
   return `${AUTHENTICATE_IMAGE_BASE_URL}${image}`;
+}
+
+/** Resolves a user profile picture UUID to its full S3 URL. */
+function resolveProfileImageUrl(image) {
+  if (!image) return "";
+  if (image.startsWith("http://") || image.startsWith("https://")) return image;
+  return `${PROFILE_IMAGE_BASE_URL}${image}`;
 }
 
 // --------------- Create Room Modal ---------------
@@ -1154,6 +1169,43 @@ export default function ExpeditedChat() {
                         return "";
                       })();
 
+                      const senderImage = (() => {
+                        if (isMe) return resolveProfileImageUrl(currentUserImage || "");
+                        const auth = (selectedRoom?.authenticators || []).find(
+                          (a) => String(a.id) === senderId,
+                        );
+                        const ci =
+                          selectedRoom?.clientInfo ?? selectedRoom?.client_info;
+                        console.log("[avatar debug]", {
+                          senderId,
+                          senderName,
+                          authenticators: selectedRoom?.authenticators,
+                          clientInfo: ci,
+                          authMatch: auth,
+                          ciIdMatch: ci ? String(ci.id) === senderId : false,
+                        });
+                        if (auth?.image) return resolveProfileImageUrl(auth.image);
+                        if (ci && String(ci.id) === senderId && ci.image)
+                          return resolveProfileImageUrl(ci.image);
+                        return "";
+                      })();
+
+                      const avatarEl = (
+                        <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-gray-300 flex items-center justify-center self-start">
+                          {senderImage ? (
+                            <img
+                              src={senderImage}
+                              alt={senderName || "User"}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs font-semibold text-white uppercase">
+                              {(senderName || "U").charAt(0)}
+                            </span>
+                          )}
+                        </div>
+                      );
+
                       return (
                         <div key={msg.id}>
                           {showDayDivider && (
@@ -1172,8 +1224,9 @@ export default function ExpeditedChat() {
                             </div>
                           ) : (
                             <div
-                              className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
+                              className={`flex items-start gap-2 ${isMe ? "justify-end" : "justify-start"}`}
                             >
+                              {!isMe && avatarEl}
                               <div className={`flex flex-col max-w-[75%]`}>
                                 <div
                                   className={`rounded-lg px-3 py-2 w-full ${
@@ -1227,6 +1280,7 @@ export default function ExpeditedChat() {
                                   </span>
                                 )}
                               </div>
+                              {isMe && avatarEl}
                             </div>
                           )}
                         </div>
