@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import verifyHeroImage from '../../../assets/images/verifyhero.png';
+import verifyHeroImage from '../../../assets/images/verifyhero.jpeg';
 import { FiArrowRight } from 'react-icons/fi';
 import ContentHeroSection from '../../../components/client/ContentHeroSection/ContentHeroSection';
 

@@ -1,9 +1,9 @@
-import PropTypes from 'prop-types';
-import { SectionHeader, PremiumCard } from '../../../components';
-import { Shield, Eye, Award } from 'lucide-react';
-import BallenoImage from '../../../assets/images/Balleno.jpg';
-import Image37 from '../../../assets/images/37.jpg';
-import WhiteDarkImage from '../../../assets/images/whitedark.jpg';
+import PropTypes from "prop-types";
+import { SectionHeader, PremiumCard } from "../../../components";
+import { Shield, Eye, Award } from "lucide-react";
+import BallenoImage from "../../../assets/images/Balleno.jpg";
+import Image37 from "../../../assets/images/37.jpg";
+import WhiteDarkImage from "../../../assets/images/whitedark.jpg";
 
 const PremiumAuthentication = ({
   heading = "Premium Authentication Solutions",
@@ -17,12 +17,13 @@ const PremiumAuthentication = ({
       image: BallenoImage,
       imageAlt: "Balleno",
       title: "BALENCIAGA Logo",
-      description: "Verify authenticity through metal nameplate and leather tag inspection",
+      description:
+        "Verify authenticity through metal nameplate and leather tag inspection",
       features: [
         "Metal nameplate verification",
         "Style number identification",
-        "\"MADE IN ITALY\" embossing",
-        "Balenciaga_Paris or Balenciaga.Paris tag"
+        '"MADE IN ITALY" embossing',
+        "Balenciaga_Paris or Balenciaga.Paris tag",
       ],
       buttonText: "View Details",
       bottomLeftIcon: Shield,
@@ -38,7 +39,7 @@ const PremiumAuthentication = ({
         "Premium soft and durable leather",
         "Thick, uniform stitching",
         "Sueded-leather handles",
-        "Solid piece leather straps with hardware"
+        "Solid piece leather straps with hardware",
       ],
       buttonText: "View Details",
       bottomLeftIcon: Eye,
@@ -54,7 +55,7 @@ const PremiumAuthentication = ({
         "High-quality metal studs",
         "Lampo zipper hardware",
         "Secure metal fittings",
-        "Edgy distinctive metal details"
+        "Edgy distinctive metal details",
       ],
       buttonText: "View Details",
       bottomLeftIcon: Award,
@@ -66,11 +67,13 @@ const PremiumAuthentication = ({
   const cardsToRender = cards.length > 0 ? cards : defaultCards;
 
   const handleButtonClick = () => {
-    console.log('Button clicked!');
+    console.log("Button clicked!");
   };
 
   return (
-    <section className={`w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-white ${className}`}>
+    <section
+      className={`w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-white ${className}`}
+    >
       <div className="px-4 py-4 sm:px-6 sm:py-6 md:px-8 md:py-8 max-w-[1200px] mx-auto">
         <SectionHeader
           showCapsule={false}
@@ -99,7 +102,7 @@ const PremiumAuthentication = ({
               featureIcon={card.featureIcon}
               featureIconColor="#D4AF37"
               fullBleedImage={true}
-              className={`!bg-[#F5F5F0] ${card.className || ''}`}
+              className={`!bg-[#F5F5F0] ${card.className || ""}`}
             />
           ))}
         </div>
@@ -120,14 +123,20 @@ PremiumAuthentication.propTypes = {
       features: PropTypes.array,
       buttonText: PropTypes.string,
       buttonIcon: PropTypes.oneOfType([PropTypes.elementType, PropTypes.node]),
-      bottomLeftIcon: PropTypes.oneOfType([PropTypes.elementType, PropTypes.node]),
+      bottomLeftIcon: PropTypes.oneOfType([
+        PropTypes.elementType,
+        PropTypes.node,
+      ]),
       popularTagText: PropTypes.string,
-      popularTagIcon: PropTypes.oneOfType([PropTypes.elementType, PropTypes.node]),
+      popularTagIcon: PropTypes.oneOfType([
+        PropTypes.elementType,
+        PropTypes.node,
+      ]),
       showPopularTag: PropTypes.bool,
       featureIcon: PropTypes.oneOfType([PropTypes.elementType, PropTypes.node]),
       onButtonClick: PropTypes.func,
       className: PropTypes.string,
-    })
+    }),
   ),
   className: PropTypes.string,
 };

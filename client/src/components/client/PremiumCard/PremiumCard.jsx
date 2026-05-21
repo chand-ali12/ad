@@ -73,14 +73,14 @@ const PremiumCard = ({
       {/* Top Section - Image (only show if image is provided) */}
       {image && (
         <div
-          className={`relative w-full h-72 overflow-hidden flex-shrink-0 ${!fullBleedImage ? "bg-primary flex items-center justify-center" : ""} ${imageFit === "contain" ? "bg-white p-2" : ""}`}
+          className={`relative w-full h-72 sm:h-80 md:h-96 overflow-hidden flex-shrink-0 ${!fullBleedImage ? "bg-primary flex items-center justify-center" : ""} ${imageFit === "contain" ? "bg-white p-2" : ""}`}
         >
           <img
             src={image}
             alt={imageAlt || title || "Card image"}
             // Use object-cover so the image fills the card area (no extra whitespace),
             // while the wrapper keeps it cropped to the card dimensions.
-            className="w-full h-full object-cover object-center bg-center bg-no-repeat "
+            className="w-full h-full object-cover object-[center_60%] bg-center bg-no-repeat "
           />
 
           {/* Popular Tag */}
@@ -97,7 +97,7 @@ const PremiumCard = ({
 
           {/* Bottom Left Icon */}
           {bottomLeftIcon && (
-            <div className="absolute bottom-4 left-4 bg-primary w-9 h-9 sm:w-10 sm:h-10 rounded-[12px] flex items-center justify-center z-10 text-secondary">
+            <div className="absolute bottom-6 left-6 bg-primary w-9 h-9 sm:w-10 sm:h-10 rounded-[12px] flex items-center justify-center z-10 text-secondary">
               {renderIcon(
                 bottomLeftIcon,
                 "w-4 h-4 sm:w-5 sm:h-5 text-secondary",
