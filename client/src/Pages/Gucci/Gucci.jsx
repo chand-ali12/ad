@@ -12,9 +12,9 @@ import whiteshoesImage from "../../assets/images/whiteshoes.jpg";
 import { Shield, Eye, Award } from "lucide-react";
 
 // Using existing images (can be replaced with Gucci-specific images later)
-import GucciSection1 from "../../assets/images/Gucci_section_1.jpeg";
-import GucciSection2 from "../../assets/images/Gucci_section_2.jpeg";
-import GucciSection3 from "../../assets/images/Gucci_section_3.jpeg";
+import GucciSection1 from "../../assets/images/gucci-sec-1.jpeg";
+import GucciSection2 from "../../assets/images/gucci-sec-2.jpeg";
+import GucciSection3 from "../../assets/images/gucci-sec-3.jpeg";
 
 // Detailed Guide Section Component for Gucci's extensive content
 const AuthenticationGuideSection = ({ guides = [] }) => {
