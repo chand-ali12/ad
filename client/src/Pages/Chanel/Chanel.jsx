@@ -12,10 +12,9 @@ import whiteshoesImage from '../../assets/images/whiteshoes.jpg';
 import { Shield, Eye, Award } from 'lucide-react';
 
 // Chanel-specific images (using placeholder for now, can be replaced with actual Chanel images)
-import BallenoImage from '../../assets/images/Balleno.jpg';
-import Image37 from '../../assets/images/37.jpg';
-import WhiteDarkImage from '../../assets/images/whitedark.jpg';
-
+import BallenoImage from '../../assets/images/Logos_Stamps_Photo_1.jpeg';
+import Image37 from '../../assets/images/Photo_2_craftsmanship.jpeg';
+import WhiteDarkImage from '../../assets/images/Photo_3_hardwaare_and_details.jpeg';
 const Chanel = () => {
     const navigate = useNavigate();
 
@@ -69,8 +68,7 @@ const Chanel = () => {
             features: [
                 "Check for the Chanel logo and markings",
                 "\"Chanel Made in France/Italy\" stamp",
-                "Serial numbers match authenticity card",
-                "Correct format for production year"
+                "Serial numbers match authenticity card"
             ],
             buttonText: "View Details",
             bottomLeftIcon: Shield,
@@ -83,7 +81,7 @@ const Chanel = () => {
             description: "Chanel items are meticulously made, with even stitching and high-quality leather.",
             features: [
                 "Even stitching, high-quality leather, sturdy hardware",
-                "Jewelry: high-quality metal alloy with good coating",
+                "Jewelry: high-quality metal alloy with high quality coating",
                 "Tweed, leather, jewelry feel premium",
                 "No loose threads or rough edges"
             ],
