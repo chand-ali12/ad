@@ -12,7 +12,7 @@ const ContactUsSection = ({ className = "" }) => {
         <img
           src={contactUsBg}
           alt="Contact Us Background"
-          className="w-full h-full object-cover object-[center_80%]"
+          className="w-full h-full object-cover object-[61%_80%] md:object-[center_80%]"
         />
       </div>
 
