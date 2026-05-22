@@ -1,5 +1,5 @@
 import React from "react";
-import contactUsBg from "../../assets/images/support-img.jpeg";
+import contactUsBg from "../../assets/images/support_image.png";
 import PropTypes from "prop-types";
 
 const ContactUsSection = ({ className = "" }) => {
@@ -12,7 +12,7 @@ const ContactUsSection = ({ className = "" }) => {
         <img
           src={contactUsBg}
           alt="Contact Us Background"
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover object-[center_80%]"
         />
       </div>
 

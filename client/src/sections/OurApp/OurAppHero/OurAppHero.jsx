@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import ourAppHeroImage from "../../../assets/images/OurAppHero.png";
+import ourAppHeroImage from "../../../assets/images/support_image.png";
 import googleButton from "../../../assets/images/google.png";
 import appleButton from "../../../assets/images/apple.png";
 import mobileInHandImage from "../../../assets/images/mobileinHand.png";
@@ -24,7 +24,7 @@ const OurAppHero = ({
         <img
           src={ourAppHeroImage}
           alt="Our App Hero Background"
-          className="w-full h-full object-cover bg-primary mix-blend-multiply"
+          className="w-full h-full object-cover object-[center_80%] bg-primary mix-blend-multiply"
         />
       </div>
 

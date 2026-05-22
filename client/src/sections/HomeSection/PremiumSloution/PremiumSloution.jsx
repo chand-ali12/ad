@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { SectionHeader, PremiumCard } from "../../../components";
 import { BadgeCheck, TrendingUp, StickyNote } from "lucide-react";
-import authCardsImage from "../../../assets/images/Authenticity Cards.jpeg";
+import authCardsImage from "../../../assets/images/Authentic_Detective_H1.jpeg";
 import valuationImage from "../../../assets/images/valuation.jpeg";
 
 const PremiumSolution = ({
