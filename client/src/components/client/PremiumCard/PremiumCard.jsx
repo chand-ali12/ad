@@ -135,7 +135,7 @@ const PremiumCard = ({
               return (
                 <li
                   key={index}
-                  className="flex items-center gap-2.5 text-xs sm:text-sm text-primary opacity-90"
+                  className="flex items-start gap-2.5 text-xs sm:text-sm text-primary opacity-90"
                 >
                   <span
                     className="flex-shrink-0"
