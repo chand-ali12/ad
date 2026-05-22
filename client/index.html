@@ -7,9 +7,173 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://authenticdetective.com/#org",
+            "name": "Authentic Detective",
+            "url": "https://authenticdetective.com/",
+            "logo": "https://authentic-detective-dev.vercel.app/assets/images/header-logo.png"
+          },
+          {
+            "@type": "Service",
+            "@id": "https://authenticdetective.com/authentication#service",
+            "name": "Luxury Item Authentication Service",
+            "provider": {
+              "@id": "https://authenticdetective.com/#org"
+            },
+            "areaServed": "Worldwide",
+            "description": "Authentication services for luxury brands including Louis Vuitton, Chanel, Hermes, and Tiffany & Co.",
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Authentication Pricing",
+              "itemListElement": [
+                {
+                  "@type": "OfferCatalog",
+                  "name": "Louis Vuitton Authentication",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "name": "Regular Bags and Accessories",
+                      "price": "12",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Jewelry and Watches",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Microchipped Bags and Accessories",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Takashi Murakami Edition",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Trunks",
+                      "price": "35",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Exotic Leather Bags",
+                      "price": "35",
+                      "priceCurrency": "USD"
+                    }
+                  ]
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "Tiffany & Co. Authentication",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "name": "Bags and Accessories",
+                      "price": "12",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Jewelry",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    }
+                  ]
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "Hermes Authentication",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "name": "Small Leather Goods",
+                      "price": "35",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Shoes",
+                      "price": "35",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Regular Bags",
+                      "price": "60",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Exotic Leather Bags",
+                      "price": "90",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Jewelry",
+                      "price": "35",
+                      "priceCurrency": "USD"
+                    }
+                  ]
+                },
+                {
+                  "@type": "OfferCatalog",
+                  "name": "Chanel Authentication",
+                  "itemListElement": [
+                    {
+                      "@type": "Offer",
+                      "name": "Small Leather Goods",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Shoes",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Regular Bags",
+                      "price": "35",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Exotic Leather Bags",
+                      "price": "50",
+                      "priceCurrency": "USD"
+                    },
+                    {
+                      "@type": "Offer",
+                      "name": "Jewelry",
+                      "price": "20",
+                      "priceCurrency": "USD"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    </script>
     <title>Authentic Detective</title>
     <style>
-      body.hide-chatbot [class*="aisw"] { display: none !important; }
+      body.hide-chatbot [class*="aisw"] {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
