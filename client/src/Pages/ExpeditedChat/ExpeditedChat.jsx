@@ -1176,14 +1176,6 @@ export default function ExpeditedChat() {
                         );
                         const ci =
                           selectedRoom?.clientInfo ?? selectedRoom?.client_info;
-                        console.log("[avatar debug]", {
-                          senderId,
-                          senderName,
-                          authenticators: selectedRoom?.authenticators,
-                          clientInfo: ci,
-                          authMatch: auth,
-                          ciIdMatch: ci ? String(ci.id) === senderId : false,
-                        });
                         if (auth?.image) return resolveProfileImageUrl(auth.image);
                         if (ci && String(ci.id) === senderId && ci.image)
                           return resolveProfileImageUrl(ci.image);
