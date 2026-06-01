@@ -20,6 +20,21 @@ import { getUserProfile } from "../../../store/slices/profileSlice";
 import { getBusinessProfile } from "../../../store/slices/businessSlice";
 import { INSURANCE_POLICY_SECTIONS } from "./insurancePolicyContent";
 import photoGuideImage from "../../../assets/images/photo-guide.png";
+import { getExpeditedBrands } from "../../../services/authenticateNowService";
+
+const formatAvailableAt = (dateStr, timezone) => {
+  if (!dateStr) return "";
+  const [datePart, timePartFull] = dateStr.split(" ");
+  const timePart = (timePartFull || "").substring(0, 5);
+  if (!timePart) return dateStr;
+  const [hStr, mStr] = timePart.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  const parts = [datePart, `${h12}:${mStr} ${ampm}`];
+  if (timezone) parts.push(timezone);
+  return parts.join(" · ");
+};
 
 const Form = ({
   onPrimaryButtonClick,
@@ -99,6 +114,9 @@ const Form = ({
   const wasUploadingRef = useRef(false);
   const uploadStartSuccessCountRef = useRef(0);
   previewFilesRef.current = previewFiles;
+  const [expeditedBrandsData, setExpeditedBrandsData] = useState(null);
+  const [expeditedBrandsLoading, setExpeditedBrandsLoading] = useState(false);
+  const prevSpeedTypeRef = useRef(speedType);
 
   const brandsList = apiBrands?.length ? apiBrands : authBrands;
   const sortedBrandsForSelect = [...(brandsList || [])].sort((a, b) => {
@@ -110,13 +128,51 @@ const Form = ({
     (b) => String(b.id) === String(selectedBrandId),
   );
 
-  const categoriesForBrand = selectedBrandId
-    ? categoryList.filter(
-        (c) =>
-          String(c.brand_id) === String(selectedBrandId) ||
-          String(c.brand_id) === String(selectedBrand?.brand || ""),
-      )
+  const allExpeditedBrands = expeditedBrandsData
+    ? [
+        ...(expeditedBrandsData.available_now || []),
+        ...(expeditedBrandsData.available_later || []),
+      ]
     : [];
+
+  const categoriesForBrand = (() => {
+    if (speedType === "expedited") {
+      const brand = allExpeditedBrands.find(
+        (b) => String(b.id) === String(selectedBrandId),
+      );
+      return brand?.categories || [];
+    }
+    return selectedBrandId
+      ? categoryList.filter(
+          (c) =>
+            String(c.brand_id) === String(selectedBrandId) ||
+            String(c.brand_id) === String(selectedBrand?.brand || ""),
+        )
+      : [];
+  })();
+
+  const brandOptionsForSelect = (() => {
+    if (speedType === "expedited") {
+      if (!expeditedBrandsData) return [];
+      const nowOptions = (expeditedBrandsData.available_now || []).map((b) => ({
+        value: b.id,
+        label: b.brand || b.name || String(b.id),
+      }));
+      const laterOptions = (expeditedBrandsData.available_later || []).map(
+        (b) => ({
+          value: b.id,
+          label: b.brand || b.name || String(b.id),
+          disabled: true,
+          rightLabel: `Available at: ${formatAvailableAt(b.availability?.next_available_at, b.availability?.next_available_timezone)}`,
+        }),
+      );
+      return [...nowOptions, ...laterOptions];
+    }
+    return sortedBrandsForSelect.map((b) => ({
+      value: b.id,
+      label: b.brand || b.name || String(b.id),
+    }));
+  })();
 
   useEffect(() => {
     dispatch(fetchAuthenticateNowView());
@@ -176,6 +232,29 @@ const Form = ({
     }
   }, [openBulkDialog, onBulkDialogOpened]);
 
+  useEffect(() => {
+    if (speedType !== "expedited") return;
+    setExpeditedBrandsLoading(true);
+    getExpeditedBrands()
+      .then((res) => {
+        setExpeditedBrandsData(
+          res?.data ?? { available_now: [], available_later: [] },
+        );
+      })
+      .catch(() => {
+        setExpeditedBrandsData({ available_now: [], available_later: [] });
+      })
+      .finally(() => setExpeditedBrandsLoading(false));
+  }, [speedType]);
+
+  useEffect(() => {
+    if (prevSpeedTypeRef.current === speedType) return;
+    prevSpeedTypeRef.current = speedType;
+    setValue("brand_id", "");
+    setValue("category", "");
+    setSelectedCategoryId?.("");
+  }, [speedType, setValue, setSelectedCategoryId]);
+
   const handleFileChange = async (e) => {
     const files = e.target.files;
     if (!files?.length) {
@@ -183,16 +262,24 @@ const Form = ({
       return;
     }
     const formValues = getValues();
-    const formBrand = brandsList.find(
-      (b) => String(b.id) === String(formValues.brand_id),
-    );
+    const formBrand =
+      speedType === "expedited"
+        ? allExpeditedBrands.find(
+            (b) => String(b.id) === String(formValues.brand_id),
+          )
+        : brandsList.find(
+            (b) => String(b.id) === String(formValues.brand_id),
+          );
     const brand_name = formBrand?.brand ?? formBrand?.name ?? "";
-    const catsForBrand = categoryList.filter(
-      (c) =>
-        String(c.brand_id) === String(formValues.brand_id) ||
-        String(c.brand_id) ===
-          String(formBrand?.brand || formBrand?.name || ""),
-    );
+    const catsForBrand =
+      speedType === "expedited"
+        ? formBrand?.categories || []
+        : categoryList.filter(
+            (c) =>
+              String(c.brand_id) === String(formValues.brand_id) ||
+              String(c.brand_id) ===
+                String(formBrand?.brand || formBrand?.name || ""),
+          );
     const categoryName =
       catsForBrand.find((c) => String(c.id) === String(formValues.category))
         ?.name ??
@@ -613,19 +700,26 @@ const Form = ({
                     ref={field.ref}
                     name={field.name}
                     onBlur={field.onBlur}
-                    options={sortedBrandsForSelect.map((b) => ({
-                      value: b.id,
-                      label: b.brand || b.name || String(b.id),
-                    }))}
+                    options={brandOptionsForSelect}
                     value={field.value}
                     onChange={(value) => {
                       field.onChange(value);
                       trigger("brand_id");
                     }}
-                    placeholder="Select Brand"
+                    placeholder={
+                      speedType === "expedited" && expeditedBrandsLoading
+                        ? "Loading brands..."
+                        : "Select Brand"
+                    }
+                    disabled={speedType === "expedited" && expeditedBrandsLoading}
                     leftIcon={<FaSearch className="w-5 h-5" />}
                     searchable
                     searchPlaceholder="Search brand..."
+                    emptyMessage={
+                      speedType === "expedited"
+                        ? "No brands available"
+                        : "No matches"
+                    }
                   />
                 )}
               />
@@ -656,12 +750,10 @@ const Form = ({
                     ref={field.ref}
                     name={field.name}
                     onBlur={field.onBlur}
-                    options={[
-                      ...categoriesForBrand.map((c) => ({
-                        value: c.id,
-                        label: c.name,
-                      })),
-                    ]}
+                    options={categoriesForBrand.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
                     value={field.value}
                     onChange={(value) => {
                       field.onChange(value);

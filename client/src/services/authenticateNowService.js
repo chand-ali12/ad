@@ -215,3 +215,8 @@ export const processPaypal = async (formData, { token, is_expedited } = {}) => {
     },
   });
 };
+
+/** Expedited brands with availability - GET /api/get-expedited-brands */
+export const getExpeditedBrands = async () => {
+  return request("/get-expedited-brands", { method: "GET" });
+};

@@ -21,6 +21,7 @@ const CustomSelect = forwardRef(({
     triggerClassName = '',
     searchable = false,
     searchPlaceholder = 'Search...',
+    emptyMessage = 'No matches',
 }, ref) => {
     const [open, setOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -90,20 +91,29 @@ const CustomSelect = forwardRef(({
                     )}
                     <ul className="overflow-y-auto overflow-x-hidden py-1 min-h-0 max-h-[min(15rem,70vh)] overscroll-contain">
                         {filteredOptions.length === 0 ? (
-                            <li className="px-4 py-3 text-sm text-gray-500">No matches</li>
+                            <li className="px-4 py-3 text-sm text-gray-500">{emptyMessage}</li>
                         ) : (
                             filteredOptions.map((opt) => (
                                 <li key={String(opt.value)}>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            onChange(opt.value);
-                                            setOpen(false);
-                                        }}
-                                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${opt.value === value || String(opt.value) === String(value) ? 'bg-primary/10 text-primary font-medium' : 'text-primary hover:bg-gray-100'}`}
-                                    >
-                                        {opt.label}
-                                    </button>
+                                    {opt.disabled ? (
+                                        <div className="flex items-center justify-between w-full px-4 py-2.5 text-sm cursor-not-allowed select-none">
+                                            <span className="text-gray-500">{opt.label}</span>
+                                            {opt.rightLabel && (
+                                                <span className="ml-3 text-xs shrink-0 text-gray-500">{opt.rightLabel}</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onChange(opt.value);
+                                                setOpen(false);
+                                            }}
+                                            className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${opt.value === value || String(opt.value) === String(value) ? 'bg-primary/10 text-primary font-medium' : 'text-primary hover:bg-gray-100'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    )}
                                 </li>
                             ))
                         )}
@@ -117,7 +127,12 @@ const CustomSelect = forwardRef(({
 CustomSelect.displayName = 'CustomSelect';
 
 CustomSelect.propTypes = {
-    options: PropTypes.arrayOf(PropTypes.shape({ value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), label: PropTypes.string })).isRequired,
+    options: PropTypes.arrayOf(PropTypes.shape({
+        value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+        label: PropTypes.string,
+        disabled: PropTypes.bool,
+        rightLabel: PropTypes.string,
+    })).isRequired,
     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     onChange: PropTypes.func.isRequired,
     onBlur: PropTypes.func,
@@ -129,6 +144,7 @@ CustomSelect.propTypes = {
     triggerClassName: PropTypes.string,
     searchable: PropTypes.bool,
     searchPlaceholder: PropTypes.string,
+    emptyMessage: PropTypes.string,
 };
 
 export default CustomSelect;
