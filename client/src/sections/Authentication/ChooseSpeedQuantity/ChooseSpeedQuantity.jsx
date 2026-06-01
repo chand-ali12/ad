@@ -260,13 +260,6 @@ const ChooseSpeedQuantity = ({
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <button
                 type="button"
-                onClick={() => setShowLoginRequiredModal(false)}
-                className="bg-secondary text-primary border border-gray-300 px-6 py-3 rounded-xl font-semibold text-sm sm:text-base hover:bg-gray-50 transition-colors shadow-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
                 onClick={() => {
                   setShowLoginRequiredModal(false);
                   navigate("/signin");
@@ -274,6 +267,13 @@ const ChooseSpeedQuantity = ({
                 className="bg-primary text-secondary font-semibold text-sm sm:text-base px-6 py-3 rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
               >
                 Login
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLoginRequiredModal(false)}
+                className="bg-secondary text-primary border border-gray-300 px-6 py-3 rounded-xl font-semibold text-sm sm:text-base hover:bg-gray-50 transition-colors shadow-sm"
+              >
+                Cancel
               </button>
             </div>
           </div>
