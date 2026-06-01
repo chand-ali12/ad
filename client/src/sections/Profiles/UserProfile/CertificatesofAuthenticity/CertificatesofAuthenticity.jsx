@@ -671,6 +671,91 @@ const CertificatesofAuthenticity = ({
     if (typeof window === "undefined" || typeof document === "undefined") return;
     if (!printImageUrl && !printPdfUrl) return;
 
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(
+      navigator.userAgent || "",
+    );
+
+    // Mobile Chrome/Safari are unreliable when printing from hidden iframes.
+    // Use a dedicated page with only the selected certificate to avoid printing
+    // the full profile list.
+    if (isMobileDevice) {
+      if (printImageUrl) {
+        const mobilePrintWindow = window.open("", "_blank");
+        if (!mobilePrintWindow) return;
+        const escapedUrl = String(printImageUrl).replace(/"/g, "&quot;");
+        mobilePrintWindow.document.open();
+        mobilePrintWindow.document.write(`<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Print Certificate</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+      }
+      @page {
+        size: auto;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="print-cert-img" src="${escapedUrl}" alt="Certificate of Authenticity" />
+    <script>
+      (function () {
+        var img = document.getElementById("print-cert-img");
+        var runPrint = function () {
+          setTimeout(function () {
+            try {
+              window.focus();
+              window.print();
+            } catch (e) {}
+          }, 120);
+        };
+        if (img && img.complete && img.naturalWidth > 0) runPrint();
+        else if (img) {
+          img.onload = runPrint;
+          img.onerror = runPrint;
+        } else runPrint();
+      })();
+    </script>
+  </body>
+</html>`);
+        mobilePrintWindow.document.close();
+        return;
+      }
+
+      // Last fallback on mobile: open selected PDF only.
+      const pdfTab = window.open(printPdfUrl, "_blank");
+      if (!pdfTab) return;
+      setTimeout(() => {
+        try {
+          pdfTab.focus();
+          pdfTab.print();
+        } catch {
+          // User can print from native PDF viewer controls.
+        }
+      }, 900);
+      return;
+    }
+
     const iframe = document.createElement("iframe");
     iframe.setAttribute("aria-hidden", "true");
     iframe.style.position = "fixed";
@@ -683,12 +768,10 @@ const CertificatesofAuthenticity = ({
     iframe.style.pointerEvents = "none";
 
     let cleanedUp = false;
-    let objectUrl = null;
     const cleanup = () => {
       if (cleanedUp) return;
       cleanedUp = true;
       if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
 
     const printIframe = () => {
