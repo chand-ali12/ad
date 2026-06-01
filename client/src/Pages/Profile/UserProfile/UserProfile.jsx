@@ -332,49 +332,28 @@ const UserProfile = () => {
     }
   };
 
-  const handlePrintCoaPdf = async (certificate) => {
-    try {
-      // Prefer direct PDF URL when available (avoids blank blob tabs on some browsers)
-      const directUrl = getCertificatePdfUrl(certificate);
-      if (directUrl) {
-        const w = window.open(directUrl, "_blank", "noopener,noreferrer");
-        if (w) {
-          const tryPrint = () => {
-            try {
-              w.focus();
-              w.print();
-            } catch (_) {
-              /* user may need to use browser print from the PDF tab */
-            }
-          };
-          w.addEventListener("load", tryPrint, { once: true });
-          setTimeout(tryPrint, 800);
-        }
-        return;
-      }
-
-      const blob = await getCoaPdfBlobForCertificate(certificate);
-      const dl = URL.createObjectURL(blob);
-      const w = window.open(dl, "_blank", "noopener,noreferrer");
-      if (w) {
-        const tryPrint = () => {
-          try {
-            w.focus();
-            w.print();
-          } catch (_) {
-            /* user may need to use browser print from the PDF tab */
-          }
-        };
-        w.addEventListener("load", tryPrint, { once: true });
-        setTimeout(tryPrint, 800);
-      }
-      setTimeout(() => URL.revokeObjectURL(dl), 120000);
-    } catch (err) {
-      setToastMessage(err?.message || "Failed to open print dialog");
+  const handlePrintCoaPdf = (certificate) => {
+    const directUrl = getCertificatePdfUrl(certificate);
+    if (!directUrl) {
+      setToastMessage("No PDF available to print");
       setToastVariant("error");
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
+      return;
     }
+    // Open without noopener so we retain the window reference needed for print()
+    const w = window.open(directUrl, "_blank");
+    if (!w) return;
+    const tryPrint = () => {
+      try {
+        w.focus();
+        w.print();
+      } catch (_) {
+        /* cross-origin print blocked — user can Ctrl+P from the PDF tab */
+      }
+    };
+    w.addEventListener("load", tryPrint, { once: true });
+    setTimeout(tryPrint, 1500);
   };
 
   const handleShareCoaPdf = async (certificate) => {

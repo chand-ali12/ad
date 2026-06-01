@@ -664,6 +664,94 @@ const CertificatesofAuthenticity = ({
     }
   };
 
+  const handlePrintInCurrentWindow = ({
+    printImageUrl,
+    printPdfUrl,
+  } = {}) => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+    if (!printImageUrl && !printPdfUrl) return;
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+
+    let cleanedUp = false;
+    let objectUrl = null;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+
+    const printIframe = () => {
+      try {
+        const targetWindow = iframe.contentWindow;
+        if (!targetWindow) throw new Error("Unable to access print frame");
+        targetWindow.focus();
+        targetWindow.print();
+        setTimeout(cleanup, 5000);
+      } catch {
+        cleanup();
+      }
+    };
+
+    iframe.onload = () => {
+      setTimeout(printIframe, 120);
+    };
+
+    if (printImageUrl) {
+      const escapedUrl = String(printImageUrl).replace(/"/g, "&quot;");
+      iframe.srcdoc = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Print Certificate</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+      }
+      img {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        object-fit: contain;
+      }
+      @page {
+        size: auto;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="${escapedUrl}" alt="Certificate of Authenticity" />
+  </body>
+</html>`;
+      document.body.appendChild(iframe);
+      return;
+    }
+
+    // Fallback: print PDF through hidden iframe (may be browser-dependent).
+    iframe.src = printPdfUrl;
+    document.body.appendChild(iframe);
+
+    // Extra fallback for browsers that do not fire onload reliably for PDF.
+    setTimeout(() => {
+      if (!cleanedUp) printIframe();
+    }, 1400);
+  };
+
   const resolveAuthenticatorInfo = async (card) => {
     const aq = card.authenticate_query ?? card.query_detail ?? {};
     const authenticatorUserId = aq.expedited_claimed_by ?? null;
@@ -1649,6 +1737,24 @@ const CertificatesofAuthenticity = ({
                           <FiDownload className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         )}
                         PDF
+                      </button>
+                    )}
+                    {(modalPdfUrl || modalPngUrl) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handlePrintInCurrentWindow(
+                            {
+                              printImageUrl: modalPngUrl,
+                              printPdfUrl: modalPdfUrl,
+                            },
+                          );
+                        }}
+                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-primary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        aria-label="Print certificate"
+                      >
+                        <FiPrinter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        Print
                       </button>
                     )}
                     {modalPdfUrl && (
