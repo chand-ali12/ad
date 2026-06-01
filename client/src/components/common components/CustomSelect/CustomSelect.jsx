@@ -96,11 +96,17 @@ const CustomSelect = forwardRef(({
                             filteredOptions.map((opt) => (
                                 <li key={String(opt.value)}>
                                     {opt.disabled ? (
-                                        <div className="flex items-center justify-between w-full px-4 py-2.5 text-sm cursor-not-allowed select-none">
-                                            <span className="text-gray-500">{opt.label}</span>
+                                        <div className="w-full px-4 py-2.5 text-sm cursor-not-allowed select-none">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3">
+                                                <span className="text-gray-500 break-words leading-snug">
+                                                    {opt.label}
+                                                </span>
                                             {opt.rightLabel && (
-                                                <span className="ml-3 text-xs shrink-0 text-gray-500">{opt.rightLabel}</span>
+                                                    <span className="text-xs text-gray-500 leading-snug break-words sm:text-right sm:max-w-[65%]">
+                                                        {opt.rightLabel}
+                                                    </span>
                                             )}
+                                            </div>
                                         </div>
                                     ) : (
                                         <button
