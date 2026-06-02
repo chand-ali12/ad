@@ -10,6 +10,7 @@ import {
   FiHelpCircle,
   FiShield,
   FiCheckCircle,
+  FiLoader,
 } from "react-icons/fi";
 import PropTypes from "prop-types";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
@@ -491,6 +492,8 @@ const Form = ({
   const hasSubscriptionCredits = Number(remainingRequests) > 0;
   const showSubmitForSubscription =
     hasSubscriptionCredits && speedType !== "expedited";
+  const showSubscriptionProcessingOverlay =
+    showSubmitForSubscription && isSubmitting;
 
   const handleAddToCartClick = async (e) => {
     e?.preventDefault?.();
@@ -1216,7 +1219,11 @@ const Form = ({
                 {isUploading
                   ? "Uploading images..."
                   : isSubmitting
-                    ? "Processing..."
+                    ? isFinalBulkStep || !isBulkFlow
+                      ? showSubmitForSubscription
+                        ? "Submit"
+                        : "Processing..."
+                      : "Processing..."
                     : isFinalBulkStep || !isBulkFlow
                       ? showSubmitForSubscription
                         ? "Submit"
@@ -1257,6 +1264,16 @@ const Form = ({
                 </p>
               </>
             )}
+          </div>
+        </div>
+      )}
+      {showSubscriptionProcessingOverlay && (
+        <div className="fixed inset-0 z-[120] bg-black/35 backdrop-blur-[1px] flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 px-6 py-5 flex items-center gap-3">
+            <FiLoader className="w-6 h-6 text-primary animate-spin" />
+            <p className="text-primary font-semibold text-sm sm:text-base">
+              Processing...
+            </p>
           </div>
         </div>
       )}
