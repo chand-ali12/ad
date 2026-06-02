@@ -103,6 +103,10 @@ const Checkout = () => {
   const [selectedPaymentOption, setSelectedPaymentOption] = useState("");
   const [paymentMethodRequestable, setPaymentMethodRequestable] =
     useState(false);
+  const [isPreparingCheckout, setIsPreparingCheckout] = useState(false);
+  const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
+  const prepareCheckoutLockRef = useRef(false);
+  const paymentSubmitLockRef = useRef(false);
   const successRedirectTimeoutRef = useRef(null);
   const braintreeContainerRef = useRef(null);
   const user = useAppSelector((state) => state.auth?.user);
@@ -189,6 +193,30 @@ const Checkout = () => {
     window.setTimeout(() => {
       setToastMessage("");
     }, duration);
+  };
+
+  const acquirePaymentSubmitLock = () => {
+    if (paymentSubmitLockRef.current) return false;
+    paymentSubmitLockRef.current = true;
+    setIsPaymentSubmitting(true);
+    return true;
+  };
+
+  const releasePaymentSubmitLock = () => {
+    paymentSubmitLockRef.current = false;
+    setIsPaymentSubmitting(false);
+  };
+
+  const acquirePrepareCheckoutLock = () => {
+    if (prepareCheckoutLockRef.current) return false;
+    prepareCheckoutLockRef.current = true;
+    setIsPreparingCheckout(true);
+    return true;
+  };
+
+  const releasePrepareCheckoutLock = () => {
+    prepareCheckoutLockRef.current = false;
+    setIsPreparingCheckout(false);
   };
 
   const navigateToQueryChat = async (result, savedCartItems) => {
@@ -279,13 +307,15 @@ const Checkout = () => {
   const rawIds =
     location.state?.certificateIds ??
     cartItems.map((i) => i.id ?? i.coa_number).filter(Boolean);
-  const certificateIds = rawIds
+  const certificateIds = [...new Set(
+    rawIds
     .map((id) =>
       id != null && typeof id === "object"
         ? (id.id ?? id.query_id ?? id.certificate_id ?? id.coa_number)
         : id,
     )
-    .filter((id) => id != null && id !== "");
+    .filter((id) => id != null && id !== ""),
+  )];
   const checkoutType = location.state?.checkoutType;
   const isExpedited =
     location.state?.is_expedited ?? braintreePayload?.is_expedited ?? false;
@@ -406,12 +436,14 @@ const Checkout = () => {
   // ad-old: auth checkout uses /ad/checkout-braintree (get token), then Braintree, then same endpoint with nonce
   const onSubmit = async (data) => {
     if (checkoutType === "valuation") return;
+    if (!acquirePrepareCheckoutLock()) return;
     if (!certificateIds?.length) {
       dispatch(
         setCheckoutError(
           "No certificates to checkout. Please add items from the Authentication page.",
         ),
       );
+      releasePrepareCheckoutLock();
       return;
     }
     try {
@@ -470,6 +502,8 @@ const Checkout = () => {
         : msg;
       console.error("Checkout failed:", msg);
       dispatch(setCheckoutError(friendlyMsg));
+    } finally {
+      releasePrepareCheckoutLock();
     }
   };
 
@@ -617,60 +651,62 @@ const Checkout = () => {
     if (!validateCheckoutCustomerNames()) return;
 
     if (!braintreeInstance || !braintreePayload) return;
+    if (!acquirePaymentSubmitLock()) return;
+    let shouldReleaseSubmitLock = true;
 
-    if (!braintreeInstance.isPaymentMethodRequestable()) {
-      // Prefer the state set by drop-in events; fall back to a fresh
-      // `getActivePaymentMethod` probe in case events haven't fired yet.
-      let currentOption = selectedPaymentOption;
-      if (!currentOption) {
-        try {
-          const active =
-            typeof braintreeInstance.getActivePaymentMethod === "function"
-              ? braintreeInstance.getActivePaymentMethod()
-              : null;
-          const type = String(active?.type || "").toLowerCase();
-          if (type.includes("paypal")) currentOption = "paypal";
-          else if (type) currentOption = "card";
-        } catch (_e) {}
-      }
-
-      if (!currentOption) {
-        setSafePaymentMethodError(PAYMENT_METHOD_NOT_SELECTED_ERROR);
-        return;
-      }
-
-      // An option is selected (e.g. card) but the form is incomplete.
-      // Calling requestPaymentMethod() triggers Braintree's own inline
-      // field validation (red highlights on empty/invalid card fields).
-      try {
-        await braintreeInstance.requestPaymentMethod();
-      } catch (methodErr) {
-        const resolved = resolvePaymentMethodError(methodErr);
-        if (resolved) setSafePaymentMethodError(resolved);
-        return;
-      }
-      return;
-    }
-
-    const encryptValue =
-      braintreePayload.encrypt_amount ??
-      braintreePayload.encryptedAmount ??
-      braintreePayload.encrypted_amount ??
-      braintreePayload.encrypted_order ??
-      braintreePayload.encrypted_data ??
-      braintreePayload.encrypted_payload;
-    if (
-      checkoutType !== "valuation" &&
-      (encryptValue == null || encryptValue === "")
-    ) {
-      dispatch(
-        setCheckoutError(
-          "Payment session expired. Please fill the form and click Complete Order again.",
-        ),
-      );
-      return;
-    }
     try {
+      if (!braintreeInstance.isPaymentMethodRequestable()) {
+        // Prefer the state set by drop-in events; fall back to a fresh
+        // `getActivePaymentMethod` probe in case events haven't fired yet.
+        let currentOption = selectedPaymentOption;
+        if (!currentOption) {
+          try {
+            const active =
+              typeof braintreeInstance.getActivePaymentMethod === "function"
+                ? braintreeInstance.getActivePaymentMethod()
+                : null;
+            const type = String(active?.type || "").toLowerCase();
+            if (type.includes("paypal")) currentOption = "paypal";
+            else if (type) currentOption = "card";
+          } catch (_e) {}
+        }
+
+        if (!currentOption) {
+          setSafePaymentMethodError(PAYMENT_METHOD_NOT_SELECTED_ERROR);
+          return;
+        }
+
+        // An option is selected (e.g. card) but the form is incomplete.
+        // Calling requestPaymentMethod() triggers Braintree's own inline
+        // field validation (red highlights on empty/invalid card fields).
+        try {
+          await braintreeInstance.requestPaymentMethod();
+        } catch (methodErr) {
+          const resolved = resolvePaymentMethodError(methodErr);
+          if (resolved) setSafePaymentMethodError(resolved);
+          return;
+        }
+        return;
+      }
+
+      const encryptValue =
+        braintreePayload.encrypt_amount ??
+        braintreePayload.encryptedAmount ??
+        braintreePayload.encrypted_amount ??
+        braintreePayload.encrypted_order ??
+        braintreePayload.encrypted_data ??
+        braintreePayload.encrypted_payload;
+      if (
+        checkoutType !== "valuation" &&
+        (encryptValue == null || encryptValue === "")
+      ) {
+        dispatch(
+          setCheckoutError(
+            "Payment session expired. Please fill the form and click Complete Order again.",
+          ),
+        );
+        return;
+      }
       const { nonce } = await braintreeInstance.requestPaymentMethod();
       const amountValue =
         braintreePayload.amount ?? braintreePayload.payed_amount ?? 0;
@@ -752,6 +788,7 @@ const Checkout = () => {
         successRedirectTimeoutRef.current = setTimeout(() => {
           navigate("/", { replace: true });
         }, 1200);
+        shouldReleaseSubmitLock = false;
         return;
       }
       if (useAuthCheckout) {
@@ -766,6 +803,7 @@ const Checkout = () => {
         successRedirectTimeoutRef.current = setTimeout(() => {
           navigateToQueryChat(result, savedCartItems);
         }, 1200);
+        shouldReleaseSubmitLock = false;
       } else {
         const result = await dispatch(
           submitBraintreeAuthCards(safeBody),
@@ -777,6 +815,7 @@ const Checkout = () => {
         successRedirectTimeoutRef.current = setTimeout(() => {
           navigate("/", { replace: true });
         }, 1200);
+        shouldReleaseSubmitLock = false;
       }
     } catch (err) {
       console.error("Braintree payment failed:", err);
@@ -794,6 +833,8 @@ const Checkout = () => {
       }
 
       dispatch(setCheckoutError(message));
+    } finally {
+      if (shouldReleaseSubmitLock) releasePaymentSubmitLock();
     }
   };
 
@@ -819,6 +860,8 @@ const Checkout = () => {
   const handleFreeCheckout = async () => {
     if (!cartItems.length) return;
     if (!validateCheckoutCustomerNames()) return;
+    if (!acquirePaymentSubmitLock()) return;
+    let shouldReleaseSubmitLock = true;
     const couponCode = getValues("promoCode")?.trim() || undefined;
     const savedCartItems = [...cartItems];
 
@@ -915,6 +958,7 @@ const Checkout = () => {
       successRedirectTimeoutRef.current = setTimeout(() => {
         navigateToQueryChat(freeResult, savedCartItems);
       }, 1200);
+      shouldReleaseSubmitLock = false;
     } catch (err) {
       console.error("Free checkout failed:", err);
       const message =
@@ -923,6 +967,8 @@ const Checkout = () => {
         err?.response?.data?.message ||
         "Order submission failed. Please try again.";
       dispatch(setCheckoutError(message));
+    } finally {
+      if (shouldReleaseSubmitLock) releasePaymentSubmitLock();
     }
   };
 
@@ -1377,10 +1423,16 @@ const Checkout = () => {
                           ? handleFreeCheckout
                           : handleSubmit(onSubmit)
                       }
-                      disabled={checkoutStatus === "loading"}
+                      disabled={
+                        checkoutStatus === "loading" ||
+                        isPaymentSubmitting ||
+                        isPreparingCheckout
+                      }
                       className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {checkoutStatus === "loading"
+                      {checkoutStatus === "loading" ||
+                      isPaymentSubmitting ||
+                      isPreparingCheckout
                         ? "Processing..."
                         : "Complete Order"}
                     </button>
@@ -1395,11 +1447,12 @@ const Checkout = () => {
                         }
                         disabled={
                           (!isFreeAfterCoupon && !braintreeReady) ||
-                          checkoutStatus === "loading"
+                          checkoutStatus === "loading" ||
+                          isPaymentSubmitting
                         }
                         className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {checkoutStatus === "loading"
+                        {checkoutStatus === "loading" || isPaymentSubmitting
                           ? "Processing..."
                           : isFreeAfterCoupon
                             ? "Complete Order"
