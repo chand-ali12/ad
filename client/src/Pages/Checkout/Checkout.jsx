@@ -436,7 +436,13 @@ const Checkout = () => {
   // ad-old: auth checkout uses /ad/checkout-braintree (get token), then Braintree, then same endpoint with nonce
   const onSubmit = async (data) => {
     if (checkoutType === "valuation") return;
-    if (!acquirePrepareCheckoutLock()) return;
+    // Guard: once Braintree token is present, we are already in payment step.
+    // Ignore any accidental form submit events (Enter key / bubbling).
+    if (braintreePayload?.token) return;
+    if (!acquirePrepareCheckoutLock()) {
+      showToastMsg("Payment already processing. Please wait...", "error", 1800);
+      return;
+    }
     if (!certificateIds?.length) {
       dispatch(
         setCheckoutError(
@@ -651,7 +657,10 @@ const Checkout = () => {
     if (!validateCheckoutCustomerNames()) return;
 
     if (!braintreeInstance || !braintreePayload) return;
-    if (!acquirePaymentSubmitLock()) return;
+    if (!acquirePaymentSubmitLock()) {
+      showToastMsg("Payment already processing. Please wait...", "error", 1800);
+      return;
+    }
     let shouldReleaseSubmitLock = true;
 
     try {
@@ -860,7 +869,10 @@ const Checkout = () => {
   const handleFreeCheckout = async () => {
     if (!cartItems.length) return;
     if (!validateCheckoutCustomerNames()) return;
-    if (!acquirePaymentSubmitLock()) return;
+    if (!acquirePaymentSubmitLock()) {
+      showToastMsg("Payment already processing. Please wait...", "error", 1800);
+      return;
+    }
     let shouldReleaseSubmitLock = true;
     const couponCode = getValues("promoCode")?.trim() || undefined;
     const savedCartItems = [...cartItems];
@@ -1418,11 +1430,7 @@ const Checkout = () => {
                   {!showBraintreeStep && !authCheckoutWithoutPayload && (
                     <button
                       type={isFreeAfterCoupon ? "button" : "submit"}
-                      onClick={
-                        isFreeAfterCoupon
-                          ? handleFreeCheckout
-                          : handleSubmit(onSubmit)
-                      }
+                      onClick={isFreeAfterCoupon ? handleFreeCheckout : undefined}
                       disabled={
                         checkoutStatus === "loading" ||
                         isPaymentSubmitting ||
