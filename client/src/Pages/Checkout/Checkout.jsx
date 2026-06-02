@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { FiArrowLeft, FiCreditCard } from "react-icons/fi";
+import { FiArrowLeft, FiCreditCard, FiLoader } from "react-icons/fi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   verifyCoupon,
@@ -1002,12 +1002,16 @@ const Checkout = () => {
   });
 
   const isValuationCheckout = checkoutType === "valuation" && showBraintreeStep;
+  const isCheckoutProcessing =
+    checkoutStatus === "loading" || isPaymentSubmitting || isPreparingCheckout;
+  const isConfirmPayProcessing =
+    checkoutStatus === "loading" || isPaymentSubmitting;
 
   return (
     <div className="w-full min-h-screen bg-[#F5F5F0] py-8 sm:py-12 md:py-16">
       {toastMessage && (
         <div
-          className={`fixed top-4 right-4 z-[100] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
+          className={`fixed top-4 right-4 z-[140] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
             toastVariant === "success"
               ? "border-green-200 bg-green-50 text-green-800"
               : "border-red-200 bg-red-50 text-red-700"
@@ -1115,9 +1119,6 @@ const Checkout = () => {
                     </div>
                     {!isFreeAfterCoupon && (
                       <>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Choose a way to pay
-                        </p>
                         {paymentMethodError && (
                           <p className="text-red-500 text-sm mb-3 p-3 rounded-lg">
                             {paymentMethodError}
@@ -1432,17 +1433,11 @@ const Checkout = () => {
                       type={isFreeAfterCoupon ? "button" : "submit"}
                       onClick={isFreeAfterCoupon ? handleFreeCheckout : undefined}
                       disabled={
-                        checkoutStatus === "loading" ||
-                        isPaymentSubmitting ||
-                        isPreparingCheckout
+                        isCheckoutProcessing
                       }
-                      className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
-                      {checkoutStatus === "loading" ||
-                      isPaymentSubmitting ||
-                      isPreparingCheckout
-                        ? "Processing..."
-                        : "Complete Order"}
+                      Complete Order
                     </button>
                   )}
                   {/* Braintree step: Pay button (drop-in hidden when free after coupon) */}
@@ -1455,16 +1450,11 @@ const Checkout = () => {
                         }
                         disabled={
                           (!isFreeAfterCoupon && !braintreeReady) ||
-                          checkoutStatus === "loading" ||
-                          isPaymentSubmitting
+                          isConfirmPayProcessing
                         }
-                        className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full bg-primary text-secondary py-2 sm:py-2 rounded-lg font-semibold text-base sm:text-lg hover:bg-primary-hover transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                       >
-                        {checkoutStatus === "loading" || isPaymentSubmitting
-                          ? "Processing..."
-                          : isFreeAfterCoupon
-                            ? "Complete Order"
-                            : "Confirm & pay"}
+                        {isFreeAfterCoupon ? "Complete Order" : "Confirm & pay"}
                       </button>
                     </div>
                   )}
@@ -1474,6 +1464,16 @@ const Checkout = () => {
           </div>
         </div>
       </div>
+      {isCheckoutProcessing && (
+        <div className="fixed inset-0 z-[120] bg-black/35 backdrop-blur-[1px] flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 px-6 py-5 flex items-center gap-3">
+            <FiLoader className="w-6 h-6 text-primary animate-spin" />
+            <p className="text-primary font-semibold text-sm sm:text-base">
+              Processing payment...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
