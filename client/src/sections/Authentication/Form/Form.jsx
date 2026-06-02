@@ -37,6 +37,46 @@ const formatAvailableAt = (dateStr, timezone) => {
   return parts.join(" · ");
 };
 
+const parseAvailabilityDate = (dateStr) => {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+
+  // Supports common API formats like:
+  // - "2026-06-01 23:00:00"
+  // - "2026-06-01 11:00 PM"
+  const normalized = trimmed.includes("T")
+    ? trimmed
+    : trimmed.replace(" ", "T");
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  // Fallback for 12h format with AM/PM and optional seconds.
+  const match = trimmed.match(
+    /^(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i,
+  );
+  if (!match) return null;
+
+  const [, datePart, hh, mm, ss = "00", ampmRaw] = match;
+  const ampm = ampmRaw.toUpperCase();
+  let hour = Number(hh);
+  if (ampm === "PM" && hour < 12) hour += 12;
+  if (ampm === "AM" && hour === 12) hour = 0;
+
+  const iso = `${datePart}T${String(hour).padStart(2, "0")}:${mm}:${ss}`;
+  const fallback = new Date(iso);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const isExpeditedBrandAvailableNow = (brand) => {
+  const nextAvailableAt = brand?.availability?.next_available_at;
+  if (!nextAvailableAt) return true;
+  const availableAt = parseAvailabilityDate(nextAvailableAt);
+  if (!availableAt) return false;
+  return Date.now() >= availableAt.getTime();
+};
+
 const Form = ({
   onPrimaryButtonClick,
   onSecondaryButtonClick,
@@ -163,7 +203,7 @@ const Form = ({
         (b) => ({
           value: b.id,
           label: b.brand || b.name || String(b.id),
-          disabled: true,
+          disabled: !isExpeditedBrandAvailableNow(b),
           rightLabel: `Available at: ${formatAvailableAt(b.availability?.next_available_at, b.availability?.next_available_timezone)}`,
         }),
       );
