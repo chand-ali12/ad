@@ -488,6 +488,9 @@ const Form = ({
 
   const isBulkFlow = bulkQuantity > 1;
   const isFinalBulkStep = isBulkFlow && bulkStep >= bulkQuantity;
+  const hasSubscriptionCredits = Number(remainingRequests) > 0;
+  const showSubmitForSubscription =
+    hasSubscriptionCredits && speedType !== "expedited";
 
   const handleAddToCartClick = async (e) => {
     e?.preventDefault?.();
@@ -1213,9 +1216,11 @@ const Form = ({
                 {isUploading
                   ? "Uploading images..."
                   : isSubmitting
-                    ? "Redirecting to checkout..."
+                    ? "Processing..."
                     : isFinalBulkStep || !isBulkFlow
-                      ? "Proceed to checkout"
+                      ? showSubmitForSubscription
+                        ? "Submit"
+                        : "Proceed to checkout"
                       : "Add to cart"}
               </button>
             </div>
