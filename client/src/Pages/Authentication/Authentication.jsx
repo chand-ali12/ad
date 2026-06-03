@@ -697,6 +697,11 @@ const Authentication = () => {
           valuationValue={valuationValue}
           remainingRequests={remainingCertificates}
           speedType={speedType}
+          onUseStandardAuthentication={() => {
+            setSpeedType("standard");
+            setIsBulkMode(false);
+            scrollToChooseSpeedSection();
+          }}
         />
       </section>
       {/* {showStickyButtons && (

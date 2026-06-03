@@ -24,17 +24,43 @@ import photoGuideImage from "../../../assets/images/photo-guide.png";
 import { getExpeditedBrands } from "../../../services/authenticateNowService";
 
 const formatAvailableAt = (dateStr, timezone) => {
-  if (!dateStr) return "";
-  const [datePart, timePartFull] = dateStr.split(" ");
-  const timePart = (timePartFull || "").substring(0, 5);
-  if (!timePart) return dateStr;
-  const [hStr, mStr] = timePart.split(":");
-  const h = parseInt(hStr, 10);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  const parts = [datePart, `${h12}:${mStr} ${ampm}`];
-  if (timezone) parts.push(timezone);
-  return parts.join(" · ");
+  if (!dateStr || typeof dateStr !== "string") return "";
+  const parts = dateStr.trim().split(/\s+/).filter(Boolean);
+  const datePart = parts[0] || "";
+  const timePartRaw = parts[1] || "";
+  const ampmRaw = parts[2] || "";
+
+  const toDdMmYyyy = (value) => {
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return value;
+    const [, yyyy, mm, dd] = m;
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const to12Hour = (timeValue, ampmValue = "") => {
+    if (!timeValue) return "";
+    const t = timeValue.replace(/^T/, "");
+    const match = t.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!match) return [t, ampmValue].filter(Boolean).join(" ").trim();
+    const [, hStr, mStr] = match;
+    let h = Number(hStr);
+    let ampm = ampmValue.toUpperCase();
+    if (ampm !== "AM" && ampm !== "PM") {
+      ampm = h >= 12 ? "PM" : "AM";
+      h = h % 12 || 12;
+    } else if (ampm === "AM" && h === 12) {
+      h = 12;
+    } else if (ampm === "PM" && h > 12) {
+      h = h - 12;
+    }
+    return `${h}:${mStr} ${ampm}`.trim();
+  };
+
+  const dateText = toDdMmYyyy(datePart);
+  const timeText = to12Hour(timePartRaw, ampmRaw);
+  const out = [dateText, timeText].filter(Boolean).join(" · ");
+  if (!out) return dateStr;
+  return timezone ? `${out} · ${timezone}` : out;
 };
 
 const parseAvailabilityDate = (dateStr) => {
@@ -69,18 +95,85 @@ const parseAvailabilityDate = (dateStr) => {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 };
 
+const getBrandAvailabilityMeta = (brand) => {
+  const availability = brand?.availability;
+  const fromArray =
+    Array.isArray(availability) && availability.length > 0 ? availability[0] : null;
+
+  const nextAvailableAt =
+    availability?.next_available_at ??
+    fromArray?.next_available_at ??
+    brand?.next_available_at ??
+    availability?.available_at ??
+    fromArray?.available_at ??
+    brand?.available_at ??
+    availability?.date_time ??
+    fromArray?.date_time ??
+    brand?.date_time ??
+    "";
+
+  const timezone =
+    availability?.next_available_timezone ??
+    fromArray?.next_available_timezone ??
+    brand?.next_available_timezone ??
+    availability?.timezone ??
+    fromArray?.timezone ??
+    brand?.timezone ??
+    "";
+
+  const endAvailableAt =
+    availability?.next_available_end_at ??
+    fromArray?.next_available_end_at ??
+    brand?.next_available_end_at ??
+    availability?.next_available_to ??
+    fromArray?.next_available_to ??
+    brand?.next_available_to ??
+    availability?.available_to ??
+    fromArray?.available_to ??
+    brand?.available_to ??
+    availability?.end_at ??
+    fromArray?.end_at ??
+    brand?.end_at ??
+    availability?.end_time ??
+    fromArray?.end_time ??
+    brand?.end_time ??
+    "";
+
+  return {
+    nextAvailableAt: String(nextAvailableAt || "").trim(),
+    endAvailableAt: String(endAvailableAt || "").trim(),
+    timezone: String(timezone || "").trim(),
+  };
+};
+
 const isExpeditedBrandAvailableNow = (brand) => {
-  const nextAvailableAt = brand?.availability?.next_available_at;
+  const { nextAvailableAt } = getBrandAvailabilityMeta(brand);
   if (!nextAvailableAt) return true;
   const availableAt = parseAvailabilityDate(nextAvailableAt);
   if (!availableAt) return false;
   return Date.now() >= availableAt.getTime();
 };
 
+const formatPopupAvailability = (startDateStr, endDateStr, timezone) => {
+  const startText = formatAvailableAt(startDateStr, "");
+  const endText = formatAvailableAt(endDateStr, "");
+  if (!startText && !endText) return "Unknown date and time";
+
+  let windowText = "";
+  if (startText && endText) {
+    windowText = `${startText} to ${endText}`;
+  } else {
+    windowText = startText || endText;
+  }
+
+  return timezone ? `${windowText} (${timezone})` : windowText;
+};
+
 const Form = ({
   onPrimaryButtonClick,
   onSecondaryButtonClick,
   onSubmit,
+  onUseStandardAuthentication,
   openBulkDialog = false,
   onBulkDialogOpened,
   className = "",
@@ -196,30 +289,46 @@ const Form = ({
   const brandOptionsForSelect = (() => {
     if (speedType === "expedited") {
       if (!expeditedBrandsData) return [];
-      const nowOptions = (expeditedBrandsData.available_now || []).map((b) => ({
+      const nowBrands = expeditedBrandsData.available_now || [];
+      const nowBrandIds = new Set(nowBrands.map((b) => String(b.id)));
+      const laterUpcomingBrands = (expeditedBrandsData.available_later || []).filter(
+        (b) => {
+          if (nowBrandIds.has(String(b.id))) return false;
+          const { nextAvailableAt } = getBrandAvailabilityMeta(b);
+          const availableAt = parseAvailabilityDate(nextAvailableAt);
+          return Boolean(availableAt && availableAt.getTime() > Date.now());
+        },
+      );
+
+      const nowOptions = nowBrands.map((b) => ({
         value: b.id,
         label: b.brand || b.name || String(b.id),
       }));
-      const laterOptions = (expeditedBrandsData.available_later || []).map(
-        (b) => {
+      const laterOptions = laterUpcomingBrands.map((b) => {
+          const { nextAvailableAt, endAvailableAt, timezone } =
+            getBrandAvailabilityMeta(b);
           const availableAtText = formatAvailableAt(
-            b.availability?.next_available_at,
-            b.availability?.next_available_timezone,
+            nextAvailableAt,
+            timezone,
+          );
+          const popupAvailableAtText = formatPopupAvailability(
+            nextAvailableAt,
+            endAvailableAt,
+            timezone,
           );
           return {
             value: b.id,
             label: b.brand || b.name || String(b.id),
-            disabled: !isExpeditedBrandAvailableNow(b),
+            disabled: true,
             rightLabel: `Available at: ${availableAtText}`,
             onDisabledClick: () => {
               setUnavailableBrandInfo({
                 brand: b.brand || b.name || String(b.id),
-                availableAt: availableAtText || "Unknown time",
+                availableAt: popupAvailableAtText,
               });
             },
           };
-        },
-      );
+        });
       return [...nowOptions, ...laterOptions];
     }
     return sortedBrandsForSelect.map((b) => ({
@@ -288,17 +397,36 @@ const Form = ({
 
   useEffect(() => {
     if (speedType !== "expedited") return;
-    setExpeditedBrandsLoading(true);
-    getExpeditedBrands()
-      .then((res) => {
+
+    let isCancelled = false;
+    const fetchExpeditedBrands = async ({ withLoader = false } = {}) => {
+      if (withLoader) setExpeditedBrandsLoading(true);
+      try {
+        const res = await getExpeditedBrands();
+        if (isCancelled) return;
         setExpeditedBrandsData(
           res?.data ?? { available_now: [], available_later: [] },
         );
-      })
-      .catch(() => {
+      } catch {
+        if (isCancelled) return;
         setExpeditedBrandsData({ available_now: [], available_later: [] });
-      })
-      .finally(() => setExpeditedBrandsLoading(false));
+      } finally {
+        if (!isCancelled && withLoader) setExpeditedBrandsLoading(false);
+      }
+    };
+
+    // Initial load when switching to expedited.
+    fetchExpeditedBrands({ withLoader: true });
+
+    // Keep list fresh so brands that become available appear automatically.
+    const intervalId = window.setInterval(() => {
+      fetchExpeditedBrands({ withLoader: false });
+    }, 60000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [speedType]);
 
   useEffect(() => {
@@ -1534,27 +1662,47 @@ const Form = ({
           onClick={() => setUnavailableBrandInfo(null)}
         >
           <div
-            className="w-full max-w-md rounded-xl bg-white p-6 text-center shadow-2xl"
+            className="w-full max-w-xl rounded-xl bg-white p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-primary text-lg sm:text-xl font-bold mb-3">
-              Brand not available right now
+            <h3 className="text-primary text-xl sm:text-2xl font-bold mb-3 text-center">
+              Expedited Authentication Unavailable
             </h3>
-            <p className="text-sm sm:text-base text-primary/80 mb-5">
+            <p className="text-sm sm:text-base text-primary/80 mb-3 text-center">
               <span className="font-semibold">{unavailableBrandInfo.brand}</span>{" "}
-              will be available at{" "}
+              is currently unavailable for expedited authentication.
+            </p>
+            <p className="text-sm sm:text-base text-primary/80 mb-3 text-center">
+              <span className="font-semibold">{unavailableBrandInfo.brand}</span>{" "}
+              will be available from{" "}
               <span className="font-semibold">
                 {unavailableBrandInfo.availableAt}
               </span>
               .
             </p>
-            <button
-              type="button"
-              onClick={() => setUnavailableBrandInfo(null)}
-              className="bg-primary text-secondary font-semibold text-sm sm:text-base px-8 py-3 rounded-xl w-full max-w-xs hover:bg-primary-hover transition-colors shadow-sm"
-            >
-              OK
-            </button>
+            <p className="text-sm sm:text-base text-primary/80 mb-6 text-center">
+              You can still submit your item using Standard Authentication, and
+              our team will review it within the standard turnaround time.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setUnavailableBrandInfo(null);
+                  onUseStandardAuthentication?.();
+                }}
+                className="flex-1 bg-primary text-secondary font-semibold text-sm sm:text-base px-5 py-3 rounded-xl hover:bg-primary-hover transition-colors shadow-sm whitespace-nowrap"
+              >
+                Use Standard Authentication
+              </button>
+              <button
+                type="button"
+                onClick={() => setUnavailableBrandInfo(null)}
+                className="flex-1 bg-white text-primary font-semibold text-sm sm:text-base px-5 py-3 rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap"
+              >
+                Choose Another Brand
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1601,6 +1749,7 @@ Form.propTypes = {
   onPrimaryButtonClick: PropTypes.func,
   onSecondaryButtonClick: PropTypes.func,
   onSubmit: PropTypes.func,
+  onUseStandardAuthentication: PropTypes.func,
   openBulkDialog: PropTypes.bool,
   onBulkDialogOpened: PropTypes.func,
   className: PropTypes.string,
