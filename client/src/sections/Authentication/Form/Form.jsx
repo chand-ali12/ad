@@ -144,6 +144,7 @@ const Form = ({
     useState(false);
   const [showModelInfoAlert, setShowModelInfoAlert] = useState(false);
   const [showPhotoGuideModal, setShowPhotoGuideModal] = useState(false);
+  const [unavailableBrandInfo, setUnavailableBrandInfo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadPopupState, setUploadPopupState] = useState("hidden");
   const isSubmittingRef = useRef(false);
@@ -200,12 +201,24 @@ const Form = ({
         label: b.brand || b.name || String(b.id),
       }));
       const laterOptions = (expeditedBrandsData.available_later || []).map(
-        (b) => ({
-          value: b.id,
-          label: b.brand || b.name || String(b.id),
-          disabled: !isExpeditedBrandAvailableNow(b),
-          rightLabel: `Available at: ${formatAvailableAt(b.availability?.next_available_at, b.availability?.next_available_timezone)}`,
-        }),
+        (b) => {
+          const availableAtText = formatAvailableAt(
+            b.availability?.next_available_at,
+            b.availability?.next_available_timezone,
+          );
+          return {
+            value: b.id,
+            label: b.brand || b.name || String(b.id),
+            disabled: !isExpeditedBrandAvailableNow(b),
+            rightLabel: `Available at: ${availableAtText}`,
+            onDisabledClick: () => {
+              setUnavailableBrandInfo({
+                brand: b.brand || b.name || String(b.id),
+                availableAt: availableAtText || "Unknown time",
+              });
+            },
+          };
+        },
       );
       return [...nowOptions, ...laterOptions];
     }
@@ -1508,6 +1521,40 @@ const Form = ({
                 Submit
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {unavailableBrandInfo && (
+        <div
+          className="fixed inset-0 z-[220] flex items-center justify-center bg-black/60 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Brand availability"
+          onClick={() => setUnavailableBrandInfo(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-primary text-lg sm:text-xl font-bold mb-3">
+              Brand not available right now
+            </h3>
+            <p className="text-sm sm:text-base text-primary/80 mb-5">
+              <span className="font-semibold">{unavailableBrandInfo.brand}</span>{" "}
+              will be available at{" "}
+              <span className="font-semibold">
+                {unavailableBrandInfo.availableAt}
+              </span>
+              .
+            </p>
+            <button
+              type="button"
+              onClick={() => setUnavailableBrandInfo(null)}
+              className="bg-primary text-secondary font-semibold text-sm sm:text-base px-8 py-3 rounded-xl w-full max-w-xs hover:bg-primary-hover transition-colors shadow-sm"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

@@ -22,6 +22,7 @@ const CustomSelect = forwardRef(({
     searchable = false,
     searchPlaceholder = 'Search...',
     emptyMessage = 'No matches',
+    onDisabledOptionClick,
 }, ref) => {
     const [open, setOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -96,18 +97,19 @@ const CustomSelect = forwardRef(({
                             filteredOptions.map((opt) => (
                                 <li key={String(opt.value)}>
                                     {opt.disabled ? (
-                                        <div className="w-full px-4 py-2.5 text-sm cursor-not-allowed select-none">
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3">
-                                                <span className="text-gray-500 break-words leading-snug">
-                                                    {opt.label}
-                                                </span>
-                                            {opt.rightLabel && (
-                                                    <span className="text-xs text-gray-500 leading-snug break-words sm:text-right sm:max-w-[65%]">
-                                                        {opt.rightLabel}
-                                                    </span>
-                                            )}
-                                            </div>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setOpen(false);
+                                                const handler = opt.onDisabledClick || onDisabledOptionClick;
+                                                if (typeof handler === 'function') handler(opt);
+                                            }}
+                                            className="w-full px-4 py-2.5 text-left text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <span className="break-words leading-snug">
+                                                {opt.label}
+                                            </span>
+                                        </button>
                                     ) : (
                                         <button
                                             type="button"
@@ -151,6 +153,7 @@ CustomSelect.propTypes = {
     searchable: PropTypes.bool,
     searchPlaceholder: PropTypes.string,
     emptyMessage: PropTypes.string,
+    onDisabledOptionClick: PropTypes.func,
 };
 
 export default CustomSelect;
