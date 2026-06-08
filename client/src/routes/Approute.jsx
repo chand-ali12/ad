@@ -221,7 +221,7 @@ const AppRoute = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-secondary shadow-sm overflow-visible">
+      <div className="sticky top-0 z-[200] bg-secondary shadow-sm overflow-visible">
         <Header
           logoText="AUTHENTIC"
           logoSubtext="Detective"
