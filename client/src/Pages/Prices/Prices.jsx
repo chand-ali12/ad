@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import pricingImage from '../../assets/images/pricing.png';
 
 const leftColumnBrands = [
@@ -50,7 +51,13 @@ const rightColumnBrands = [
   },
 ];
 
-function BrandBlock({ brand }) {
+function getExpeditedPrice(standardPrice) {
+  const num = parseInt(standardPrice.replace('$', ''), 10);
+  if (num === 12) return '$25';
+  return `$${num + 15}`;
+}
+
+function BrandBlock({ brand, activeTab }) {
   return (
     <div
       style={{
@@ -73,40 +80,48 @@ function BrandBlock({ brand }) {
         {brand.brandName}
       </h2>
       <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-        {brand.items.map((item, i) => (
-          <li
-            key={i}
-            style={{
-              fontFamily: 'Montserrat, sans-serif',
-              fontSize: '12px',
-              fontWeight: 400,
-              color: '#3C1F1B',
-              lineHeight: '22px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              marginTop: '8px',
-              marginBottom: '8px',
-            }}
-          >
-            <span
+        {brand.items.map((item, i) => {
+          const displayPrice =
+            activeTab === 'expedited'
+              ? getExpeditedPrice(item.price)
+              : item.price;
+          return (
+            <li
+              key={i}
               style={{
-                width: '4px',
-                height: '4px',
-                borderRadius: '50%',
-                backgroundColor: '#D4AF37',
-                flexShrink: 0,
+                fontFamily: 'Montserrat, sans-serif',
+                fontSize: '12px',
+                fontWeight: 400,
+                color: '#3C1F1B',
+                lineHeight: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                marginTop: '8px',
+                marginBottom: '8px',
               }}
-            />
-            <span>{item.name}: {item.price}</span>
-          </li>
-        ))}
+            >
+              <span
+                style={{
+                  width: '4px',
+                  height: '4px',
+                  borderRadius: '50%',
+                  backgroundColor: '#D4AF37',
+                  flexShrink: 0,
+                }}
+              />
+              <span>{item.name}: {displayPrice}</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
 const Prices = () => {
+  const [activeTab, setActiveTab] = useState('standard');
+
   return (
     <>
       {/* Inject responsive styles */}
@@ -145,6 +160,29 @@ const Prices = () => {
           background: #fff;
           padding: 15px;
           box-sizing: border-box;
+        }
+
+        .tab-btn {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          padding: 8px 28px;
+          border-radius: 25px;
+          border: 2px solid #D4AF37;
+          cursor: pointer;
+          transition: background 0.2s, color 0.2s;
+          letter-spacing: 0.5px;
+        }
+        .tab-btn.active {
+          background: #D4AF37;
+          color: #3C1F1B;
+        }
+        .tab-btn.inactive {
+          background: transparent;
+          color: #3C1F1B;
+        }
+        .tab-btn.inactive:hover {
+          background: rgba(212,175,55,0.15);
         }
 
         /* Tablet — stack image on top, then 2-row grid below */
@@ -231,11 +269,28 @@ const Prices = () => {
                   fontFamily: 'Montserrat, sans-serif',
                   fontWeight: 800,
                   color: '#3C1F1B',
-                  margin: '0 0 5px',
+                  margin: '0 0 16px',
                 }}
               >
                 Prices
               </h1>
+
+              {/* Tab Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
+                <button
+                  className={`tab-btn ${activeTab === 'standard' ? 'active' : 'inactive'}`}
+                  onClick={() => setActiveTab('standard')}
+                >
+                  Standard
+                </button>
+                <button
+                  className={`tab-btn ${activeTab === 'expedited' ? 'active' : 'inactive'}`}
+                  onClick={() => setActiveTab('expedited')}
+                >
+                  Expedited
+                </button>
+              </div>
+
               <p
                 style={{
                   fontFamily: 'Montserrat, sans-serif',
@@ -280,17 +335,17 @@ const Prices = () => {
               {/* Row 1: Louis Vuitton | Chanel — Row 2: Hermès | Tiffany & Co. + All Other — lines align in parallel */}
               <div className="prices-rows">
                 <div className="prices-cell">
-                  <BrandBlock brand={leftColumnBrands[0]} />
+                  <BrandBlock brand={leftColumnBrands[0]} activeTab={activeTab} />
                 </div>
                 <div className="prices-cell">
-                  <BrandBlock brand={rightColumnBrands[0]} />
+                  <BrandBlock brand={rightColumnBrands[0]} activeTab={activeTab} />
                 </div>
                 <div className="prices-cell">
-                  <BrandBlock brand={leftColumnBrands[1]} />
+                  <BrandBlock brand={leftColumnBrands[1]} activeTab={activeTab} />
                 </div>
                 <div className="prices-cell">
-                  <BrandBlock brand={rightColumnBrands[1]} />
-                  <BrandBlock brand={rightColumnBrands[2]} />
+                  <BrandBlock brand={rightColumnBrands[1]} activeTab={activeTab} />
+                  <BrandBlock brand={rightColumnBrands[2]} activeTab={activeTab} />
                 </div>
               </div>
 
