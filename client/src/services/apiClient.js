@@ -71,7 +71,7 @@ export const request = async (
     // Handle session expiry (matches ad-old's response interceptor)
     // Only redirect if there was an existing session token; anonymous users
     // visiting public pages should not be forced to sign in.
-    if (data?.msg === 'Session Does not exist' && hadSessionToken) {
+    if ((data?.message === 'Session Does not exist' || data?.msg === 'Session Does not exist') && hadSessionToken) {
       try {
         localStorage.removeItem('authToken');
         localStorage.removeItem('authUser');
@@ -105,8 +105,8 @@ export const request = async (
     // Handle 401 session expiry (matches ad-old's error interceptor)
     // Do NOT redirect on "No Record Found!" — that's a normal API response
     // (e.g. user has no subscription), not a session expiry.
-    const sessionExpiredMsg = data?.msg === 'Session Does not exist' || data?.msg === 'Unauthenticated';
-    const isRealSessionExpiry = sessionExpiredMsg || (status === 401 && !/no record found|record not found/i.test(data?.msg || ''));
+    const sessionExpiredMsg = data?.message === 'Session Does not exist' || data?.msg === 'Session Does not exist' || data?.message === 'Unauthenticated' || data?.msg === 'Unauthenticated';
+    const isRealSessionExpiry = sessionExpiredMsg || (status === 401 && !/no record found|record not found/i.test(data?.message || data?.msg || ''));
     // Only redirect on 401 when there was a session token; for anonymous users,
     // treat 401 as a normal error so public pages keep working.
     if (hadSessionToken && isRealSessionExpiry && status === 401) {

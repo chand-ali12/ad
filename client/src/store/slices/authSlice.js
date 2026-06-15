@@ -238,7 +238,7 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
+        state.message = action.payload?.message || action.payload?.msg || null;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.status = 'failed';
@@ -251,7 +251,7 @@ const authSlice = createSlice({
       })
       .addCase(registerBusinessUser.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
+        state.message = action.payload?.message || action.payload?.msg || null;
       })
       .addCase(registerBusinessUser.rejected, (state, action) => {
         state.status = 'failed';
@@ -263,28 +263,14 @@ const authSlice = createSlice({
         state.message = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
+        // Backend returns: { status: true, message, data: { sessiontoken, user, business } }
         const payload = action.payload ?? {};
         const data = payload?.data ?? {};
-        const userInfo = data?.userInfo ?? payload?.userInfo ?? {};
-        const user =
-          data?.user ??
-          userInfo?.user ??
-          payload?.user ??
-          payload?.additional_data?.user ??
-          null;
-        const token =
-          data?.accessToken ??
-          data?.token ??
-          data?.access_token ??
-          userInfo?.accessToken ??
-          userInfo?.token ??
-          payload?.accessToken ??
-          payload?.token ??
-          payload?.access_token ??
-          null;
+        const user = data?.user ?? null;
+        const token = data?.sessiontoken ?? null;
 
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
+        state.message = payload?.message || payload?.msg || null;
         state.token = token;
         state.user = user;
 
@@ -307,7 +293,7 @@ const authSlice = createSlice({
       })
       .addCase(logoutUser.fulfilled, (state, action) => {
         state.status = 'idle';
-        state.message = action.payload?.msg || null;
+        state.message = action.payload?.message || action.payload?.msg || null;
         state.user = null;
         state.token = null;
         state.error = null;
@@ -334,7 +320,7 @@ const authSlice = createSlice({
       })
       .addCase(forgetPassword.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
+        state.message = action.payload?.message || action.payload?.msg || null;
       })
       .addCase(forgetPassword.rejected, (state, action) => {
         state.status = 'failed';
@@ -347,7 +333,7 @@ const authSlice = createSlice({
       })
       .addCase(changePassword.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
+        state.message = action.payload?.message || action.payload?.msg || null;
       })
       .addCase(changePassword.rejected, (state, action) => {
         state.status = 'failed';
@@ -360,16 +346,10 @@ const authSlice = createSlice({
       })
       .addCase(resetPasswordSubmit.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        const raw = (action.payload?.msg || '').toString();
-        // Backend sometimes returns the same success copy as login; always show reset-specific text.
-        const looksLikeLogin =
-          /now\s*logged?\s*in|you\s*are\s*now\s*login|successfully\s*logged?\s*in|login\s*success/i.test(
-            raw,
-          );
         state.message =
-          raw && !looksLikeLogin
-            ? raw
-            : 'Your password has been updated. You can sign in with your new password.';
+          action.payload?.message ||
+          action.payload?.msg ||
+          'Your password has been updated. You can sign in with your new password.';
       })
       .addCase(resetPasswordSubmit.rejected, (state, action) => {
         state.status = 'failed';

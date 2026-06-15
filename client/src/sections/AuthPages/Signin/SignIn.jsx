@@ -75,7 +75,7 @@ const SignIn = ({ className = "" }) => {
     >
       {showToast && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
+          className={`fixed top-4 right-4 z-[9999] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
             toastVariant === "success"
               ? "border-green-200 bg-green-50 text-green-700"
               : "border-red-200 bg-red-50 text-red-700"

@@ -60,7 +60,7 @@ const UpdatePassword = ({ className = "" }) => {
 
       setToast({
         show: true,
-        message: res?.msg || "Password updated successfully.",
+        message: res?.message || res?.msg || "Password updated successfully.",
         variant: "success",
       });
       // Hide after 3 seconds
@@ -91,7 +91,7 @@ const UpdatePassword = ({ className = "" }) => {
     >
       {toast.show && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toastStyles}`}
+          className={`fixed top-4 right-4 z-[9999] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toastStyles}`}
         >
           {toast.message}
         </div>
