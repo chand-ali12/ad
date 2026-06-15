@@ -8,6 +8,7 @@ import { changePassword } from "../../../store/slices";
 const UpdatePassword = ({ className = "" }) => {
   const dispatch = useAppDispatch();
   const { status, token, user } = useAppSelector((state) => state.auth);
+  const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordMismatchError, setPasswordMismatchError] = useState("");
@@ -26,6 +27,7 @@ const UpdatePassword = ({ className = "" }) => {
   } = useForm({
     shouldFocusError: true,
     defaultValues: {
+      oldPassword: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -52,9 +54,8 @@ const UpdatePassword = ({ className = "" }) => {
       const res = await dispatch(
         changePassword({
           newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword,
+          old_password: data.oldPassword,
           authToken: token,
-          email: user?.email,
         }),
       ).unwrap();
 
@@ -108,6 +109,37 @@ const UpdatePassword = ({ className = "" }) => {
               </p>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Old Password */}
+              <div>
+                <div className="relative">
+                  <input
+                    type={showOldPassword ? "text" : "password"}
+                    placeholder="Current Password"
+                    autoComplete="current-password"
+                    {...register("oldPassword", {
+                      required: "Current password is required",
+                    })}
+                    className={`w-full px-4 py-3 pr-10 rounded-lg border ${errors.oldPassword ? "border-red-500" : "border-gray-300"} focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-primary placeholder:text-gray-400 bg-white`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOldPassword((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-primary/70 hover:text-primary"
+                  >
+                    {showOldPassword ? (
+                      <FiEyeOff className="w-5 h-5" />
+                    ) : (
+                      <FiEye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.oldPassword && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.oldPassword.message}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="relative">

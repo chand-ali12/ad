@@ -9,10 +9,9 @@ const initialState = {
 
 export const getBrands = createAsyncThunk(
   'brands/getBrands',
-  async (payload, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const token = getState()?.auth?.token;
-      return await getBrandsApi({ ...payload, token });
+      return await getBrandsApi();
     } catch (error) {
       return rejectWithValue(error?.message || 'Failed to fetch brands');
     }
