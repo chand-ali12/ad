@@ -132,34 +132,26 @@ const profileSlice = createSlice({
       })
       .addCase(getUserProfile.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
-        const additionalData = action.payload?.additional_data || {};
-        const incomingUser = additionalData.user || null;
+        state.message = action.payload?.message || action.payload?.msg || null;
+        // New backend: { status, data: { user: {...}, business: [...] } }
+        const incomingUser = action.payload?.data?.user || null;
         if (incomingUser) {
           state.user = {
             ...incomingUser,
-            profile_picture: incomingUser.profile_picture ?? state.user?.profile_picture ?? null,
-            cover_picture: incomingUser.cover_picture ?? state.user?.cover_picture ?? null,
+            profile_picture_url: incomingUser.profile_picture_url ?? state.user?.profile_picture_url ?? null,
+            cover_picture_url: incomingUser.cover_picture_url ?? state.user?.cover_picture_url ?? null,
           };
           try {
             const rawAuthUser = localStorage.getItem('authUser');
             const authUser = rawAuthUser ? JSON.parse(rawAuthUser) : {};
-            localStorage.setItem('authUser', JSON.stringify({
-              ...authUser,
-              ...state.user,
-              profile_picture: state.user.profile_picture ?? authUser?.profile_picture ?? null,
-              cover_picture: state.user.cover_picture ?? authUser?.cover_picture ?? null,
-            }));
+            localStorage.setItem('authUser', JSON.stringify({ ...authUser, ...state.user }));
           } catch (_) {}
           state.profile.name = incomingUser.name || '';
-          state.profile.profileImage = state.user.profile_picture || null;
-          state.profile.bannerImage = state.user.cover_picture || null;
+          state.profile.profileImage = state.user.profile_picture_url || null;
+          state.profile.bannerImage = state.user.cover_picture_url || null;
         } else {
           state.user = null;
         }
-        state.addOns = additionalData.add_ons || null;
-        state.businessReviewCount = additionalData.businessReviewCount || 0;
-        state.certificates = Array.isArray(additionalData.certificates) ? additionalData.certificates : [];
       })
       .addCase(getUserProfile.rejected, (state, action) => {
         state.status = 'failed';
@@ -172,30 +164,24 @@ const profileSlice = createSlice({
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
-        // Update user state with new data from API response; preserve existing images when API omits them
+        state.message = action.payload?.message || action.payload?.msg || null;
+        // New backend returns updated user directly in data
         if (action.payload?.data) {
           const incoming = action.payload.data;
           state.user = {
             ...state.user,
             ...incoming,
-            profile_picture: incoming.profile_picture ?? state.user?.profile_picture ?? null,
-            cover_picture: incoming.cover_picture ?? state.user?.cover_picture ?? null,
+            profile_picture_url: incoming.profile_picture_url ?? state.user?.profile_picture_url ?? null,
+            cover_picture_url: incoming.cover_picture_url ?? state.user?.cover_picture_url ?? null,
           };
           try {
             const rawAuthUser = localStorage.getItem('authUser');
             const authUser = rawAuthUser ? JSON.parse(rawAuthUser) : {};
-            localStorage.setItem('authUser', JSON.stringify({
-              ...authUser,
-              ...state.user,
-              profile_picture: state.user.profile_picture ?? authUser?.profile_picture ?? null,
-              cover_picture: state.user.cover_picture ?? authUser?.cover_picture ?? null,
-            }));
+            localStorage.setItem('authUser', JSON.stringify({ ...authUser, ...state.user }));
           } catch (_) {}
-          // Update profile state for backward compatibility
           state.profile.name = incoming.name || '';
-          state.profile.profileImage = state.user.profile_picture || null;
-          state.profile.bannerImage = state.user.cover_picture || null;
+          state.profile.profileImage = state.user.profile_picture_url || null;
+          state.profile.bannerImage = state.user.cover_picture_url || null;
         }
       })
       .addCase(updateUserProfile.rejected, (state, action) => {

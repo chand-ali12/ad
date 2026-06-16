@@ -59,7 +59,7 @@ const ForgetPassword = ({ className = "" }) => {
     <section className={`w-full pb-12 bg-[#F5F5F0] flex items-start justify-center pt-8 md:pt-12 ${className}`}>
       {showToast && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toastStyles}`}
+          className={`fixed top-4 right-4 z-[9999] max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${toastStyles}`}
           role="alert"
         >
           {toastMessage}

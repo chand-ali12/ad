@@ -94,39 +94,19 @@ const businessSlice = createSlice({
       })
       .addCase(getBusinessProfile.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
-        const additionalData = action.payload?.additional_data || {};
-        const incomingBusiness = additionalData.business || null;
-        // Preserve existing business profile/cover image URLs when API returns null to avoid blink
+        state.message = action.payload?.message || action.payload?.msg || null;
+        // New backend: { status, data: { user: {...}, business: [{ ...businessFields }] } }
+        const incomingBusiness = action.payload?.data?.business?.[0] || null;
         if (incomingBusiness) {
           state.business = {
             ...state.business,
             ...incomingBusiness,
-            business_profile_picture: incomingBusiness.business_profile_picture ?? state.business?.business_profile_picture ?? null,
-            business_cover_picture: incomingBusiness.business_cover_picture ?? state.business?.business_cover_picture ?? null,
+            profile_picture_url: incomingBusiness.profile_picture_url ?? state.business?.profile_picture_url ?? null,
+            cover_picture_url: incomingBusiness.cover_picture_url ?? state.business?.cover_picture_url ?? null,
           };
-          try {
-            const rawAuthUser = localStorage.getItem('authUser');
-            const authUser = rawAuthUser ? JSON.parse(rawAuthUser) : {};
-            const mergedBusinessList = Array.isArray(authUser?.user_business)
-              ? authUser.user_business.map((b) =>
-                  String(b?.id) === String(state.business?.id) ? { ...b, ...state.business } : b,
-                )
-              : authUser?.user_business;
-            localStorage.setItem('authUser', JSON.stringify({
-              ...authUser,
-              user_business: mergedBusinessList,
-            }));
-          } catch (_) {}
         } else {
           state.business = null;
         }
-        state.businessUserLogin = additionalData.business_user_login || false;
-        state.userClaimBusiness = additionalData.user_claim_business || null;
-        state.alreadyGivenReview = additionalData.already_given_review || null;
-        state.addOns = additionalData.add_ons || null;
-        // Reviews come from top-level data array in get-business-profile response
-        state.reviews = Array.isArray(action.payload?.data) ? action.payload.data : [];
       })
       .addCase(getBusinessProfile.rejected, (state, action) => {
         state.status = 'failed';
@@ -139,29 +119,15 @@ const businessSlice = createSlice({
       })
       .addCase(updateBusinessProfile.fulfilled, (state, action) => {
         state.status = 'succeeded';
-        state.message = action.payload?.msg || null;
-        // Update business state with new data from API response
+        state.message = action.payload?.message || action.payload?.msg || null;
         if (action.payload?.data) {
           const incoming = action.payload.data;
           state.business = {
             ...state.business,
             ...incoming,
-            business_profile_picture: incoming.business_profile_picture ?? state.business?.business_profile_picture ?? null,
-            business_cover_picture: incoming.business_cover_picture ?? state.business?.business_cover_picture ?? null,
+            profile_picture_url: incoming.profile_picture_url ?? state.business?.profile_picture_url ?? null,
+            cover_picture_url: incoming.cover_picture_url ?? state.business?.cover_picture_url ?? null,
           };
-          try {
-            const rawAuthUser = localStorage.getItem('authUser');
-            const authUser = rawAuthUser ? JSON.parse(rawAuthUser) : {};
-            const mergedBusinessList = Array.isArray(authUser?.user_business)
-              ? authUser.user_business.map((b) =>
-                  String(b?.id) === String(state.business?.id) ? { ...b, ...state.business } : b,
-                )
-              : authUser?.user_business;
-            localStorage.setItem('authUser', JSON.stringify({
-              ...authUser,
-              user_business: mergedBusinessList,
-            }));
-          } catch (_) {}
         }
       })
       .addCase(updateBusinessProfile.rejected, (state, action) => {

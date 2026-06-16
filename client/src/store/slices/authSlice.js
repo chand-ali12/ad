@@ -268,19 +268,19 @@ const authSlice = createSlice({
         const data = payload?.data ?? {};
         const user = data?.user ?? null;
         const token = data?.sessiontoken ?? null;
+        // Attach business array to user so Settings/Header can detect hasBusiness without extra fetch
+        const business = data?.business ?? null;
+        const userWithBusiness = user
+          ? { ...user, user_business: Array.isArray(business) ? business : (business ? [business] : []) }
+          : null;
 
         state.status = 'succeeded';
         state.message = payload?.message || payload?.msg || null;
         state.token = token;
-        state.user = user;
+        state.user = userWithBusiness;
 
-        // Persist to localStorage
-        if (token) {
-          localStorage.setItem('authToken', token);
-        }
-        if (user) {
-          localStorage.setItem('authUser', JSON.stringify(user));
-        }
+        if (token) localStorage.setItem('authToken', token);
+        if (userWithBusiness) localStorage.setItem('authUser', JSON.stringify(userWithBusiness));
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.status = 'failed';

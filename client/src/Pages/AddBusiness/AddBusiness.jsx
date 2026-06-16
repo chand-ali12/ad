@@ -53,12 +53,11 @@ const AddBusiness = () => {
                 business_brands: data.brands,
                 token,
             });
-            let updatedUser = res?.data?.user ?? res?.user ?? res?.data;
-            if (updatedUser != null && typeof updatedUser === 'object') {
-                dispatch(updateUserAfterAddBusiness(updatedUser));
-            } else if (authUser && res?.data != null && typeof res.data === 'object') {
+            // New backend: { status: true, data: { business: { id, name, ... } } }
+            const newBusiness = res?.data?.business;
+            if (newBusiness && authUser) {
                 const existingBusinesses = Array.isArray(authUser.user_business) ? authUser.user_business : [];
-                updatedUser = { ...authUser, user_business: [...existingBusinesses, res.data] };
+                const updatedUser = { ...authUser, user_business: [...existingBusinesses, newBusiness] };
                 dispatch(updateUserAfterAddBusiness(updatedUser));
             }
             reset();
