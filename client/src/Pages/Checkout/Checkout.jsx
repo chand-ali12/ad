@@ -468,7 +468,7 @@ const Checkout = () => {
           query_ids: certificateIds,
           amount: total,
           coa_count: certificateIds.length,
-          coupon_code: getValues("promoCode")?.trim() || undefined,
+          coupon_code: getValues("promoCode")?.trim() || null,
           is_expedited: isExpedited,
         }),
       ).unwrap();
@@ -733,9 +733,9 @@ const Checkout = () => {
         queries_count: braintreePayload.queries_count ?? certificateIds?.length,
         encrypt_amount: encryptValue,
         ...(user?.id && { user_id: user.id }),
-        ...(braintreePayload.coupon_code && {
-          coupon_code: braintreePayload.coupon_code,
-        }),
+        coupon_code:
+          (braintreePayload.coupon_code ?? getValues("promoCode")?.trim()) ||
+          null,
         ...(braintreePayload.email != null &&
           braintreePayload.email !== "" && { email: braintreePayload.email }),
         ...(braintreePayload.brand_name != null &&
@@ -861,7 +861,14 @@ const Checkout = () => {
     const code = getValues("promoCode")?.trim();
     if (!code) return;
     dispatch(clearCoupon());
-    await dispatch(verifyCoupon({ coupon_code: code, amount: subtotal }));
+    const userEmail =
+      user?.email?.trim() ||
+      user?.user_email?.trim() ||
+      getValues("email")?.trim() ||
+      "";
+    await dispatch(
+      verifyCoupon({ coupon_code: code, amount: subtotal, email: userEmail }),
+    );
   };
 
   // Called when coupon reduces total to $0 — uses /ad/free-process-paypal (single)
@@ -874,7 +881,7 @@ const Checkout = () => {
       return;
     }
     let shouldReleaseSubmitLock = true;
-    const couponCode = getValues("promoCode")?.trim() || undefined;
+    const couponCode = getValues("promoCode")?.trim() || null;
     const savedCartItems = [...cartItems];
 
     try {
@@ -910,7 +917,7 @@ const Checkout = () => {
           queries_count: 0,
           is_user_paid: 0,
           add_on: item.add_on ?? 0,
-          ...(couponCode && { coupon_code: couponCode }),
+          coupon_code: couponCode,
           is_expedited: item.is_expedited || isExpedited || false,
         };
         freeResult = await dispatch(
@@ -960,7 +967,7 @@ const Checkout = () => {
             queries_count: cartItems.length,
             total_queries_count: cartItems.length,
             queries,
-            ...(couponCode && { coupon_code: couponCode }),
+            coupon_code: couponCode,
           }),
         ).unwrap();
       }
