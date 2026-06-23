@@ -284,6 +284,11 @@ const CertificatesofAuthenticity = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [noteModalCertificate, setNoteModalCertificate] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [showPrintSelectModal, setShowPrintSelectModal] = useState(false);
+  const [selectedPrintCerts, setSelectedPrintCerts] = useState([]);
+  const [isPrintingBulk, setIsPrintingBulk] = useState(false);
+  const [printModalSearch, setPrintModalSearch] = useState("");
+  const PRINT_MAX = 25;
   const [requestImagesCertificate, setRequestImagesCertificate] =
     useState(null);
   const [pdfModalCert, setPdfModalCert] = useState(null);
@@ -351,6 +356,12 @@ const CertificatesofAuthenticity = ({
   useEffect(() => {
     dispatch(getBrands());
   }, [dispatch]);
+
+  // Reset print selection whenever the active tab changes
+  useEffect(() => {
+    setSelectedPrintCerts([]);
+    setPrintModalSearch("");
+  }, [activeTab]);
 
   // Slide-in: after panel mounts, trigger transition from right
   useEffect(() => {
@@ -577,6 +588,249 @@ const CertificatesofAuthenticity = ({
       onUpdateNote(noteModalCertificate.id, noteDraft);
       closeNoteModal();
     }
+  };
+
+  // Certificates available for printing — depends on the active tab (Pending excluded)
+  const printableCertificates = (() => {
+    if (activeTab === "Pending") return [];
+    let base;
+    if (activeTab === "Expedited") {
+      base = allExpeditedCards;
+    } else if (activeTab === "Sold") {
+      base = certificates.filter(isCertificateSold);
+    } else if (activeTab === "Available") {
+      base = certificates.filter((c) => !isCertificateSold(c));
+    } else {
+      // Completed
+      base = certificates;
+    }
+    return base.filter((cert) => getCertificatePdfUrl(cert) || getCompletedThumbnailUrl(cert));
+  })();
+
+  // Filtered list shown inside the print selection modal
+  const printModalSearchLower = printModalSearch.trim().toLowerCase();
+  const printModalCertificates = printModalSearchLower
+    ? printableCertificates.filter((cert) => {
+        const aq = cert.authenticate_query;
+        const brand = (
+          aq?.brand ??
+          cert.brands?.brand ??
+          cert.brands?.[0]?.brand ??
+          cert.brands?.[0]?.name ??
+          cert.brand ??
+          cert.brand_name ??
+          ""
+        ).toLowerCase();
+        const order = String(
+          aq?.order_number ??
+            cert.certificate_id ??
+            cert.coa_number ??
+            cert.order_number ??
+            cert.order ??
+            cert.order_id ??
+            "",
+        ).toLowerCase();
+        return brand.includes(printModalSearchLower) || order.includes(printModalSearchLower);
+      })
+    : printableCertificates;
+
+  const getCertKey = (cert) => cert.id ?? cert.certificate_id ?? cert.order;
+
+  const isPrintCertSelected = (cert) => {
+    const key = getCertKey(cert);
+    return selectedPrintCerts.some((c) => getCertKey(c) === key);
+  };
+
+  const togglePrintCertSelection = (cert) => {
+    const key = getCertKey(cert);
+    setSelectedPrintCerts((prev) => {
+      const exists = prev.some((c) => getCertKey(c) === key);
+      if (exists) return prev.filter((c) => getCertKey(c) !== key);
+      if (prev.length >= PRINT_MAX) return prev;
+      return [...prev, cert];
+    });
+  };
+
+  const handleSelectAllPrint = () => {
+    const visibleKeys = new Set(printModalCertificates.map(getCertKey));
+    const alreadySelected = selectedPrintCerts.filter((c) => visibleKeys.has(getCertKey(c)));
+    const allVisibleSelected =
+      alreadySelected.length === printModalCertificates.length && printModalCertificates.length > 0;
+
+    if (allVisibleSelected) {
+      // Deselect only the visible ones
+      setSelectedPrintCerts((prev) =>
+        prev.filter((c) => !visibleKeys.has(getCertKey(c))),
+      );
+    } else {
+      // Add visible ones up to PRINT_MAX
+      setSelectedPrintCerts((prev) => {
+        const existing = prev.filter((c) => !visibleKeys.has(getCertKey(c)));
+        const toAdd = printModalCertificates.filter(
+          (c) => !prev.some((p) => getCertKey(p) === getCertKey(c)),
+        );
+        const slots = PRINT_MAX - existing.length;
+        return [...existing, ...toAdd.slice(0, Math.max(0, slots))];
+      });
+    }
+  };
+
+  const handleBulkPrint = () => {
+    if (selectedPrintCerts.length === 0) return;
+    const certsWithMedia = selectedPrintCerts.filter(
+      (cert) => getCompletedThumbnailUrl(cert) || getCertificatePdfUrl(cert),
+    );
+    if (certsWithMedia.length === 0) return;
+
+    setIsPrintingBulk(true);
+
+    const pagesHtml = certsWithMedia
+      .map((cert) => {
+        const pngUrl = getCompletedThumbnailUrl(cert);
+        const pdfUrl = getCertificatePdfUrl(cert);
+        if (pngUrl) {
+          const escaped = String(pngUrl).replace(/"/g, "&quot;");
+          return `<div class="page"><img src="${escaped}" alt="Certificate of Authenticity" /></div>`;
+        }
+        const escaped = String(pdfUrl).replace(/"/g, "&quot;");
+        return `<div class="page"><embed src="${escaped}" type="application/pdf" /></div>`;
+      })
+      .join("\n");
+
+    const srcdoc = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Print Certificates</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { background: #fff; }
+    .page {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      page-break-after: always;
+      break-after: page;
+    }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    img { max-width: 100%; max-height: 100vh; width: auto; height: auto; object-fit: contain; display: block; }
+    embed { width: 100%; height: 100vh; display: block; }
+    @page { size: auto; margin: 5mm; }
+  </style>
+</head>
+<body>
+${pagesHtml}
+</body>
+</html>`;
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(
+      navigator.userAgent || "",
+    );
+
+    // Mobile: iframes with srcdoc are unreliable — open a dedicated window instead
+    if (isMobileDevice) {
+      const mobileWin = window.open("", "_blank");
+      if (!mobileWin) { setIsPrintingBulk(false); return; }
+      const withScript = srcdoc.replace(
+        "</body>",
+        `<script>
+(function(){
+  var imgs=Array.prototype.slice.call(document.querySelectorAll('img'));
+  var total=imgs.length,loaded=0;
+  function doPrint(){setTimeout(function(){try{window.focus();window.print();}catch(e){}},300);}
+  if(total===0){doPrint();return;}
+  imgs.forEach(function(img){
+    function done(){loaded++;if(loaded>=total)doPrint();}
+    if(img.complete&&img.naturalWidth>0)done();
+    else{img.onload=done;img.onerror=done;}
+  });
+  setTimeout(doPrint,10000);
+})();
+<\/script></body>`,
+      );
+      mobileWin.document.write(withScript);
+      mobileWin.document.close();
+      setIsPrintingBulk(false);
+      setShowPrintSelectModal(false);
+      setSelectedPrintCerts([]);
+      setPrintModalSearch("");
+      return;
+    }
+
+    // Desktop: hidden zero-size iframe in the current tab — no new tab opens
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.cssText =
+      "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+
+    let cleanedUp = false;
+    const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+    };
+
+    // Guard: ensure doPrint and triggerPrint each fire at most once
+    let printed = false;
+
+    const doPrint = () => {
+      if (printed) return;
+      printed = true;
+      // Close modal and reset state now that images are loaded
+      setIsPrintingBulk(false);
+      setShowPrintSelectModal(false);
+      setSelectedPrintCerts([]);
+      setPrintModalSearch("");
+      setTimeout(() => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (_) {
+          /* cross-origin blocked */
+        }
+        setTimeout(cleanup, 5000);
+      }, 150);
+    };
+
+    const triggerPrint = () => {
+      if (printed) return;
+      try {
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow?.document;
+        const imgs = iframeDoc
+          ? Array.from(iframeDoc.querySelectorAll("img"))
+          : [];
+        const total = imgs.length;
+
+        if (total === 0) { doPrint(); return; }
+
+        let loaded = 0;
+        imgs.forEach((img) => {
+          const done = () => { loaded++; if (loaded >= total) doPrint(); };
+          if (img.complete && img.naturalWidth > 0) done();
+          else { img.onload = done; img.onerror = done; }
+        });
+        // Failsafe: print even if some images stall
+        setTimeout(() => { if (!printed) doPrint(); }, 10000);
+      } catch (_) {
+        if (!printed) {
+          printed = true;
+          setIsPrintingBulk(false);
+          setShowPrintSelectModal(false);
+          setSelectedPrintCerts([]);
+          setPrintModalSearch("");
+        }
+        cleanup();
+      }
+    };
+
+    iframe.onload = () => triggerPrint();
+    iframe.srcdoc = srcdoc;
+    document.body.appendChild(iframe);
+    // Fallback for browsers that don't reliably fire onload for srcdoc
+    setTimeout(() => { if (!printed) triggerPrint(); }, 1500);
   };
 
   const openPdfForBestView = (url) => {
@@ -968,6 +1222,21 @@ const CertificatesofAuthenticity = ({
               aria-label="Search certificates"
             />
           </div>
+          {activeTab !== "Pending" && printableCertificates.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedPrintCerts([]);
+                setPrintModalSearch("");
+                setShowPrintSelectModal(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-white bg-primary rounded-[12px] hover:opacity-90 transition-opacity flex-shrink-0 whitespace-nowrap"
+              aria-label="Print certificates"
+            >
+              <FiPrinter className="w-4 h-4 sm:w-5 sm:h-5" />
+              Print Certificates
+            </button>
+          )}
         </div>
 
         {/* Main Tabs: Completed | Pending | Sold items | Available items (single row, like old website) */}
@@ -1861,6 +2130,279 @@ const CertificatesofAuthenticity = ({
             </div>
           );
         })()}
+
+      {/* Print Certificates Selection Modal */}
+      {showPrintSelectModal && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 px-3 py-4 sm:p-4"
+          onClick={() => {
+            if (!isPrintingBulk) {
+              setShowPrintSelectModal(false);
+              setSelectedPrintCerts([]);
+              setPrintModalSearch("");
+            }
+          }}
+        >
+          <div
+            className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[82dvh] sm:max-h-[88dvh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Loading overlay — shown while certificate images are being prepared */}
+            {isPrintingBulk && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-white/95 rounded-2xl">
+                <div className="relative flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full border-4 border-gray-200 border-t-primary animate-spin" />
+                  <FiPrinter className="absolute w-6 h-6 text-primary" />
+                </div>
+                <div className="text-center px-6">
+                  <p className="text-base font-bold text-primary">
+                    Preparing certificates for print…
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Loading {selectedPrintCerts.length} certificate{selectedPrintCerts.length !== 1 ? "s" : ""} — print dialog will open shortly
+                  </p>
+                </div>
+                <div className="flex gap-1.5">
+                  {selectedPrintCerts.slice(0, Math.min(selectedPrintCerts.length, 5)).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-primary animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200 flex-shrink-0">
+              <h3 className="text-sm sm:text-base font-bold text-primary flex items-center gap-2 flex-wrap leading-snug">
+                Select Certificates to Print
+                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  max {PRINT_MAX}
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isPrintingBulk) {
+                    setShowPrintSelectModal(false);
+                    setSelectedPrintCerts([]);
+                    setPrintModalSearch("");
+                  }
+                }}
+                className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Close"
+                disabled={isPrintingBulk}
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search bar */}
+            <div className="px-4 sm:px-5 pt-2.5 pb-2 flex-shrink-0">
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search by brand or order..."
+                  value={printModalSearch}
+                  onChange={(e) => setPrintModalSearch(e.target.value)}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  disabled={isPrintingBulk}
+                  className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-primary disabled:opacity-50"
+                />
+                {printModalSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setPrintModalSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label="Clear search"
+                  >
+                    <FiX className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Select All row + count */}
+            <div className="px-4 sm:px-5 py-2 border-b border-gray-100 flex-shrink-0 flex items-center justify-between bg-gray-50">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={
+                    printModalCertificates.length > 0 &&
+                    printModalCertificates.every((c) => isPrintCertSelected(c))
+                  }
+                  onChange={handleSelectAllPrint}
+                  disabled={isPrintingBulk}
+                  className="w-4 h-4 accent-primary rounded border-gray-300 cursor-pointer"
+                />
+                <span className="text-sm font-semibold text-primary">
+                  {printModalCertificates.length > 0 &&
+                  printModalCertificates.every((c) => isPrintCertSelected(c))
+                    ? "Deselect All"
+                    : "Select All"}
+                </span>
+              </label>
+              <div className="flex items-center gap-2">
+                {selectedPrintCerts.length >= PRINT_MAX && (
+                  <span className="text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    Limit reached ({PRINT_MAX})
+                  </span>
+                )}
+                <span className="text-xs text-gray-500">
+                  {selectedPrintCerts.length} / {PRINT_MAX} selected
+                </span>
+              </div>
+            </div>
+
+            {/* Certificate List */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 py-2 sm:py-3 space-y-1.5 sm:space-y-2">
+              {printModalCertificates.length === 0 ? (
+                <p className="text-center text-gray-500 py-8 text-sm">
+                  {printModalSearch ? "No certificates match your search." : "No printable certificates available."}
+                </p>
+              ) : (
+                printModalCertificates.map((cert) => {
+                  const aq = cert.authenticate_query;
+                  const certBrand =
+                    aq?.brand ??
+                    cert.brands?.brand ??
+                    cert.brands?.[0]?.brand ??
+                    cert.brands?.[0]?.name ??
+                    cert.brand ??
+                    cert.brand_name ??
+                    "Unknown Brand";
+                  const certOrder =
+                    aq?.order_number ??
+                    cert.certificate_id ??
+                    cert.coa_number ??
+                    cert.order_number ??
+                    cert.order ??
+                    cert.order_id ??
+                    null;
+                  const certDate = cert.created_at
+                    ? new Date(cert.created_at).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })
+                    : null;
+                  const certResult = getCertificateResult(cert);
+                  const resultColor = getResultBadgeColor(certResult);
+                  const thumbUrl = getCompletedThumbnailUrl(cert);
+                  const isSelected = isPrintCertSelected(cert);
+                  const atLimit = selectedPrintCerts.length >= PRINT_MAX && !isSelected;
+                  const certKey = getCertKey(cert) ?? Math.random();
+
+                  return (
+                    <label
+                      key={certKey}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all select-none ${
+                        isSelected
+                          ? "border-primary bg-primary/5 cursor-pointer"
+                          : atLimit
+                            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 cursor-pointer"
+                      } ${isPrintingBulk ? "opacity-60 cursor-not-allowed" : ""}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => !isPrintingBulk && !atLimit && togglePrintCertSelection(cert)}
+                        disabled={isPrintingBulk || atLimit}
+                        className="w-4 h-4 flex-shrink-0 accent-primary rounded border-gray-300 cursor-pointer disabled:cursor-not-allowed"
+                      />
+                      {/* Thumbnail */}
+                      <div className="w-12 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                        {thumbUrl ? (
+                          <img
+                            src={thumbUrl}
+                            alt={certBrand}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = certificateImage;
+                            }}
+                          />
+                        ) : (
+                          <img
+                            src={certificateImage}
+                            alt={certBrand}
+                            className="w-full h-full object-contain opacity-60"
+                          />
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-primary truncate">
+                          {certBrand}
+                        </p>
+                        {certOrder && (
+                          <p className="text-xs text-gray-600 truncate">
+                            <span className="font-semibold">Order:</span> {certOrder}
+                          </p>
+                        )}
+                        {certDate && (
+                          <p className="text-xs text-gray-500">{certDate}</p>
+                        )}
+                      </div>
+                      {certResult && (
+                        <span
+                          className="flex-shrink-0 px-2 py-0.5 rounded-full text-white text-xs font-semibold"
+                          style={{ backgroundColor: resultColor }}
+                        >
+                          {certResult}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 sm:px-5 py-3 border-t border-gray-200 flex-shrink-0 flex items-center gap-3 justify-end bg-white">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isPrintingBulk) {
+                    setShowPrintSelectModal(false);
+                    setSelectedPrintCerts([]);
+                    setPrintModalSearch("");
+                  }
+                }}
+                disabled={isPrintingBulk}
+                className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkPrint}
+                disabled={selectedPrintCerts.length === 0 || isPrintingBulk}
+                className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPrintingBulk ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                    Opening print…
+                  </>
+                ) : (
+                  <>
+                    <FiPrinter className="w-4 h-4" />
+                    Print Selected ({selectedPrintCerts.length})
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Request More Images modal (like old site) */}
       <RequestMoreImagesModal
