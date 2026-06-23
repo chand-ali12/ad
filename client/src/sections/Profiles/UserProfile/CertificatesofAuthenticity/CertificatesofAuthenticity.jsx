@@ -604,7 +604,11 @@ const CertificatesofAuthenticity = ({
       // Completed
       base = certificates;
     }
-    return base.filter((cert) => getCertificatePdfUrl(cert) || getCompletedThumbnailUrl(cert));
+    return base.filter((cert) => {
+      const result = (getCertificateResult(cert) ?? "").toLowerCase();
+      if (result === "inconclusive") return false;
+      return getCertificatePdfUrl(cert) || getCompletedThumbnailUrl(cert);
+    });
   })();
 
   // Filtered list shown inside the print selection modal
@@ -701,13 +705,20 @@ const CertificatesofAuthenticity = ({
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Print Certificates</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { background: #fff; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+    }
     .page {
       width: 100%;
-      min-height: 100vh;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -715,9 +726,14 @@ const CertificatesofAuthenticity = ({
       break-after: page;
     }
     .page:last-child { page-break-after: auto; break-after: auto; }
-    img { max-width: 100%; max-height: 100vh; width: auto; height: auto; object-fit: contain; display: block; }
-    embed { width: 100%; height: 100vh; display: block; }
-    @page { size: auto; margin: 5mm; }
+    img {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+    embed { display: block; width: 100%; height: 100vh; }
+    @page { size: auto; margin: 0; }
   </style>
 </head>
 <body>
